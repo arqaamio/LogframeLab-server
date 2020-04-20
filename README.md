@@ -20,7 +20,7 @@ docker-compose up -d
 ## 6- Run database flyway migrate 
 mvn clean flyway:migrate -Dflyway.configFile=flywayConfig.properties
 
-## 7- run logframelab spring boot application (dev profile, port:8082)
+## 7- run logframelab spring boot application (profile:dev, port:8082)
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
 ## phpmyadmin (database: arqaam)

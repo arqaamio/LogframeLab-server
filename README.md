@@ -23,7 +23,7 @@ mvn clean flyway:migrate -Dflyway.configFile=flywayConfig.properties
 ## 7- Run logframelab spring boot application (profile:dev, port:8082)
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
-## phpmyadmin (database:arqaam)
+## phpMyAdmin (database:arqaam)
 phpmyadmin: http://127.0.0.1:8080/
 
 

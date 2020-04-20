@@ -1,0 +1,33 @@
+version: '3'
+
+services:
+  # MySQL
+  db:
+    image: mysql:5.7
+    container_name: mysql_host
+    restart: always
+    environment:
+      MYSQL_ROOT_HOST: '%'
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: arqaam
+      MYSQL_USER: user
+      MYSQL_PASSWORD: user
+    command: mysqld --character-set-server=utf8 --collation-server=utf8_general_ci
+    volumes:
+      - ./docker/db/data:/var/lib/mysql
+      - ./docker/db/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./docker/db/sql:/docker-entrypoint-initdb.d
+    ports:
+      - 3306:3306
+
+  # phpMyAdmin
+  phpmyadmin:
+    container_name: test_phpmyadmin
+    image: phpmyadmin/phpmyadmin
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOSTS=mysql_host
+      - PMA_USER=root
+      - PMA_PASSWORD=root
+    ports:
+      - 8080:80

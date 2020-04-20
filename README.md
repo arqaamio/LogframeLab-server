@@ -11,7 +11,7 @@ https://docs.docker.com/get-docker/
 ## 3- Install docker-compose
 https://docs.docker.com/compose/install/
 
-## 4- Open current project directory
+## 4- Open the current project directory
 cd LogframeLab-server
 
 ## 5- Run mysql and phpMyAdmin

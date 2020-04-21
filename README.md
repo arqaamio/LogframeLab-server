@@ -28,34 +28,34 @@ phpmyadmin: http://127.0.0.1:8080/
 
 # How to contribute
 
-## Fork the project
+## 1- Fork the project
 
-## Clone the forked project
+## 2- Clone the forked project
 git clone https://github.com/<username>/<repository>.git
 
-## open the project directory
+## 3- open the project directory
 cd LogframeLab-server
 
-## Sync the loacl forked repository with the main repo 
+## 4- Sync the loacl forked repository with the main repo 
 git remote add upstream https://github.com/arqaamio/LogframeLab-server.git
 git fetch upstream
 
-## Check the updated develop branch from the main repo
+## 5- Check the updated develop branch from the main repo
 git checkout upstream/develop
 
-## Copy the develop branch into a new feature branch
+## 6- Copy the develop branch into a new feature branch
 git checkout -b feature/<feature_name>
 
-## Develop the new feature and commit the changes
+## 7- Develop the new feature and commit the changes
 git add .
 git commit -m "<feature_id_from_task_managment_system> feature description"
 
-## Push the new feature/<feature_name> to the forked repository
+## 8- Push the new feature/<feature_name> to the forked repository
 git push --set-upstream origin feature/<feature_name>
 
-## Select the feature/<feature_name> from the forked repository in github
+## 9- Select the feature/<feature_name> from the forked repository in github
 
-## Pull request the new feature/<feature_name> branch against the develop branch in the main repository 
+## 10- Pull request the new feature/<feature_name> branch against the develop branch in the main repository 
 
 
 [![License: CC BY-NC-SA 4.0](https://licensebuttons.net/l/by-nc-sa/4.0/80x15.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/)

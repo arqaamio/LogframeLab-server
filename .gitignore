@@ -32,3 +32,4 @@ build/
 
 ### spring boot
 server/**/application.properties
+/docker/**

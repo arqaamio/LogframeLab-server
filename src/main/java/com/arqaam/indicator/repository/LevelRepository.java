@@ -6,10 +6,10 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-
+@Repository
 public interface LevelRepository extends JpaRepository<Level, Long> {
 
-    List<Level> findAll();
+  List<Level> findAll();
 
-    Level findLevelByName(String name);
+  Level findLevelByName(String name);
 }

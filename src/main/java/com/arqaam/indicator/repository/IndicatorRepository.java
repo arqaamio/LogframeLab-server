@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface IndicatorRepository extends JpaRepository<Indicator,Long> {
+public interface IndicatorRepository extends JpaRepository<Indicator, Long> {
 
-    List<Indicator> findAll();
+  List<Indicator> findAll();
 }

@@ -20,12 +20,15 @@ docker-compose up -d
 ## 6- Run database flyway migrate 
 mvn clean flyway:migrate -Dflyway.configFile=flywayConfig.properties
 
-## 7- Run logframelab spring boot application (profile:dev, port:8082)
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
+## 7- Run logframelab spring boot application (profiles:dev swagger,  port:8082)
+mvn spring-boot:run -Dspring-boot.run.profiles=dev,swagger
 
 ## phpMyAdmin (database:arqaam)
 phpmyadmin: http://127.0.0.1:8080/
 
+## Swagger
+You can find the API documentation at http://127.0.0.1:8082/swagger-ui.html
+=======
 # How to contribute
 
 ## 1- Fork the project
@@ -56,6 +59,5 @@ git push --set-upstream origin feature/<feature_name>
 ## 9- Select the feature/<feature_name> from the forked repository in github
 
 ## 10- Pull request the new feature/<feature_name> branch against the develop branch in the main repository 
-
 
 [![License: CC BY-NC-SA 4.0](https://licensebuttons.net/l/by-nc-sa/4.0/80x15.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/)

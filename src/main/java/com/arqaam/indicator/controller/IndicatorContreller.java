@@ -2,10 +2,15 @@ package com.arqaam.indicator.controller;
 
 import com.arqaam.indicator.model.IndicatorResponse;
 import com.arqaam.indicator.service.IndicatorService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.util.FileCopyUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,6 +26,7 @@ import java.util.*;
 
 @CrossOrigin(origins = "*")
 @RestController
+@Api(tags = "Indicator", produces = MediaType.APPLICATION_JSON_VALUE)
 public class IndicatorContreller {
 
     @Autowired
@@ -29,7 +35,12 @@ public class IndicatorContreller {
     private static final Logger LOGGER = LoggerFactory.getLogger(IndicatorContreller.class);
 
     @ResponseStatus(HttpStatus.OK)
-    @PostMapping("/indicator/upload")
+    @PostMapping(value = "/indicator/upload")
+    @ApiOperation(value = "${IndicatorController.handleFileUpload.value}", nickname = "handleFileUpload", response = IndicatorResponse.class, responseContainer = "List")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "File was uploaded", response = IndicatorResponse.class, responseContainer = "List"),
+            @ApiResponse(code = 500, message = "Failed to upload the file", response = Error.class)
+    })
     public List<IndicatorResponse> handleFileUpload(@RequestParam("file") MultipartFile file) throws IOException {
 
         LOGGER.info("Extract Indicators Form Wrod File .... ");
@@ -40,6 +51,11 @@ public class IndicatorContreller {
     }
 
     @PostMapping("/indicator/download")
+    @ApiOperation(value = "${IndicatorController.downloadIndicators.value}", nickname = "handleFileUpload", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "File was uploaded"),
+            @ApiResponse(code = 500, message = "File failed to upload", response = Error.class)
+    })
     public void downloadIndicators(HttpServletRequest request, HttpServletResponse response, @RequestBody List<IndicatorResponse> indicators) throws IOException {
         ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsInWordFile(indicators);
         if (outputStream != null) {

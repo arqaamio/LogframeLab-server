@@ -43,7 +43,7 @@ public class IndicatorController implements Logging {
         logger().info("Extract Indicators Form Word File .... ");
         Path tmpFilePath = Paths.get(System.getProperty("user.home")).resolve("tmp" + UUID.randomUUID()+".docx");
         Files.copy(file.getInputStream(), tmpFilePath);
-        return indicatorService.extractIndicatorsFormWordFile(tmpFilePath);
+        return indicatorService.extractIndicatorsFromWordFile(tmpFilePath);
     }
 
     @PostMapping("/indicator/download")

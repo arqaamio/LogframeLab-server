@@ -39,7 +39,7 @@ public class Indicator {
     private List<String> keywordsList;
 
     public List<String> getKeywordsList() {
-        if(keywordsList == null && ( keywords != null && !keywords.isEmpty())){
+        if(keywordsList == null && keywords != null && !keywords.isEmpty()){
             keywordsList = new ArrayList<>(Arrays.asList(keywords.split(",")));
         }
         return keywordsList;

@@ -44,11 +44,11 @@ public class IndicatorService implements Logging {
     private LevelRepository levelRepository;
 
     /**
-     * Extract Indicators from Form in a Word format
-     * @param tmpfilePath Temporary File
+     * Extract Indicators from a Word file
+     * @param tmpfilePath Temporary Path of the word file
      * @return List of Indicators
      */
-    public List<IndicatorResponse> extractIndicatorsFormWordFile(Path tmpfilePath) {
+    public List<IndicatorResponse> extractIndicatorsFromWordFile(Path tmpfilePath) {
         List<IndicatorResponse> result = new ArrayList();
         Map<Long, IndicatorResponse> mapResult = new HashMap<>();
         List<Indicator> indicatorsList = indicatorRepository.findAll();
@@ -58,10 +58,12 @@ public class IndicatorService implements Logging {
         int maxIndicatorLength = 1;
         if (indicatorsList != null && !indicatorsList.isEmpty()) {
             for (Indicator ind : indicatorsList) {
-                for (String words : ind.getKeywordsList()) {
-                    int numberKeywords = words.split(" ").length;
-                    if (numberKeywords > maxIndicatorLength) {
-                        maxIndicatorLength = numberKeywords;
+                if(ind.getKeywordsList() != null) {
+                    for (String words : ind.getKeywordsList()) {
+                        int numberKeywords = words.split(" ").length;
+                        if (numberKeywords > maxIndicatorLength) {
+                            maxIndicatorLength = numberKeywords;
+                        }
                     }
                 }
             }
@@ -118,7 +120,7 @@ public class IndicatorService implements Logging {
     protected void checkIndicators(List<String> wordsToScan, List<Indicator> indicators,
                                 Map<Long, IndicatorResponse> mapResult,
                                 List<IndicatorResponse> result) {
-        logger().info("Check Indicators with wordsToScan: {}, indicators: {}, mapResult: {}, result: {}",
+        logger().debug("Check Indicators with wordsToScan: {}, indicators: {}, mapResult: {}, result: {}",
                 wordsToScan, indicators, mapResult, result);
         String wordsStr = wordsToScan.stream()
                 .collect(Collectors.joining(" ", " ", " "));

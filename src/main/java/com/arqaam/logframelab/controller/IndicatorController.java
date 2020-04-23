@@ -1,13 +1,12 @@
-package com.arqaam.indicator.controller;
+package com.arqaam.logframelab.controller;
 
-import com.arqaam.indicator.model.IndicatorResponse;
-import com.arqaam.indicator.service.IndicatorService;
+import com.arqaam.logframelab.model.IndicatorResponse;
+import com.arqaam.logframelab.service.IndicatorService;
+import com.arqaam.logframelab.util.Logging;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -27,12 +26,10 @@ import java.util.*;
 @CrossOrigin(origins = "*")
 @RestController
 @Api(tags = "Indicator", produces = MediaType.APPLICATION_JSON_VALUE)
-public class IndicatorContreller {
+public class IndicatorController implements Logging {
 
     @Autowired
     IndicatorService indicatorService;
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(IndicatorContreller.class);
 
     @ResponseStatus(HttpStatus.OK)
     @PostMapping(value = "/indicator/upload")
@@ -43,11 +40,10 @@ public class IndicatorContreller {
     })
     public List<IndicatorResponse> handleFileUpload(@RequestParam("file") MultipartFile file) throws IOException {
 
-        LOGGER.info("Extract Indicators Form Wrod File .... ");
-        Path tmpfilePath = Paths.get(System.getProperty("user.home")).resolve("tmp" + UUID.randomUUID()+".docx");
-        Files.copy(file.getInputStream(), tmpfilePath);
-        List<IndicatorResponse> result = indicatorService.extractIndicatorsFormWrodFile(tmpfilePath);
-        return result;
+        logger().info("Extract Indicators Form Word File .... ");
+        Path tmpFilePath = Paths.get(System.getProperty("user.home")).resolve("tmp" + UUID.randomUUID()+".docx");
+        Files.copy(file.getInputStream(), tmpFilePath);
+        return indicatorService.extractIndicatorsFormWordFile(tmpFilePath);
     }
 
     @PostMapping("/indicator/download")

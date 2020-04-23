@@ -1,11 +1,12 @@
-package com.arqaam.indicator.service;
+package com.arqaam.logframelab.service;
 
-import com.arqaam.indicator.model.Indicator;
-import com.arqaam.indicator.model.IndicatorResponse;
-import com.arqaam.indicator.model.Level;
-import com.arqaam.indicator.repository.IndicatorRepository;
-import com.arqaam.indicator.repository.LevelRepository;
+import com.arqaam.logframelab.model.persistence.Indicator;
+import com.arqaam.logframelab.model.IndicatorResponse;
+import com.arqaam.logframelab.model.persistence.Level;
+import com.arqaam.logframelab.repository.IndicatorRepository;
+import com.arqaam.logframelab.repository.LevelRepository;
 
+import com.arqaam.logframelab.util.Logging;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -31,22 +32,23 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
-public class IndicatorService {
+public class IndicatorService implements Logging {
 
     @Autowired
-    ResourceLoader resourceLoader;
+    private ResourceLoader resourceLoader;
 
     @Autowired
-    IndicatorRepository indicatorRepository;
+    private IndicatorRepository indicatorRepository;
 
     @Autowired
-    LevelRepository levelRepository;
+    private LevelRepository levelRepository;
 
-    public IndicatorService() {
-
-    }
-
-    public List<IndicatorResponse> extractIndicatorsFormWrodFile(Path tmpfilePath) {
+    /**
+     * Extract Indicators from Form in a Word format
+     * @param tmpfilePath Temporary File
+     * @return List of Indicators
+     */
+    public List<IndicatorResponse> extractIndicatorsFormWordFile(Path tmpfilePath) {
         List<IndicatorResponse> result = new ArrayList();
         Map<Long, IndicatorResponse> mapResult = new HashMap<>();
         List<Indicator> indicatorsList = indicatorRepository.findAll();
@@ -106,10 +108,18 @@ public class IndicatorService {
         return result;
     }
 
-    public void checkIndicators(List<String> wordsToScan, List<Indicator> indicators,
+    /**
+     * Fills a list of indicators that contain certain words
+     * @param wordsToScan Words to find in the indicators' keyword list
+     * @param indicators Indicators to be analyzed
+     * @param mapResult Map Indicators' Id and IndicatorResponses
+     * @param result List of Indicators that contains words to scan variable
+     */
+    protected void checkIndicators(List<String> wordsToScan, List<Indicator> indicators,
                                 Map<Long, IndicatorResponse> mapResult,
                                 List<IndicatorResponse> result) {
-
+        logger().info("Check Indicators with wordsToScan: {}, indicators: {}, mapResult: {}, result: {}",
+                wordsToScan, indicators, mapResult, result);
         String wordsStr = wordsToScan.stream()
                 .collect(Collectors.joining(" ", " ", " "));
         // key1 key2 key3 compared to ke,key1,key2 key3
@@ -143,6 +153,11 @@ public class IndicatorService {
         }
     }
 
+    /**
+     * Creates Word File that contains indicators
+     * @param indicatorResponses Indicators to be put on the word file
+     * @return Word File
+     */
     public ByteArrayOutputStream exportIndicatorsInWordFile(List<IndicatorResponse> indicatorResponses) {
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -170,10 +185,17 @@ public class IndicatorService {
         return outputStream;
     }
 
-    public void parseVarWithValue(Text textNode, String text, List<IndicatorResponse> indicators) {
+    /**
+     * Parse Nodes with indicators' label when the text param contains the indicators' var attribute
+     * @param textNode Node that will have elements parsed into
+     * @param text Text to be found in the indicators' var
+     * @param indicators Indicators that have the label to be parsed
+     */
+    protected void parseVarWithValue(Text textNode, String text, List<IndicatorResponse> indicators) {
         textNode.setValue("");
         ObjectFactory factory = Context.getWmlObjectFactory();
         R runParent = (R) textNode.getParent();
+        logger().info("Parsing Var with Value with text:{}, indicators: {}", text, indicators);
         if (indicators != null && !indicators.isEmpty())
             for (IndicatorResponse indicator : indicators) {
                 if (text.contains(indicator.getVar())) {
@@ -188,8 +210,12 @@ public class IndicatorService {
             }
     }
 
-    public void imporIndicators(String path) {
-        System.out.println("------ import indicators from xlsx");
+    /**
+     * TODO
+     * @param path
+     */
+    public void importIndicators(String path) {
+        logger().info("------ import indicators from xlsx");
         File file = new File(path);
         try {
             Workbook workbook = new XSSFWorkbook(file);
@@ -200,7 +226,7 @@ public class IndicatorService {
                 iterator.next();
             }
             while (iterator.hasNext()) {
-                System.out.println(" ");
+                logger().info(" ");
                 Row currentRow = iterator.next();
                 Indicator indicator = new Indicator();
                 indicator.setDescription(currentRow.getCell(1).getStringCellValue());
@@ -214,7 +240,7 @@ public class IndicatorService {
                 Level level = levelRepository.findLevelByName(currentRow.getCell(0).getStringCellValue().toUpperCase());
                 if (level != null) {
                     indicator.setLevel(level);
-                    System.out.println(level.getName());
+                    logger().info(level.getName());
                     indicatorRepository.save(indicator);
                 }
             }

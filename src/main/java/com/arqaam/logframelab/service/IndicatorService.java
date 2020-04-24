@@ -98,6 +98,19 @@ public class IndicatorService implements Logging {
                         }
                     }
                 }
+                if(!result.isEmpty()) {
+                    // Sort by Level
+                    //TODO fix this static strings
+                    result = result.stream().sorted((o1, o2) -> {
+                        if (o1.getLevel().equals(o2.getLevel())) return 0;
+                        if (o1.getLevel().equals("IMPACT")) return -1;
+                        if (o2.getLevel().equals("IMPACT")) return 1;
+                        if (o1.getLevel().equals("OUTCOME")) return -1; 
+                        if (o2.getLevel().equals("OUTCOME")) return 1;
+                        if (o1.getLevel().equals("OUTPUT")) return -1;
+                        return 1;
+                    }).collect(Collectors.toList());
+                }
             } catch (JAXBException e) {
                 e.printStackTrace();
             } catch (XPathBinderAssociationIsPartialException e) {

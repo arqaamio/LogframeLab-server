@@ -171,30 +171,6 @@ public class IndicatorServiceTest {
     void importIndicators() {
     }
 
-    private List<Indicator> createListIndicator() {
-        List<String> keywordList = new ArrayList<>();
-        keywordList.add("var");
-        keywordList.add("template");
-        keywordList.add("economy");
-
-        List<Indicator> list = new ArrayList<>();
-        for (int i = 1; i < 4; i++) {
-            list.add(Indicator.builder()
-                    .id((long) i)
-                    .level(Level.builder()
-                            .id(1L)
-                            .color("color")
-                            .name("IMPACT")
-                            .description("Description")
-                            .templateVar("templatevar").build())
-                    .description("Description")
-                    .name("Name")
-                    .keywordsList(keywordList)
-                    .build());
-        }
-        return list;
-    }
-
     private List<Indicator> mockIndicatorList() {
         Level level1 = new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green");
         Level level2 = new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red");

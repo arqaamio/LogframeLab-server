@@ -25,14 +25,14 @@ import java.util.*;
 
 @CrossOrigin(origins = "*")
 @RestController
-@Api(tags = "Indicator", produces = MediaType.APPLICATION_JSON_VALUE)
+@Api(tags = "Indicator")
 public class IndicatorController implements Logging {
 
     @Autowired
-    IndicatorService indicatorService;
+    private IndicatorService indicatorService;
 
     @ResponseStatus(HttpStatus.OK)
-    @PostMapping(value = "/indicator/upload")
+    @PostMapping(value = "/indicator/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "${IndicatorController.handleFileUpload.value}", nickname = "handleFileUpload", response = IndicatorResponse.class, responseContainer = "List")
     @ApiResponses({
             @ApiResponse(code = 200, message = "File was uploaded", response = IndicatorResponse.class, responseContainer = "List"),
@@ -46,8 +46,8 @@ public class IndicatorController implements Logging {
         return indicatorService.extractIndicatorsFromWordFile(tmpFilePath);
     }
 
-    @PostMapping("/indicator/download")
-    @ApiOperation(value = "${IndicatorController.downloadIndicators.value}", nickname = "handleFileUpload", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/indicator/download", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    @ApiOperation(value = "${IndicatorController.downloadIndicators.value}", nickname = "handleFileUpload")
     @ApiResponses({
             @ApiResponse(code = 200, message = "File was uploaded"),
             @ApiResponse(code = 500, message = "File failed to upload", response = Error.class)

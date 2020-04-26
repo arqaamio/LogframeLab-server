@@ -1,6 +1,6 @@
-package com.arqaam.indicator.repository;
+package com.arqaam.logframelab.repository;
 
-import com.arqaam.indicator.model.Indicator;
+import com.arqaam.logframelab.model.persistence.Indicator;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

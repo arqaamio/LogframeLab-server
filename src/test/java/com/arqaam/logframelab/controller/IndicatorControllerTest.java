@@ -1,17 +1,26 @@
 package com.arqaam.logframelab.controller;
 
+import com.arqaam.logframelab.exception.WrongFileExtensionException;
+import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.Level;
 import com.arqaam.logframelab.repository.IndicatorRepository;
+import org.docx4j.openpackaging.exceptions.Docx4JException;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
+import org.docx4j.wml.Text;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -21,12 +30,21 @@ import static org.mockito.Mockito.when;
 
 class IndicatorControllerTest extends BaseControllerTest {
 
+    private final static Level[] mockLevels = new Level[]{
+            new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green"),
+            new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red"),
+            new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange"),
+            new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple")
+    };
+
     // Instead of mocking the repository maybe could load H2 memory with flyway
     @MockBean
     private IndicatorRepository indicatorRepository;
 
     @Test
+//    @Sql("/test_indicators.sql")
     void handleFileUpload() {
+        List<IndicatorResponse> expectedResult = getExpectedResult();
         List<Indicator> indicators = mockIndicatorList();
         when(indicatorRepository.findAll()).thenReturn(indicators);
         HttpHeaders headers = new HttpHeaders();
@@ -39,24 +57,30 @@ class IndicatorControllerTest extends BaseControllerTest {
         List<IndicatorResponse> result = response.getBody();
         assertNotNull(result);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(4, result.size());
+        assertEquals(expectedResult.size(), result.size());
 
-        for (int i = 0; i < 4; i++) {
-            assertEquals(indicators.get(i).getName(), result.get(i).getLabel());
-            assertEquals(indicators.get(i).getDescription(), result.get(i).getDescription());
-            assertEquals(indicators.get(i).getLevel().getTemplateVar(), result.get(i).getVar());
+        for (int i = 0; i < expectedResult.size(); i++) {
+            assertEquals(expectedResult.get(i).getId(), result.get(i).getId());
+            assertEquals(expectedResult.get(i).getLabel(), result.get(i).getLabel());
+            assertEquals(expectedResult.get(i).getDescription(), result.get(i).getDescription());
+            assertEquals(expectedResult.get(i).getVar(), result.get(i).getVar());
+            assertEquals(expectedResult.get(i).getColor(), result.get(i).getColor());
+            assertEquals(expectedResult.get(i).getKeys(), result.get(i).getKeys());
         }
     }
 
 
     @Test
     void handleFileUpload_indicatorsWithSameId() {
+        List<String> keywordsFoodList = new ArrayList<>();
+        keywordsFoodList.add("agriculture");
+        keywordsFoodList.add("food");
+        List<IndicatorResponse> expectedResult = getExpectedResult();
         List<String> keywordList = new ArrayList<>();
         keywordList.add("agriculture");
         List<Indicator> indicators = mockIndicatorList();
-        indicators.add(new Indicator(1L, "Name", "Description", "agriculture", new Level(), keywordList));
-        indicators.add(new Indicator(4L, "Name2", "Description2", "", new Level(), null));
-
+        indicators.add(new Indicator(1L, "Name", "Description", "agriculture", mockLevels[1], keywordsFoodList));
+        indicators.add(new Indicator(4L, "Name2", "Description2", "", mockLevels[0], null));
         when(indicatorRepository.findAll()).thenReturn(indicators);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -68,25 +92,35 @@ class IndicatorControllerTest extends BaseControllerTest {
         List<IndicatorResponse> result = response.getBody();
         assertNotNull(result);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(4, result.size());
+        assertEquals(expectedResult.size(), result.size());
 
-        for (int i = 0; i < 4; i++) {
-            assertEquals(indicators.get(i).getName(), result.get(i).getLabel());
-            assertEquals(indicators.get(i).getDescription(), result.get(i).getDescription());
-            assertEquals(indicators.get(i).getLevel().getTemplateVar(), result.get(i).getVar());
+        for (int i = 0; i < expectedResult.size(); i++) {
+            assertEquals(expectedResult.get(i).getId(), result.get(i).getId());
+            assertEquals(expectedResult.get(i).getLabel(), result.get(i).getLabel());
+            assertEquals(expectedResult.get(i).getDescription(), result.get(i).getDescription());
+            assertEquals(expectedResult.get(i).getVar(), result.get(i).getVar());
+            assertEquals(expectedResult.get(i).getColor(), result.get(i).getColor());
+            //TODO With the same Id, the keywords get duplicated
+            //assertEquals(expectedResult.get(i).getKeys(), result.get(i).getKeys());
         }
     }
 
     @Test
     void handleFileUpload_withIndicatorsWithoutKeywords() {
-        List<String> keywordList = new ArrayList<>();
-        keywordList.add("agriculture");
+        List<String> keywordsFoodList = new ArrayList<>();
+        keywordsFoodList.add("food");
+        List<String> keywordsList = new ArrayList<>();
+        keywordsList.add(keywordsFoodList.get(0));
+        List<IndicatorResponse> expectedResult = getExpectedResult();
+        expectedResult.add(new IndicatorResponse(5L, mockLevels[2].getName(),mockLevels[2].getColor(),"Name 3",
+                "Description", Collections.singletonList("agriculture"), mockLevels[2].getTemplateVar()));
+        expectedResult.add(new IndicatorResponse(6L, mockLevels[2].getName(),mockLevels[2].getColor(),"Name 6",
+                "Description", keywordsFoodList, mockLevels[2].getTemplateVar()));
         List<Indicator> indicators = mockIndicatorList();
         // This showcases how keywords property is irrelevant, only keywordList is taken into consideration
-        indicators.add(new Indicator(5L, "Name 5", "Description", "",
-                new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green"), keywordList));
-        indicators.add(new Indicator(2L, "Name 2", "Description", "", new Level(), null));
-        indicators.add(new Indicator(3L, "Name 3", "Description", "agriculture", new Level(), null));
+        indicators.add(new Indicator(6L, "Name 6", "Description", "",  mockLevels[2], keywordsList));
+        indicators.add(new Indicator(2L, "Name 2", "Description", "", mockLevels[1], null));
+        indicators.add(new Indicator(3L, "Name 3", "Description", "agriculture", mockLevels[2], null));
 
 
         when(indicatorRepository.findAll()).thenReturn(indicators);
@@ -100,28 +134,65 @@ class IndicatorControllerTest extends BaseControllerTest {
         List<IndicatorResponse> result = response.getBody();
         assertNotNull(result);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(5, result.size());
+        assertEquals(expectedResult.size(), result.size());
 
-        for (int i = 0; i < 4; i++) {
-            assertEquals(indicators.get(i).getName(), result.get(i).getLabel());
-            assertEquals(indicators.get(i).getDescription(), result.get(i).getDescription());
-            assertEquals(indicators.get(i).getLevel().getTemplateVar(), result.get(i).getVar());
+        for (int i = 0; i < expectedResult.size(); i++) {
+            assertEquals(expectedResult.get(i).getId(), result.get(i).getId());
+            assertEquals(expectedResult.get(i).getLabel(), result.get(i).getLabel());
+            assertEquals(expectedResult.get(i).getDescription(), result.get(i).getDescription());
+            assertEquals(expectedResult.get(i).getVar(), result.get(i).getVar());
+            assertEquals(expectedResult.get(i).getColor(), result.get(i).getColor());
+            assertEquals(expectedResult.get(i).getKeys(), result.get(i).getKeys());
         }
     }
-    //TODO can't find the template but gives 200 nonetheless. Needs exception handling
+
     @Test
-    void downloadIndicators() {
-        ResponseEntity<String> response = testRestTemplate.exchange("/indicator/download", HttpMethod.POST,
-                new HttpEntity<>(createIndicatorResponseList()), String.class);
+    void handleFileUpload_wrongFileFormat() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", new ClassPathResource("application.properties"));
+        ResponseEntity<Error> response = testRestTemplate.exchange("/indicator/upload", HttpMethod.POST,
+                new HttpEntity<>(body, headers), Error.class);
+        assertEqualsException(response, HttpStatus.CONFLICT, 1, WrongFileExtensionException.class);
+    }
+
+    @Test
+    void downloadIndicators() throws Docx4JException, JAXBException, IOException {
+        List<IndicatorResponse> indicators = createIndicatorResponseList();
+        ResponseEntity<Resource> response = testRestTemplate.exchange("/indicator/download", HttpMethod.POST,
+                new HttpEntity<>(indicators), Resource.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(response.getBody().getInputStream());
+        List<Object> textNodes = wordMLPackage.getMainDocumentPart().getJAXBNodesViaXPath("//w:t", true);
+        boolean valid = false;
+        int c = 0;
+        for (Object obj : textNodes) {
+            String currentText = ((Text) ((JAXBElement) obj).getValue()).getValue();
+            if(currentText.equals(indicators.get(c).getLabel())) {
+                c++;
+                if(c == indicators.size()){
+                    valid = true;
+                    break;
+                }
+            }
+            System.out.println(currentText);
+        }
+        assertTrue(valid);
+
+    }
+
+    @Test
+    void downloadIndicators_emptyIndicators() {
+        List<IndicatorResponse> indicators = new ArrayList<>();
+        ResponseEntity<Error> response = testRestTemplate.exchange("/indicator/download", HttpMethod.POST,
+                new HttpEntity<>(indicators), Error.class);
+        assertEqualsException(response, HttpStatus.CONFLICT, 6, IllegalArgumentException.class);
     }
 
     private List<Indicator> mockIndicatorList() {
-        Level level1 = new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green");
-        Level level2 = new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red");
-        Level level3 = new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange");
-        Level level4 = new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple");
-        String keyword = "food insecurity,nutrition,farming,agriculture";
+        String keyword = "food insecurity,agriculture";
         List<Indicator> list = new ArrayList<>();
 
         List<String> keywordsFoodList = new ArrayList<>();
@@ -138,14 +209,32 @@ class IndicatorControllerTest extends BaseControllerTest {
         keywordsGovPolicyList.add("government policies");
         keywordsGovPolicyList.add("policy");
 
-        list.add(new Indicator(4L,"Number of policies/strategies/laws/regulation developed/revised for digitalisation with EU support",
-                "Digitalization", "policy", level1, keywordsPolicyList));
+        list.add(new Indicator(4L, "Number of policies/strategies/laws/regulation developed/revised for digitalisation with EU support",
+                "Digitalization", "policy", mockLevels[0], keywordsPolicyList));
         list.add(new Indicator(73L, "Number of government policies developed or revised with civil society organisation participation through EU support",
-                "Public Sector", "government policies, policy", level2, keywordsGovPolicyList));
+                "Public Sector", "government policies, policy", mockLevels[1], keywordsGovPolicyList));
         list.add(new Indicator(5L, "Revenue, excluding grants (% of GDP)",
-                "Public Sector", "government", level4, keywordsGovList));
-        list.add(new Indicator(1L,"Number of food insecure people receiving EU assistance",
-                "Food & Agriculture", keyword, level2, keywordsFoodList));
+                "Public Sector", "government", mockLevels[3], keywordsGovList));
+        list.add(new Indicator(1L, "Number of food insecure people receiving EU assistance",
+                "Food & Agriculture", keyword, mockLevels[1], keywordsFoodList));
+
+        return list;
+    }
+
+    private List<IndicatorResponse> getExpectedResult(){
+        List<String> keywordsFoodList = new ArrayList<>();
+        keywordsFoodList.add("agriculture");
+        keywordsFoodList.add("food");
+
+        List<IndicatorResponse> list = new ArrayList<>();
+        list.add(new IndicatorResponse(3L, mockLevels[3].getName(), mockLevels[3].getColor(), "Revenue, excluding grants (% of GDP)",
+                "Public Sector", Collections.singletonList("government"), mockLevels[3].getTemplateVar()));
+        list.add(new IndicatorResponse(2L, mockLevels[1].getName(), mockLevels[1].getColor(),"Number of government policies developed or revised with civil society organisation participation through EU support",
+                "Public Sector", Collections.singletonList("policy"), mockLevels[1].getTemplateVar()));
+        list.add(new IndicatorResponse(4L,mockLevels[1].getName(), mockLevels[1].getColor(),"Number of food insecure people receiving EU assistance",
+                "Food & Agriculture", keywordsFoodList, mockLevels[1].getTemplateVar()));
+        list.add(new IndicatorResponse(1L,mockLevels[0].getName(), mockLevels[0].getColor(), "Number of policies/strategies/laws/regulation developed/revised for digitalisation with EU support",
+                "Digitalization", Collections.singletonList("policy"), mockLevels[0].getTemplateVar()));
         return list;
     }
 

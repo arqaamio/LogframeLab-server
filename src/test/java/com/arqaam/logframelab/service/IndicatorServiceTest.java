@@ -4,6 +4,8 @@ import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.Level;
 import com.arqaam.logframelab.repository.IndicatorRepository;
+import org.docx4j.openpackaging.exceptions.Docx4JException;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.Br;
 import org.docx4j.wml.R;
 import org.docx4j.wml.Text;
@@ -12,6 +14,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
 
@@ -104,22 +110,39 @@ public class IndicatorServiceTest {
         assertEquals(0, result.size());
     }
 
-    //TODO add validation for this test. Should send an exception
     @Test
     void checkIndicators_withoutWordsToScan() {
-//        List<String> wordsToScan = new ArrayList<>();
-//        List<Indicator> indicators = new ArrayList<>();
-//        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
-//        List<IndicatorResponse> result = new ArrayList<>();
-//        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
+        List<String> wordsToScan = new ArrayList<>();
+        List<Indicator> indicators = new ArrayList<>();
+        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
+        List<IndicatorResponse> result = new ArrayList<>();
+        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
+        assertTrue(result.isEmpty());
+        assertTrue(mapResult.isEmpty());
     }
 
-    //TODO can't find the template but just prints stack trace. Need exception handling
     @Test
-    void exportIndicatorsInWordFile() {
-//        List<IndicatorResponse> indicators = createListIndicatorResponse();
-//        ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicators);
+    void exportIndicatorsInWordFile() throws Docx4JException, JAXBException {
+        List<IndicatorResponse> indicators = createListIndicatorResponse();
+        ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicators);
+        assertNotNull(result);
 
+        WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(new ByteArrayInputStream(result.toByteArray()));
+        List<Object> textNodes = wordMLPackage.getMainDocumentPart().getJAXBNodesViaXPath("//w:t", true);
+        boolean valid = false;
+        int c = 0;
+        for (Object obj : textNodes) {
+            String currentText = ((Text) ((JAXBElement) obj).getValue()).getValue();
+            if(currentText.equals(indicators.get(c).getLabel())) {
+                c++;
+                if(c == indicators.size()){
+                    valid = true;
+                    break;
+                }
+            }
+//            System.out.println(currentText);
+        }
+        assertTrue(valid);
     }
 
     @Test
@@ -171,30 +194,6 @@ public class IndicatorServiceTest {
     void importIndicators() {
     }
 
-    private List<Indicator> createListIndicator() {
-        List<String> keywordList = new ArrayList<>();
-        keywordList.add("var");
-        keywordList.add("template");
-        keywordList.add("economy");
-
-        List<Indicator> list = new ArrayList<>();
-        for (int i = 1; i < 4; i++) {
-            list.add(Indicator.builder()
-                    .id((long) i)
-                    .level(Level.builder()
-                            .id(1L)
-                            .color("color")
-                            .name("IMPACT")
-                            .description("Description")
-                            .templateVar("templatevar").build())
-                    .description("Description")
-                    .name("Name")
-                    .keywordsList(keywordList)
-                    .build());
-        }
-        return list;
-    }
-
     private List<Indicator> mockIndicatorList() {
         Level level1 = new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green");
         Level level2 = new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red");
@@ -231,7 +230,7 @@ public class IndicatorServiceTest {
     private List<IndicatorResponse> createListIndicatorResponse() {
         List<IndicatorResponse> list = new ArrayList<>();
         for (int i = 1; i < 4; i++) {
-            list.add(new IndicatorResponse(i, "IMPACT", "color", "Label", "Description", Collections.emptyList(), "var"));
+            list.add(new IndicatorResponse(i, "IMPACT", "color", "Label "+ i, "Description", Collections.emptyList(), "var"));
         }
         return list;
     }

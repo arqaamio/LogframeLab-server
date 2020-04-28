@@ -1,31 +1,36 @@
 package com.arqaam.logframelab.service;
 
-import com.arqaam.logframelab.model.persistence.Indicator;
+import com.arqaam.logframelab.exception.FailedToProcessWordFileException;
+import com.arqaam.logframelab.exception.TemplateNotFoundException;
+import com.arqaam.logframelab.exception.WordFileLoadFailedException;
 import com.arqaam.logframelab.model.IndicatorResponse;
+import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.Level;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
-
 import com.arqaam.logframelab.util.Logging;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
 import org.docx4j.jaxb.Context;
 import org.docx4j.jaxb.XPathBinderAssociationIsPartialException;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.wml.ObjectFactory;
-import org.docx4j.wml.Text;
 import org.docx4j.wml.R;
+import org.docx4j.wml.Text;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ResourceLoader;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -33,9 +38,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class IndicatorService implements Logging {
-
-    @Autowired
-    private ResourceLoader resourceLoader;
 
     @Autowired
     private IndicatorRepository indicatorRepository;
@@ -68,8 +70,7 @@ public class IndicatorService implements Logging {
                 }
             }
             try {
-                WordprocessingMLPackage wordMLPackage = null;
-                wordMLPackage = WordprocessingMLPackage.load(tmpfile);
+                WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(tmpfile);
                 MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
                 String textNodesXPath = "//w:t";
                 List<Object> textNodes = mainDocumentPart.getJAXBNodesViaXPath(textNodesXPath, true);
@@ -98,12 +99,25 @@ public class IndicatorService implements Logging {
                         }
                     }
                 }
-            } catch (JAXBException e) {
-                e.printStackTrace();
-            } catch (XPathBinderAssociationIsPartialException e) {
-                e.printStackTrace();
-            } catch (Docx4JException e) {
-                e.printStackTrace();
+                if(!result.isEmpty()) {
+                    // Sort by Level
+                    //TODO fix this static strings
+                    result = result.stream().sorted((o1, o2) -> {
+                        if (o1.getLevel().equals(o2.getLevel())) return 0;
+                        if (o1.getLevel().equals("IMPACT")) return -1;
+                        if (o2.getLevel().equals("IMPACT")) return 1;
+                        if (o1.getLevel().equals("OUTCOME")) return -1; 
+                        if (o2.getLevel().equals("OUTCOME")) return 1;
+                        if (o1.getLevel().equals("OUTPUT")) return -1;
+                        return 1;
+                    }).collect(Collectors.toList());
+                }
+            } catch (XPathBinderAssociationIsPartialException | JAXBException e) {
+                logger().error("Failed to process temporary word file", e);
+                throw new FailedToProcessWordFileException();
+            } catch (Docx4JException e){
+                logger().error("Failed to load/process the temporary word file.TmpFileName: {}", tmpfile.getName(), e);
+                throw new WordFileLoadFailedException();
             }
         }
         tmpfile.delete();
@@ -125,13 +139,12 @@ public class IndicatorService implements Logging {
         String wordsStr = wordsToScan.stream()
                 .collect(Collectors.joining(" ", " ", " "));
         // key1 key2 key3 compared to ke,key1,key2 key3
-        Iterator<Indicator> iterator = indicators.iterator();
-        while (iterator.hasNext()) {
-            Indicator indicator = iterator.next();
+        for(Indicator indicator : indicators) {
             if (indicator.getKeywordsList() != null && !indicator.getKeywordsList().isEmpty()) {
                 Iterator<String> keysIterator = indicator.getKeywordsList().iterator();
                 while (keysIterator.hasNext()) {
                     String currentKey = keysIterator.next();
+//                for(String currentKey : indicator.getKeywordsList()) {
                     if (wordsStr.toLowerCase().contains(" " + currentKey.toLowerCase() + " ")) {
                         // new indicator found
                         if (!mapResult.containsKey(indicator.getId())) {
@@ -140,7 +153,7 @@ public class IndicatorService implements Logging {
                                     indicator.getLevel().getColor(),
                                     indicator.getName(),
                                     indicator.getDescription(),
-                                    new ArrayList<String>(),
+                                    new ArrayList<>(),
                                     indicator.getLevel().getTemplateVar());
                             result.add(indicatorResponse);
                             mapResult.put(indicator.getId(), indicatorResponse);
@@ -162,16 +175,14 @@ public class IndicatorService implements Logging {
      */
     public ByteArrayOutputStream exportIndicatorsInWordFile(List<IndicatorResponse> indicatorResponses) {
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try {
-            File template = new File("/var/www/indicatorsExportTemplate.docx"); //resourceLoader.getResource("classpath:indicatorsExportTemplate.docx").getFile();
-            WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(template);
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+//            File template = new File("/var/www/indicatorsExportTemplate.docx"); //resourceLoader.getResource("classpath:indicatorsExportTemplate.docx").getFile();
+            WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(new ClassPathResource("indicatorsExportTemplate.docx").getFile());
             MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
             String textNodesXPath = "//w:t";
             List<Object> textNodes = mainDocumentPart.getJAXBNodesViaXPath(textNodesXPath, true);
-            Iterator<Object> iterator = textNodes.iterator();
-            while (iterator.hasNext()) {
-                Object obj = iterator.next();
+            for(Object obj : textNodes) {
                 Text text = (Text) ((JAXBElement) obj).getValue();
                 String value = text.getValue();
                 if (value != null && value.contains("{var}")) {
@@ -179,12 +190,14 @@ public class IndicatorService implements Logging {
                 }
             }
             wordMLPackage.save(outputStream);
-        } catch (Docx4JException e) {
-            e.printStackTrace();
-        } catch (JAXBException e) {
-            e.printStackTrace();
+            return outputStream;
+        } catch (Docx4JException | JAXBException e) {
+            logger().error("Failed to process word template", e);
+            throw new FailedToProcessWordFileException();
+        } catch (IOException e) {
+            logger().error("Template was not Found", e);
+            throw new TemplateNotFoundException();
         }
-        return outputStream;
     }
 
     /**
@@ -213,8 +226,8 @@ public class IndicatorService implements Logging {
     }
 
     /**
-     * TODO
-     * @param path
+     * Import Indicators from an excel file with the extension xlsx
+     * @param path Path of the excel file
      */
     public void importIndicators(String path) {
         logger().info("------ import indicators from xlsx");

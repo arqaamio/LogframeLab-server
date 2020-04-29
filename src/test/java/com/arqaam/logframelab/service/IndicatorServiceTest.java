@@ -4,11 +4,13 @@ import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.Level;
 import com.arqaam.logframelab.repository.IndicatorRepository;
+import com.arqaam.logframelab.repository.LevelRepository;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.Br;
 import org.docx4j.wml.R;
 import org.docx4j.wml.Text;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -22,6 +24,7 @@ import java.io.IOException;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 public class IndicatorServiceTest {
@@ -29,9 +32,28 @@ public class IndicatorServiceTest {
     @Mock
     private IndicatorRepository indicatorRepository;
 
+    @Mock
+    private LevelRepository levelRepository;
+
     @InjectMocks
     private IndicatorService indicatorService;
 
+    private final static Level[] mockLevels = new Level[]{
+        new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green"),
+        new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red"),
+        new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange"),
+        new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple")
+    };
+
+    @BeforeEach
+    void setup(){
+        when(levelRepository.findAll()).thenReturn(Arrays.asList(mockLevels));
+        when(levelRepository.findLevelByName("OUTPUT")).thenReturn(mockLevels[0]);
+        when(levelRepository.findLevelByName("OUTCOME")).thenReturn(mockLevels[1]);
+        when(levelRepository.findLevelByName("OTHER_OUTCOMES")).thenReturn(mockLevels[2]);
+        when(levelRepository.findLevelByName("IMPACT")).thenReturn(mockLevels[3]);
+
+    }
     //TODO because the word file is deleted then the other tests that need that file won't run successfully
     @Test
     void extractIndicatorsFromWordFile() throws IOException {
@@ -63,7 +85,8 @@ public class IndicatorServiceTest {
         List<String> wordsToScan = Arrays.asList("food", "government", "policy", "retirement");
         List<Indicator> indicators = mockIndicatorList();
         // Test also indicators without keyword
-        indicators.add(new Indicator(6L, "Name", "Description", "", new Level(), null));
+//        indicators.add(new Indicator(6L, "Name", "Description", "", new Level(), null));
+        indicators.add(Indicator.builder().id(6L).name("Name").description("Description").build());
         Map<Long, IndicatorResponse> mapResult = new HashMap<>();
         List<IndicatorResponse> result = new ArrayList<>();
         indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
@@ -83,8 +106,10 @@ public class IndicatorServiceTest {
         keywordsPolicyList.add("policy");
         List<String> wordsToScan = Arrays.asList("food", "government", "policy", "retirement");
         List<Indicator> indicators = mockIndicatorList();
-        indicators.add(new Indicator(4L,"Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support",
-                "Digitalization", "policy", new Level(), keywordsPolicyList));
+//        indicators.add(new Indicator(4L,"Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support",
+//                "Digitalization", "policy", new Level(), keywordsPolicyList));
+        indicators.add(Indicator.builder().id(4L).name("Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support")
+                .description("Digitalisation").keywords("policy").keywordsList(keywordsPolicyList).build());
         Map<Long, IndicatorResponse> mapResult = new HashMap<>();
         List<IndicatorResponse> result = new ArrayList<>();
         indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
@@ -192,7 +217,14 @@ public class IndicatorServiceTest {
 
     @Test
     void importIndicators() {
+        //TODO this test
+//        indicatorService.importIndicators(new ClassPathResource("Indicator.xlsx").getPath());
+
+//        indicatorService.importIndicators("/home/ari/Downloads/Indicator.xlsx");
+//        indicatorService.importIndicators("/home/ari/Downloads/SDGs_changed.xlsx");
+
     }
+
 
     private List<Indicator> mockIndicatorList() {
         Level level1 = new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green");
@@ -216,21 +248,23 @@ public class IndicatorServiceTest {
         keywordsGovPolicyList.add("government policies");
         keywordsGovPolicyList.add("policy");
 
-        list.add(new Indicator(1L,"Number of food insecure people receiving EU assistance",
-                "Food & Agriculture", keyword, level2, keywordsList));
-        list.add(new Indicator(4L,"Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support",
-                "Digitalization", "policy", level1, keywordsPolicyList));
-        list.add(new Indicator(5L, "Revenue, excluding grants (% of GDP)",
-                "Public Sector", "government", level4, keywordsGovList));
-        list.add(new Indicator(73L, "Number of government policies developed or revised with civil society organisation participation through EU support",
-                "Public Sector", "government policies, policy", level2, keywordsGovPolicyList));
+        list.add(Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
+                .description("Food & Agriculture").keywords(keyword).level(level2).keywordsList(keywordsList).build());
+        list.add(Indicator.builder().id(4L).name("Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support")
+                .description("Digitalisation").keywords("policy").level(level1).keywordsList(keywordsPolicyList).build());
+        list.add(Indicator.builder().id(5L).name("Revenue, excluding grants (% of GDP)")
+                .description("Public Sector").keywords("government").level(level4).keywordsList(keywordsGovList).build());
+        list.add(Indicator.builder().id(73L).name("Number of government policies developed or revised with civil society organisation participation through EU support")
+                .description("Public Sector").keywords("government policies, policy").level(level2).keywordsList(keywordsGovPolicyList).build());
+
         return list;
     }
 
     private List<IndicatorResponse> createListIndicatorResponse() {
         List<IndicatorResponse> list = new ArrayList<>();
         for (int i = 1; i < 4; i++) {
-            list.add(new IndicatorResponse(i, "IMPACT", "color", "Label "+ i, "Description", Collections.emptyList(), "var"));
+            list.add(IndicatorResponse.builder().id(i).level("IMPACT").color("color").label("Label "+i)
+                    .description("Description").var("var").build());
         }
         return list;
     }

@@ -5,8 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @AllArgsConstructor
 @Builder
 @Data
@@ -18,6 +16,11 @@ public class IndicatorResponse {
     private String color;
     private String label;
     private String description;
-    private List<String> keys;
+//     private List<String> keys; //TODO remove
     private String var;
+    private String themes;
+    private String source;
+    private Boolean disaggregation;
+    private String crsCode;
+    private String sdgCode;
 }

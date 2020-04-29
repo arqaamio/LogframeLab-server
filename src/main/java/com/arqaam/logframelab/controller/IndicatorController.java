@@ -34,6 +34,8 @@ import java.util.UUID;
 public class IndicatorController implements Logging {
 
     private static final String WORD_FILE_EXTENSION = ".docx";
+    private static final String WORKSHEET_FILE_EXTENSION = ".xlsx";
+
     @Autowired
     private IndicatorService indicatorService;
 
@@ -116,4 +118,31 @@ public class IndicatorController implements Logging {
 //            FileCopyUtils.copy(inputStream, response.getOutputStream());
 //        }
 //    }
+
+    @PostMapping(value = "/indicator/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @ApiOperation(value = "${IndicatorController.handleFileUpload.value}", nickname = "handleFileUpload", response = IndicatorResponse.class, responseContainer = "List")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "Indicators were imported"),
+            @ApiResponse(code = 409, message = "Wrong file extension", response = Error.class),
+            @ApiResponse(code = 500, message = "Failed to import indicators", response = Error.class)
+    })
+    public ResponseEntity<Void> importIndicatorFile(@RequestParam("file") MultipartFile file) {
+
+        logger().info("Import Indicators from a worksheet File. File Name: {}", file.getOriginalFilename());
+        if(!file.getOriginalFilename().endsWith(WORKSHEET_FILE_EXTENSION)){
+            logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
+            throw new WrongFileExtensionException();
+        }
+
+        Path tmpFilePath = Paths.get(System.getProperty("user.home")).resolve("tmp" + UUID.randomUUID()+WORKSHEET_FILE_EXTENSION);
+        try {
+            Files.copy(file.getInputStream(), tmpFilePath);
+        } catch (IOException e){
+            logger().error("An unexpected error occurred when copying the file." +
+                    "File Name: {}, tmpFilePath: {}, error: {}", file.getOriginalFilename(), tmpFilePath, e);
+            throw new TmpFileCopyFailedException();
+        }
+        indicatorService.importIndicators(tmpFilePath.toString());
+        return ResponseEntity.ok().body(null);
+    }
 }

@@ -1,6 +1,5 @@
 package com.arqaam.logframelab.controller;
 
-import com.arqaam.logframelab.exception.TmpFileCopyFailedException;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
 import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.IndicatorResponse;
@@ -20,13 +19,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.net.URLConnection;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
-import java.util.UUID;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -53,16 +47,7 @@ public class IndicatorController implements Logging {
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
             throw new WrongFileExtensionException();
         }
-
-        Path tmpFilePath = Paths.get(System.getProperty("user.home")).resolve("tmp" + UUID.randomUUID()+".docx");
-        try {
-            Files.copy(file.getInputStream(), tmpFilePath);
-        } catch (IOException e){
-            logger().error("An unexpected error occurred when copying the file." +
-                    "File Name: {}, tmpFilePath: {}, error: {}", file.getOriginalFilename(), tmpFilePath, e);
-            throw new TmpFileCopyFailedException();
-        }
-        return ResponseEntity.ok().body(indicatorService.extractIndicatorsFromWordFile(tmpFilePath));
+        return ResponseEntity.ok().body(indicatorService.extractIndicatorsFromWordFile(file));
     }
 
     @PostMapping(value = "/indicator/download", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -120,7 +105,7 @@ public class IndicatorController implements Logging {
 //    }
 
     @PostMapping(value = "/indicator/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "${IndicatorController.handleFileUpload.value}", nickname = "handleFileUpload", response = IndicatorResponse.class, responseContainer = "List")
+    @ApiOperation(value = "${IndicatorController.importIndicatorFile.value}", nickname = "handleFileUpload", response = IndicatorResponse.class, responseContainer = "List")
     @ApiResponses({
             @ApiResponse(code = 200, message = "Indicators were imported"),
             @ApiResponse(code = 409, message = "Wrong file extension", response = Error.class),
@@ -133,16 +118,7 @@ public class IndicatorController implements Logging {
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
             throw new WrongFileExtensionException();
         }
-
-        Path tmpFilePath = Paths.get(System.getProperty("user.home")).resolve("tmp" + UUID.randomUUID()+WORKSHEET_FILE_EXTENSION);
-        try {
-            Files.copy(file.getInputStream(), tmpFilePath);
-        } catch (IOException e){
-            logger().error("An unexpected error occurred when copying the file." +
-                    "File Name: {}, tmpFilePath: {}, error: {}", file.getOriginalFilename(), tmpFilePath, e);
-            throw new TmpFileCopyFailedException();
-        }
-        indicatorService.importIndicators(tmpFilePath.toString());
+        indicatorService.importIndicators(file);
         return ResponseEntity.ok().body(null);
     }
 }

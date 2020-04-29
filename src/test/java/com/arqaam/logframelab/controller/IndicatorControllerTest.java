@@ -6,9 +6,11 @@ import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.Level;
 import com.arqaam.logframelab.repository.IndicatorRepository;
+import com.arqaam.logframelab.repository.LevelRepository;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.Text;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -32,15 +34,29 @@ import static org.mockito.Mockito.when;
 class IndicatorControllerTest extends BaseControllerTest {
 
     private final static Level[] mockLevels = new Level[]{
-            new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green"),
-            new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red"),
-            new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange"),
-            new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple")
+            new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green", 3),
+            new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red", 2),
+            new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange", 4),
+            new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple", 1)
     };
 
     // Instead of mocking the repository maybe could load H2 memory with flyway
     @MockBean
+    private LevelRepository levelRepository;
+
+    @MockBean
     private IndicatorRepository indicatorRepository;
+
+    @BeforeEach
+    void setup(){
+        List<Level> levels = new ArrayList<>();
+        levels.add(mockLevels[3]);
+        levels.add(mockLevels[1]);
+        levels.add(mockLevels[0]);
+        levels.add(mockLevels[2]);
+
+        when(levelRepository.findAllByOrderByPriority()).thenReturn(levels);
+    }
 
     @Test
 //    @Sql("/test_indicators.sql")
@@ -92,10 +108,10 @@ class IndicatorControllerTest extends BaseControllerTest {
         List<String> keywordsList = new ArrayList<>();
         keywordsList.add(keywordsFoodList.get(0));
         List<IndicatorResponse> expectedResult = getExpectedResult();
-        expectedResult.add(IndicatorResponse.builder().id(5L).level(mockLevels[2].getName()).color(mockLevels[2].getColor())
-                .label("Name 3").description("Description").var(mockLevels[2].getTemplateVar()).build());
         expectedResult.add(IndicatorResponse.builder().id(6L).level(mockLevels[2].getName()).color(mockLevels[2].getColor())
                 .label("Name 6").description("Description").var(mockLevels[2].getTemplateVar()).build());
+        expectedResult.add(IndicatorResponse.builder().id(5L).level(mockLevels[2].getName()).color(mockLevels[2].getColor())
+                .label("Name 3").description("Description").var(mockLevels[2].getTemplateVar()).build());
         List<Indicator> indicators = mockIndicatorList();
         // This showcases how keywords property is irrelevant, only keywordList is taken into consideration
         indicators.add(Indicator.builder().id(6L).name("Name 6").description("Description").level(mockLevels[2]).keywordsList(keywordsList).build());
@@ -193,21 +209,17 @@ class IndicatorControllerTest extends BaseControllerTest {
     }
 
     private List<IndicatorResponse> getExpectedResult(){
-        List<String> keywordsFoodList = new ArrayList<>();
-        keywordsFoodList.add("agriculture");
-        keywordsFoodList.add("food");
-
         List<IndicatorResponse> list = new ArrayList<>();
-        list.add(IndicatorResponse.builder().id(3).level(mockLevels[3].getName()).color(mockLevels[3].getColor())
+        list.add(IndicatorResponse.builder().level(mockLevels[3].getName()).color(mockLevels[3].getColor())
                 .description("Public Sector").label("Revenue, excluding grants (% of GDP)")
                 .var(mockLevels[3].getTemplateVar()).build());
-        list.add(IndicatorResponse.builder().id(2).level(mockLevels[1].getName()).color(mockLevels[1].getColor())
+        list.add(IndicatorResponse.builder().level(mockLevels[1].getName()).color(mockLevels[1].getColor())
                 .description("Public Sector").label("Number of government policies developed or revised with civil society organisation participation through EU support")
                 .var(mockLevels[1].getTemplateVar()).build());
-        list.add(IndicatorResponse.builder().id(4).level(mockLevels[1].getName()).color(mockLevels[1].getColor())
+        list.add(IndicatorResponse.builder().level(mockLevels[1].getName()).color(mockLevels[1].getColor())
                 .description("Food & Agriculture").label("Number of food insecure people receiving EU assistance")
                 .var(mockLevels[1].getTemplateVar()).build());
-        list.add(IndicatorResponse.builder().id(1).level(mockLevels[0].getName()).color(mockLevels[0].getColor())
+        list.add(IndicatorResponse.builder().level(mockLevels[0].getName()).color(mockLevels[0].getColor())
                 .description("Digitalisation").label("Number of policies/strategies/laws/regulation developed/revised for digitalisation with EU support")
                 .var(mockLevels[0].getTemplateVar()).build());
         return list;

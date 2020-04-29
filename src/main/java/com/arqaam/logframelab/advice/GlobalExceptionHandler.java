@@ -19,7 +19,7 @@ import static java.util.Objects.nonNull;
 @ControllerAdvice(basePackages = "com.arqaam.logframelab")
 public class GlobalExceptionHandler implements Logging {
 
-    private ErrorProperties properties;
+    private final ErrorProperties properties;
 
     public GlobalExceptionHandler(ErrorProperties properties) {
         this.properties = properties;

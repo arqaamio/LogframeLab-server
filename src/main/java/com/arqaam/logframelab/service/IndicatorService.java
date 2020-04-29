@@ -7,7 +7,6 @@ import com.arqaam.logframelab.model.persistence.Level;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
 import com.arqaam.logframelab.util.Logging;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
@@ -23,14 +22,14 @@ import org.docx4j.wml.Text;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -47,15 +46,13 @@ public class IndicatorService implements Logging {
 
     /**
      * Extract Indicators from a Word file
-     * @param tmpfilePath Temporary Path of the word file
+     * @param file Word file
      * @return List of Indicators
      */
-    public List<IndicatorResponse> extractIndicatorsFromWordFile(Path tmpfilePath) {
-        List<IndicatorResponse> result = new ArrayList();
-        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
+    public List<IndicatorResponse> extractIndicatorsFromWordFile(MultipartFile file) {
+        List<IndicatorResponse> result = new ArrayList<>();
         List<Indicator> indicatorsList = indicatorRepository.findAll();
-        File tmpfile = tmpfilePath.toFile();
-        List<String> wordstoScan = new ArrayList(); // current words
+        List<String> wordstoScan = new ArrayList<>(); // current words
         // get the maximum indicator length
         int maxIndicatorLength = 1;
         if (indicatorsList != null && !indicatorsList.isEmpty()) {
@@ -70,57 +67,78 @@ public class IndicatorService implements Logging {
                 }
             }
             try {
-                WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(tmpfile);
+                WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(file.getInputStream());
                 MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
                 String textNodesXPath = "//w:t";
                 List<Object> textNodes = mainDocumentPart.getJAXBNodesViaXPath(textNodesXPath, true);
                 Pattern p = Pattern.compile("[a-z0-9]", Pattern.CASE_INSENSITIVE);
                 StringBuffer currentWord = null;
+                Map<Long, Indicator> mapResult = new HashMap<>();
 
                 for (Object obj : textNodes) {
                     Text text = (Text) ((JAXBElement) obj).getValue();
                     String currentText = text.getValue();
                     char[] strArray = currentText.toLowerCase().toCharArray();
-                    for (int i = 0; i < strArray.length; i++) {
+                    for (char c : strArray) {
                         // append current word to wordstoScan list
-                        if (currentWord == null && p.matcher(strArray[i] + "").find()) {
+                        if (currentWord == null && p.matcher(c + "").find()) {
                             currentWord = new StringBuffer();
-                        } else if (currentWord != null && !p.matcher(strArray[i] + "").find()) {
+                        } else if (currentWord != null && !p.matcher(c + "").find()) {
                             wordstoScan.add(currentWord.toString());
                             currentWord = null;
                         }
                         if (currentWord != null) {
-                            currentWord.append(strArray[i]);
+                            currentWord.append(c);
                         }
                         // clear wordstoScan list if exceed the max length of indicators
                         if (wordstoScan.size() == maxIndicatorLength) {
-                            checkIndicators(wordstoScan, indicatorsList, mapResult, result);
+                            checkIndicators(wordstoScan, indicatorsList, mapResult);
                             wordstoScan.remove(wordstoScan.size() - 1);
                         }
                     }
                 }
-                if(!result.isEmpty()) {
-                    // Sort by Level
-                    //TODO fix this static strings
-                    result = result.stream().sorted((o1, o2) -> {
-                        if (o1.getLevel().equals(o2.getLevel())) return 0;
-                        if (o1.getLevel().equals("IMPACT")) return -1;
-                        if (o2.getLevel().equals("IMPACT")) return 1;
-                        if (o1.getLevel().equals("OUTCOME")) return -1; 
-                        if (o2.getLevel().equals("OUTCOME")) return 1;
-                        if (o1.getLevel().equals("OUTPUT")) return -1;
+                if(!mapResult.isEmpty()) {
+                    List<Level> levelsList = levelRepository.findAllByOrderByPriority();
+                    AtomicInteger c = new AtomicInteger(0);
+                    logger().info("Starting the sort of the indicators {}", mapResult);
+                    // Sort by Level and then by number of times a keyword was tricked
+                    result = mapResult.values().stream().sorted((o1, o2) -> {
+                        if (o1.getLevel().getId().equals(o2.getLevel().getId())){
+                            return o1.getNumTimes() > o2.getNumTimes() ? -1 :
+                                    (o1.getNumTimes().equals(o2.getNumTimes()) ? 0 : 1);
+                        }
+                        for (Level level : levelsList) {
+                            if(level.getPriority().equals(o1.getLevel().getPriority())) return -1;
+                            if(level.getPriority().equals(o2.getLevel().getPriority())) return 1;
+                        }
                         return 1;
-                    }).collect(Collectors.toList());
+                    }).map(indicator -> IndicatorResponse.builder()
+                                    .id(c.getAndIncrement())
+                                    .level(indicator.getLevel().getName())
+                                    .color(indicator.getLevel().getColor())
+                                    .label(indicator.getName())
+                                    .description(indicator.getDescription())
+                                    .var(indicator.getLevel().getTemplateVar())
+                                    .themes(indicator.getThemes())
+                                    .disaggregation(indicator.getDisaggregation())
+                                    .crsCode(indicator.getCrsCode())
+                                    .sdgCode(indicator.getSdgCode())
+                                    .source(indicator.getSource())
+                                    .numTimes(indicator.getNumTimes())
+                                    .build()
+                    ).collect(Collectors.toList());
                 }
             } catch (XPathBinderAssociationIsPartialException | JAXBException e) {
                 logger().error("Failed to process temporary word file", e);
                 throw new FailedToProcessWordFileException();
             } catch (Docx4JException e){
-                logger().error("Failed to load/process the temporary word file.TmpFileName: {}", tmpfile.getName(), e);
+                logger().error("Failed to load/process the temporary word file. Name of the file: {}", file.getName(), e);
                 throw new WordFileLoadFailedException();
+            } catch (IOException e) {
+                logger().error("Failed to open word file. Name of the file: {}", file.getName(), e);
+                throw new FailedToOpenFileException();
             }
         }
-        tmpfile.delete();
         return result;
     }
 
@@ -129,46 +147,24 @@ public class IndicatorService implements Logging {
      * @param wordsToScan Words to find in the indicators' keyword list
      * @param indicators Indicators to be analyzed
      * @param mapResult Map Indicators' Id and IndicatorResponses
-     * @param result List of Indicators that contains words to scan variable
      */
     protected void checkIndicators(List<String> wordsToScan, List<Indicator> indicators,
-                                Map<Long, IndicatorResponse> mapResult,
-                                List<IndicatorResponse> result) {
-        logger().debug("Check Indicators with wordsToScan: {}, indicators: {}, mapResult: {}, result: {}",
-                wordsToScan, indicators, mapResult, result);
+                                   Map<Long, Indicator> mapResult) {
+        logger().debug("Check Indicators with wordsToScan: {}, indicators: {}, mapResult: {}",
+                wordsToScan, indicators, mapResult);
         String wordsStr = wordsToScan.stream()
                 .collect(Collectors.joining(" ", " ", " "));
         // key1 key2 key3 compared to ke,key1,key2 key3
         for(Indicator indicator : indicators) {
             if (indicator.getKeywordsList() != null && !indicator.getKeywordsList().isEmpty()) {
-                Iterator<String> keysIterator = indicator.getKeywordsList().iterator();
-                while (keysIterator.hasNext()) {
-                    String currentKey = keysIterator.next();
-//                for(String currentKey : indicator.getKeywordsList()) {
+                for(String currentKey : indicator.getKeywordsList()) {
                     if (wordsStr.toLowerCase().contains(" " + currentKey.toLowerCase() + " ")) {
                         // new indicator found
-                        if (!mapResult.containsKey(indicator.getId())) {
-                            IndicatorResponse indicatorResponse = IndicatorResponse.builder()
-                                    .id(result.size() + 1)
-                                    .level(indicator.getLevel().getName())
-                                    .color(indicator.getLevel().getColor())
-                                    .label(indicator.getName())
-                                    .description(indicator.getDescription())
-//                                    .keys(new ArrayList<>())
-                                    .var(indicator.getLevel().getTemplateVar())
-                                    .themes(indicator.getThemes())
-                                    .disaggregation(indicator.getDisaggregation())
-                                    .crsCode(indicator.getCrsCode())
-                                    .sdgCode(indicator.getSdgCode())
-                                    .source(indicator.getSource())
-                                    .build();
-                            result.add(indicatorResponse);
-                            mapResult.put(indicator.getId(), indicatorResponse);
+                        if (mapResult.containsKey(indicator.getId())) {
+                            mapResult.get(indicator.getId()).setNumTimes(mapResult.get(indicator.getId()).getNumTimes()+1);
+                        }else {
+                            mapResult.put(indicator.getId(), indicator);
                         }
-                        // add the keyword
-//                        mapResult.get(indicator.getId()).getKeys().add(currentKey);
-                        //
-                        keysIterator.remove();
                     }
                 }
             }
@@ -233,19 +229,18 @@ public class IndicatorService implements Logging {
     }
 
     /**
-     * Import Indicators from an excel file with the extension xlsx
-     * @param path Path of the excel file
+     * Import Indicators from an worksheet/excel file with the extension xlsx
+     * @param file Worksheet file
      */
-    public void importIndicators(String path) {
+     public void importIndicators(MultipartFile file) {
         List<Level> levels = levelRepository.findAll();
         Map<String, Level> levelMap = new HashMap<>();
         for (Level lvl : levels){
             levelMap.put(lvl.getName(), lvl);
         }
-        logger().info("Importing indicators from xlsx, path {}", path);
-        File file = new File(path);
+        logger().info("Importing indicators from xlsx, name {}", file.getName());
         try {
-            Iterator<Row> iterator = new XSSFWorkbook(file).getSheetAt(0).iterator();
+            Iterator<Row> iterator = new XSSFWorkbook(file.getInputStream()).getSheetAt(0).iterator();
             // skip the headers row
             if (iterator.hasNext()) {
                 iterator.next();
@@ -255,19 +250,14 @@ public class IndicatorService implements Logging {
                 logger().info(" ");
                 Row currentRow = iterator.next();
 
-//                indicator.setDescription(currentRow.getCell(1).getStringCellValue());
                 // key words
                 String[] keys = currentRow.getCell(2).getStringCellValue().toLowerCase().split(",");
                 for (int i = 0; i < keys.length; i++) {
                     keys[i] = keys[i].trim().replaceAll("\\s+", " ");
                 }
-//                indicator.setKeywords(String.join(",", keys));
-//                indicator.setName(currentRow.getCell(3).getStringCellValue());
-//                Level level = levelRepository.findLevelByName(currentRow.getCell(0).getStringCellValue().toUpperCase());
                 Level level = levelMap.get(currentRow.getCell(0).getStringCellValue().toUpperCase());
                 if (!isNull(level)) {
                     Cell crsCodeCell = currentRow.getCell(7, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-//                    indicator.setLevel(level);
                     Indicator indicator = Indicator.builder()
                             .level(level)
                             .themes(currentRow.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
@@ -286,14 +276,13 @@ public class IndicatorService implements Logging {
                     count++;
                 }
             }
-//            Level	Theme	Key words	Indicator	Description	Source	Disaggregation	DAC 5 / CRS	SDG	Sources of Verification	Data Source
 
         } catch (IOException e) {
             logger().error("Failed to open worksheet.", e);
             throw new FailedToOpenWorksheetException();
-        } catch (InvalidFormatException e) {
+        }/* catch (InvalidFormatException e) {
             logger().error("Failed to interpret worksheet. It must be in a wrong format.", e);
             throw new WorksheetInWrongFormatException();
-        }
+        }*/
     }
 }

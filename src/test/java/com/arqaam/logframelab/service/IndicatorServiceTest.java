@@ -39,10 +39,10 @@ public class IndicatorServiceTest {
     private IndicatorService indicatorService;
 
     private final static Level[] mockLevels = new Level[]{
-        new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green"),
-        new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red"),
-        new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange"),
-        new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple")
+        new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green", 3),
+        new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red", 2),
+        new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange", 4),
+        new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple", 1)
     };
 
     @BeforeEach
@@ -87,16 +87,21 @@ public class IndicatorServiceTest {
         // Test also indicators without keyword
 //        indicators.add(new Indicator(6L, "Name", "Description", "", new Level(), null));
         indicators.add(Indicator.builder().id(6L).name("Name").description("Description").build());
-        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
-        List<IndicatorResponse> result = new ArrayList<>();
-        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
+//        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
+        Map<Long, Indicator> mapResult = new HashMap<>();
+//        List<IndicatorResponse> result = new ArrayList<>();
+//        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
+        indicatorService.checkIndicators(wordsToScan, indicators, mapResult);
+//        List<Indicator> result = (List<Indicator>) Arrays.asList(mapResult.values().stream().collect(Collector.of()));
 
         assertEquals(3, mapResult.size());
-        assertEquals(3, result.size());
+//        assertEquals(3, result.size());
+//        assertEquals(indicators, mapResult);
         for (int i = 0; i < 3; i++) {
-            assertEquals(indicators.get(i+1).getName(), result.get(i).getLabel());
-            assertEquals(indicators.get(i+1).getDescription(), result.get(i).getDescription());
-            assertEquals(indicators.get(i+1).getLevel().getTemplateVar(), result.get(i).getVar());
+            assertEquals(indicators.get(i+1), mapResult.values().toArray()[i]);
+//            assertEquals(indicators.get(i+1).getName(), result.get(i).getLabel());
+//            assertEquals(indicators.get(i+1).getDescription(), result.get(i).getDescription());
+//            assertEquals(indicators.get(i+1).getLevel().getTemplateVar(), result.get(i).getVar());
         }
     }
 
@@ -110,16 +115,20 @@ public class IndicatorServiceTest {
 //                "Digitalization", "policy", new Level(), keywordsPolicyList));
         indicators.add(Indicator.builder().id(4L).name("Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support")
                 .description("Digitalisation").keywords("policy").keywordsList(keywordsPolicyList).build());
-        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
-        List<IndicatorResponse> result = new ArrayList<>();
-        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
+//        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
+//        List<IndicatorResponse> result = new ArrayList<>();
+        Map<Long, Indicator> mapResult = new HashMap<>();
+//        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
+        indicatorService.checkIndicators(wordsToScan, indicators, mapResult);
 
         assertEquals(3, mapResult.size());
-        assertEquals(3, result.size());
+//        assertEquals(3, result.size());
+//        assertEquals(indicators, mapResult);
         for (int i = 0; i < 3; i++) {
-            assertEquals(indicators.get(i+1).getName(), result.get(i).getLabel());
-            assertEquals(indicators.get(i+1).getDescription(), result.get(i).getDescription());
-            assertEquals(indicators.get(i+1).getLevel().getTemplateVar(), result.get(i).getVar());
+            assertEquals(indicators.get(i+1), mapResult.values().toArray()[i]);
+//            assertEquals(indicators.get(i+1).getName(), result.get(i).getLabel());
+//            assertEquals(indicators.get(i+1).getDescription(), result.get(i).getDescription());
+//            assertEquals(indicators.get(i+1).getLevel().getTemplateVar(), result.get(i).getVar());
         }
     }
 
@@ -127,9 +136,11 @@ public class IndicatorServiceTest {
     void checkIndicators_withoutIndicators() {
         List<String> wordsToScan = Arrays.asList("food", "government", "policy", "retirement");
         List<Indicator> indicators = new ArrayList<>();
-        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
+//        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
+        Map<Long, Indicator> mapResult = new HashMap<>();
         List<IndicatorResponse> result = new ArrayList<>();
-        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
+//        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
+        indicatorService.checkIndicators(wordsToScan, indicators, mapResult);
 
         assertEquals(0, mapResult.size());
         assertEquals(0, result.size());
@@ -139,9 +150,12 @@ public class IndicatorServiceTest {
     void checkIndicators_withoutWordsToScan() {
         List<String> wordsToScan = new ArrayList<>();
         List<Indicator> indicators = new ArrayList<>();
-        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
+//        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
+        Map<Long, Indicator> mapResult = new HashMap<>();
         List<IndicatorResponse> result = new ArrayList<>();
-        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
+//        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
+        indicatorService.checkIndicators(wordsToScan, indicators, mapResult);
+
         assertTrue(result.isEmpty());
         assertTrue(mapResult.isEmpty());
     }
@@ -227,10 +241,6 @@ public class IndicatorServiceTest {
 
 
     private List<Indicator> mockIndicatorList() {
-        Level level1 = new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green");
-        Level level2 = new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red");
-        Level level3 = new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange");
-        Level level4 = new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple");
         String keyword = "food insecurity,nutrition,farming,agriculture";
         List<Indicator> list = new ArrayList<>();
 
@@ -249,13 +259,13 @@ public class IndicatorServiceTest {
         keywordsGovPolicyList.add("policy");
 
         list.add(Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
-                .description("Food & Agriculture").keywords(keyword).level(level2).keywordsList(keywordsList).build());
+                .description("Food & Agriculture").keywords(keyword).level(mockLevels[1]).keywordsList(keywordsList).build());
         list.add(Indicator.builder().id(4L).name("Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support")
-                .description("Digitalisation").keywords("policy").level(level1).keywordsList(keywordsPolicyList).build());
+                .description("Digitalisation").keywords("policy").level(mockLevels[0]).keywordsList(keywordsPolicyList).build());
         list.add(Indicator.builder().id(5L).name("Revenue, excluding grants (% of GDP)")
-                .description("Public Sector").keywords("government").level(level4).keywordsList(keywordsGovList).build());
+                .description("Public Sector").keywords("government").level(mockLevels[3]).keywordsList(keywordsGovList).build());
         list.add(Indicator.builder().id(73L).name("Number of government policies developed or revised with civil society organisation participation through EU support")
-                .description("Public Sector").keywords("government policies, policy").level(level2).keywordsList(keywordsGovPolicyList).build());
+                .description("Public Sector").keywords("government policies, policy").level(mockLevels[1]).keywordsList(keywordsGovPolicyList).build());
 
         return list;
     }

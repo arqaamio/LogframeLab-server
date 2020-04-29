@@ -11,5 +11,7 @@ public interface LevelRepository extends JpaRepository<Level, Long> {
 
   List<Level> findAll();
 
+  List<Level> findAllByOrderByPriority();
+
   Level findLevelByName(String name);
 }

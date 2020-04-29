@@ -29,4 +29,7 @@ public class Level {
 
     @Column(name = "COLOR")
     private String color;
+
+    @Column(name = "PRIORITY")
+    private Integer priority;
 }

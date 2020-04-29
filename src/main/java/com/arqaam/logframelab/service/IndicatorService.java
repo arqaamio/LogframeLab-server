@@ -50,17 +50,22 @@ public class IndicatorService implements Logging {
      * @param tmpfilePath Temporary Path of the word file
      * @return List of Indicators
      */
-    public List<IndicatorResponse> extractIndicatorsFromWordFile(Path tmpfilePath) {
+    public List<IndicatorResponse> extractIndicatorsFromWordFile(Path tmpfilePath, List<String> themeFilter) {
         List<IndicatorResponse> result = new ArrayList();
         Map<Long, IndicatorResponse> mapResult = new HashMap<>();
-        List<Indicator> indicatorsList = indicatorRepository.findAll();
+        List<Indicator> indicatorsList;
+        if (themeFilter != null && !themeFilter.isEmpty()) {
+            indicatorsList = indicatorRepository.getIndicatorsByThemes(themeFilter);
+        } else {
+            indicatorsList = indicatorRepository.findAll();
+        }
         File tmpfile = tmpfilePath.toFile();
         List<String> wordstoScan = new ArrayList(); // current words
         // get the maximum indicator length
         int maxIndicatorLength = 1;
         if (indicatorsList != null && !indicatorsList.isEmpty()) {
             for (Indicator ind : indicatorsList) {
-                if(ind.getKeywordsList() != null) {
+                if (ind.getKeywordsList() != null) {
                     for (String words : ind.getKeywordsList()) {
                         int numberKeywords = words.split(" ").length;
                         if (numberKeywords > maxIndicatorLength) {
@@ -106,7 +111,7 @@ public class IndicatorService implements Logging {
                         if (o1.getLevel().equals(o2.getLevel())) return 0;
                         if (o1.getLevel().equals("IMPACT")) return -1;
                         if (o2.getLevel().equals("IMPACT")) return 1;
-                        if (o1.getLevel().equals("OUTCOME")) return -1; 
+                        if (o1.getLevel().equals("OUTCOME")) return -1;
                         if (o2.getLevel().equals("OUTCOME")) return 1;
                         if (o1.getLevel().equals("OUTPUT")) return -1;
                         return 1;
@@ -127,13 +132,13 @@ public class IndicatorService implements Logging {
     /**
      * Fills a list of indicators that contain certain words
      * @param wordsToScan Words to find in the indicators' keyword list
-     * @param indicators Indicators to be analyzed
-     * @param mapResult Map Indicators' Id and IndicatorResponses
-     * @param result List of Indicators that contains words to scan variable
+     * @param indicators  Indicators to be analyzed
+     * @param mapResult   Map Indicators' Id and IndicatorResponses
+     * @param result      List of Indicators that contains words to scan variable
      */
     protected void checkIndicators(List<String> wordsToScan, List<Indicator> indicators,
-                                Map<Long, IndicatorResponse> mapResult,
-                                List<IndicatorResponse> result) {
+                                   Map<Long, IndicatorResponse> mapResult,
+                                   List<IndicatorResponse> result) {
         logger().debug("Check Indicators with wordsToScan: {}, indicators: {}, mapResult: {}, result: {}",
                 wordsToScan, indicators, mapResult, result);
         String wordsStr = wordsToScan.stream()
@@ -177,7 +182,7 @@ public class IndicatorService implements Logging {
 
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-//            File template = new File("/var/www/indicatorsExportTemplate.docx"); //resourceLoader.getResource("classpath:indicatorsExportTemplate.docx").getFile();
+            //File template = new File("/var/www/indicatorsExportTemplate.docx");
             WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(new ClassPathResource("indicatorsExportTemplate.docx").getFile());
             MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
             String textNodesXPath = "//w:t";
@@ -202,8 +207,9 @@ public class IndicatorService implements Logging {
 
     /**
      * Parse Nodes with indicators' label when the text param contains the indicators' var attribute
-     * @param textNode Node that will have elements parsed into
-     * @param text Text to be found in the indicators' var
+     *
+     * @param textNode   Node that will have elements parsed into
+     * @param text       Text to be found in the indicators' var
      * @param indicators Indicators that have the label to be parsed
      */
     protected void parseVarWithValue(Text textNode, String text, List<IndicatorResponse> indicators) {
@@ -264,5 +270,13 @@ public class IndicatorService implements Logging {
         } catch (InvalidFormatException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Get all thematic areas of indicators
+     * @return all thematic areas
+     */
+    public List<String> getAllThemes() {
+        return indicatorRepository.getThemes();
     }
 }

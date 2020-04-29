@@ -2,7 +2,6 @@ package com.arqaam.logframelab.controller;
 
 import com.arqaam.logframelab.exception.TmpFileCopyFailedException;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
-import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.service.IndicatorService;
 import com.arqaam.logframelab.util.Logging;
@@ -34,6 +33,7 @@ import java.util.UUID;
 public class IndicatorController implements Logging {
 
     private static final String WORD_FILE_EXTENSION = ".docx";
+
     @Autowired
     private IndicatorService indicatorService;
 
@@ -44,14 +44,13 @@ public class IndicatorController implements Logging {
             @ApiResponse(code = 409, message = "Wrong file extension", response = Error.class),
             @ApiResponse(code = 500, message = "Failed to upload the file", response = Error.class)
     })
-    public ResponseEntity<List<IndicatorResponse>> handleFileUpload(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity handleFileUpload(@RequestParam("file") MultipartFile file, @RequestParam("themeFilter") List<String> themeFilter) throws IOException {
 
         logger().info("Extract Indicators from Word File. File Name: {}", file.getOriginalFilename());
         if(!file.getOriginalFilename().endsWith(WORD_FILE_EXTENSION)){
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
             throw new WrongFileExtensionException();
         }
-
         Path tmpFilePath = Paths.get(System.getProperty("user.home")).resolve("tmp" + UUID.randomUUID()+".docx");
         try {
             Files.copy(file.getInputStream(), tmpFilePath);
@@ -60,7 +59,7 @@ public class IndicatorController implements Logging {
                     "File Name: {}, tmpFilePath: {}, error: {}", file.getOriginalFilename(), tmpFilePath, e);
             throw new TmpFileCopyFailedException();
         }
-        return ResponseEntity.ok().body(indicatorService.extractIndicatorsFromWordFile(tmpFilePath));
+        return  ResponseEntity.ok().body(indicatorService.extractIndicatorsFromWordFile(tmpFilePath, themeFilter));
     }
 
     @PostMapping(value = "/indicator/download", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -72,6 +71,7 @@ public class IndicatorController implements Logging {
             @ApiResponse(code = 500, message = "File failed to upload", response = Error.class)
     })
     public ResponseEntity<Resource> downloadIndicators(@RequestBody List<IndicatorResponse> indicators) {
+
         logger().info("Downloading indicators. Indicators: {}", indicators);
         if(indicators.isEmpty()){
             String msg = "Failed to download indicators. It cannot be empty";
@@ -86,7 +86,6 @@ public class IndicatorController implements Logging {
             mimeType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
             //  mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
         }
-
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.set("filename", "indicators_export.docx");
         httpHeaders.set("Access-Control-Expose-Headers", "*");
@@ -116,4 +115,15 @@ public class IndicatorController implements Logging {
 //            FileCopyUtils.copy(inputStream, response.getOutputStream());
 //        }
 //    }
+
+
+    @GetMapping("/indicator/themes")
+    @ApiOperation(value = "${IndicatorController.getThemes.value}", nickname = "getThemes", response = String.class, responseContainer = "List")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "themes was loaded"),
+            @ApiResponse(code = 500, message = "failed to upload themes", response = Error.class)
+    })
+    public List<String> getThemes(){
+        return indicatorService.getAllThemes();
+    }
 }

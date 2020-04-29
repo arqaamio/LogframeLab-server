@@ -1,4 +1,4 @@
-package com.arqaam.indicator.configuration.security;
+package com.arqaam.logframelab.configuration.security;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -11,10 +11,6 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 @EnableWebSecurity(debug = true)
 @EnableJpaRepositories
 public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
-
-	public AuthenticationManager authenticationManager() throws Exception {
-		return super.authenticationManager();
-	}
 
 	protected void configure(AuthenticationManagerBuilder authBuilder) throws Exception {
 		authBuilder.jdbcAuthentication().groupAuthoritiesByUsername("");

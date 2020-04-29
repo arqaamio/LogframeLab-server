@@ -1,4 +1,4 @@
-package com.arqaam.indicator.configuration.security.jwt;
+package com.arqaam.logframelab.configuration.security.jwt;
 
 import org.springframework.web.filter.OncePerRequestFilter;
 

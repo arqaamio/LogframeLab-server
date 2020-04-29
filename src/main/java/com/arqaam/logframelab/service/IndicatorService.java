@@ -1,8 +1,6 @@
 package com.arqaam.logframelab.service;
 
-import com.arqaam.logframelab.exception.FailedToProcessWordFileException;
-import com.arqaam.logframelab.exception.TemplateNotFoundException;
-import com.arqaam.logframelab.exception.WordFileLoadFailedException;
+import com.arqaam.logframelab.exception.*;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.Level;
@@ -10,9 +8,9 @@ import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
 import com.arqaam.logframelab.util.Logging;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.docx4j.jaxb.Context;
 import org.docx4j.jaxb.XPathBinderAssociationIsPartialException;
@@ -35,6 +33,8 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.isNull;
 
 @Service
 public class IndicatorService implements Logging {
@@ -153,18 +153,25 @@ public class IndicatorService implements Logging {
                     if (wordsStr.toLowerCase().contains(" " + currentKey.toLowerCase() + " ")) {
                         // new indicator found
                         if (!mapResult.containsKey(indicator.getId())) {
-                            IndicatorResponse indicatorResponse = new IndicatorResponse(result.size() + 1,
-                                    indicator.getLevel().getName(),
-                                    indicator.getLevel().getColor(),
-                                    indicator.getName(),
-                                    indicator.getDescription(),
-                                    new ArrayList<>(),
-                                    indicator.getLevel().getTemplateVar());
+                            IndicatorResponse indicatorResponse = IndicatorResponse.builder()
+                                    .id(result.size() + 1)
+                                    .level(indicator.getLevel().getName())
+                                    .color(indicator.getLevel().getColor())
+                                    .label(indicator.getName())
+                                    .description(indicator.getDescription())
+//                                    .keys(new ArrayList<>())
+                                    .var(indicator.getLevel().getTemplateVar())
+                                    .themes(indicator.getThemes())
+                                    .disaggregation(indicator.getDisaggregation())
+                                    .crsCode(indicator.getCrsCode())
+                                    .sdgCode(indicator.getSdgCode())
+                                    .source(indicator.getSource())
+                                    .build();
                             result.add(indicatorResponse);
                             mapResult.put(indicator.getId(), indicatorResponse);
                         }
                         // add the keyword
-                        mapResult.get(indicator.getId()).getKeys().add(currentKey);
+//                        mapResult.get(indicator.getId()).getKeys().add(currentKey);
                         //
                         keysIterator.remove();
                     }
@@ -236,39 +243,63 @@ public class IndicatorService implements Logging {
      * @param path Path of the excel file
      */
     public void importIndicators(String path) {
-        logger().info("------ import indicators from xlsx");
+        List<Level> levels = levelRepository.findAll();
+        Map<String, Level> levelMap = new HashMap<>();
+        for (Level lvl : levels){
+            levelMap.put(lvl.getName(), lvl);
+        }
+        logger().info("Importing indicators from xlsx, path {}", path);
         File file = new File(path);
         try {
-            Workbook workbook = new XSSFWorkbook(file);
-            Sheet datatypeSheet = workbook.getSheetAt(0);
-            Iterator<Row> iterator = datatypeSheet.iterator();
+            Iterator<Row> iterator = new XSSFWorkbook(file).getSheetAt(0).iterator();
             // skip the headers row
             if (iterator.hasNext()) {
                 iterator.next();
             }
+            int count=-1;
             while (iterator.hasNext()) {
                 logger().info(" ");
                 Row currentRow = iterator.next();
-                Indicator indicator = new Indicator();
-                indicator.setDescription(currentRow.getCell(1).getStringCellValue());
+
+//                indicator.setDescription(currentRow.getCell(1).getStringCellValue());
                 // key words
                 String[] keys = currentRow.getCell(2).getStringCellValue().toLowerCase().split(",");
                 for (int i = 0; i < keys.length; i++) {
                     keys[i] = keys[i].trim().replaceAll("\\s+", " ");
                 }
-                indicator.setKeywords(String.join(",", keys));
-                indicator.setName(currentRow.getCell(3).getStringCellValue());
-                Level level = levelRepository.findLevelByName(currentRow.getCell(0).getStringCellValue().toUpperCase());
-                if (level != null) {
-                    indicator.setLevel(level);
-                    logger().info(level.getName());
+//                indicator.setKeywords(String.join(",", keys));
+//                indicator.setName(currentRow.getCell(3).getStringCellValue());
+//                Level level = levelRepository.findLevelByName(currentRow.getCell(0).getStringCellValue().toUpperCase());
+                Level level = levelMap.get(currentRow.getCell(0).getStringCellValue().toUpperCase());
+                if (!isNull(level)) {
+                    Cell crsCodeCell = currentRow.getCell(7, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+//                    indicator.setLevel(level);
+                    Indicator indicator = Indicator.builder()
+                            .level(level)
+                            .themes(currentRow.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                            .keywords(String.join(",", keys))
+                            .name(currentRow.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                            .description(currentRow.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                            .source(currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                            .disaggregation(currentRow.getCell(6, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().equalsIgnoreCase("yes"))
+                            .crsCode(crsCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(crsCodeCell.getNumericCellValue()) : crsCodeCell.getStringCellValue())
+                            .sdgCode(currentRow.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                            .sourceVerification(currentRow.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                            .dataSource(currentRow.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                            .build();
+                    logger().info("Line {}, Saving this indicator {}", count, indicator);
                     indicatorRepository.save(indicator);
+                    count++;
                 }
             }
+//            Level	Theme	Key words	Indicator	Description	Source	Disaggregation	DAC 5 / CRS	SDG	Sources of Verification	Data Source
+
         } catch (IOException e) {
-            e.printStackTrace();
+            logger().error("Failed to open worksheet.", e);
+            throw new FailedToOpenWorksheetException();
         } catch (InvalidFormatException e) {
-            e.printStackTrace();
+            logger().error("Failed to interpret worksheet. It must be in a wrong format.", e);
+            throw new WorksheetInWrongFormatException();
         }
     }
 

@@ -45,20 +45,26 @@ public class IndicatorService implements Logging {
 
     /**
      * Extract Indicators from a Word file
+     *
      * @param tmpfilePath Temporary Path of the word file
      * @return List of Indicators
      */
-    public List<IndicatorResponse> extractIndicatorsFromWordFile(Path tmpfilePath) {
+    public List<IndicatorResponse> extractIndicatorsFromWordFile(Path tmpfilePath, List<String> themeFilter) {
         List<IndicatorResponse> result = new ArrayList();
         Map<Long, IndicatorResponse> mapResult = new HashMap<>();
-        List<Indicator> indicatorsList = indicatorRepository.findAll();
+        List<Indicator> indicatorsList;
+        if (themeFilter != null && !themeFilter.isEmpty()) {
+            indicatorsList = indicatorRepository.getIndicatorsByThemes(themeFilter);
+        } else {
+            indicatorsList = indicatorRepository.findAll();
+        }
         File tmpfile = tmpfilePath.toFile();
         List<String> wordstoScan = new ArrayList(); // current words
         // get the maximum indicator length
         int maxIndicatorLength = 1;
         if (indicatorsList != null && !indicatorsList.isEmpty()) {
             for (Indicator ind : indicatorsList) {
-                if(ind.getKeywordsList() != null) {
+                if (ind.getKeywordsList() != null) {
                     for (String words : ind.getKeywordsList()) {
                         int numberKeywords = words.split(" ").length;
                         if (numberKeywords > maxIndicatorLength) {
@@ -112,14 +118,15 @@ public class IndicatorService implements Logging {
 
     /**
      * Fills a list of indicators that contain certain words
+     *
      * @param wordsToScan Words to find in the indicators' keyword list
-     * @param indicators Indicators to be analyzed
-     * @param mapResult Map Indicators' Id and IndicatorResponses
-     * @param result List of Indicators that contains words to scan variable
+     * @param indicators  Indicators to be analyzed
+     * @param mapResult   Map Indicators' Id and IndicatorResponses
+     * @param result      List of Indicators that contains words to scan variable
      */
     protected void checkIndicators(List<String> wordsToScan, List<Indicator> indicators,
-                                Map<Long, IndicatorResponse> mapResult,
-                                List<IndicatorResponse> result) {
+                                   Map<Long, IndicatorResponse> mapResult,
+                                   List<IndicatorResponse> result) {
         logger().debug("Check Indicators with wordsToScan: {}, indicators: {}, mapResult: {}, result: {}",
                 wordsToScan, indicators, mapResult, result);
         String wordsStr = wordsToScan.stream()
@@ -157,6 +164,7 @@ public class IndicatorService implements Logging {
 
     /**
      * Creates Word File that contains indicators
+     *
      * @param indicatorResponses Indicators to be put on the word file
      * @return Word File
      */
@@ -189,8 +197,9 @@ public class IndicatorService implements Logging {
 
     /**
      * Parse Nodes with indicators' label when the text param contains the indicators' var attribute
-     * @param textNode Node that will have elements parsed into
-     * @param text Text to be found in the indicators' var
+     *
+     * @param textNode   Node that will have elements parsed into
+     * @param text       Text to be found in the indicators' var
      * @param indicators Indicators that have the label to be parsed
      */
     protected void parseVarWithValue(Text textNode, String text, List<IndicatorResponse> indicators) {
@@ -214,6 +223,7 @@ public class IndicatorService implements Logging {
 
     /**
      * TODO
+     *
      * @param path
      */
     public void importIndicators(String path) {
@@ -251,5 +261,9 @@ public class IndicatorService implements Logging {
         } catch (InvalidFormatException e) {
             e.printStackTrace();
         }
+    }
+
+    public List<String> getAllThemes() {
+        return indicatorRepository.getThemes();
     }
 }

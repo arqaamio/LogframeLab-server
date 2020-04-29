@@ -38,12 +38,12 @@ public class IndicatorController implements Logging {
             @ApiResponse(code = 200, message = "File was uploaded", response = IndicatorResponse.class, responseContainer = "List"),
             @ApiResponse(code = 500, message = "Failed to upload the file", response = Error.class)
     })
-    public List<IndicatorResponse> handleFileUpload(@RequestParam("file") MultipartFile file) throws IOException {
+    public List<IndicatorResponse> handleFileUpload(@RequestParam("file") MultipartFile file, @RequestParam("themeFilter") List<String> themeFilter) throws IOException {
 
         logger().info("Extract Indicators Form Word File .... ");
         Path tmpFilePath = Paths.get(System.getProperty("user.home")).resolve("tmp" + UUID.randomUUID()+".docx");
         Files.copy(file.getInputStream(), tmpFilePath);
-        return indicatorService.extractIndicatorsFromWordFile(tmpFilePath);
+        return indicatorService.extractIndicatorsFromWordFile(tmpFilePath, themeFilter);
     }
 
     @PostMapping("/indicator/download")
@@ -70,5 +70,16 @@ public class IndicatorController implements Logging {
             InputStream inputStream = new BufferedInputStream(new ByteArrayInputStream(outputStream.toByteArray()));
             FileCopyUtils.copy(inputStream, response.getOutputStream());
         }
+    }
+
+
+    @GetMapping("/indicator/themes")
+    @ApiOperation(value = "${IndicatorController.getThemes.value}", nickname = "getThemes", response = String.class, responseContainer = "List")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "themes was loaded"),
+            @ApiResponse(code = 500, message = "failed to upload themes", response = Error.class)
+    })
+    public List<String> getThemes(){
+        return indicatorService.getAllThemes();
     }
 }

@@ -49,15 +49,20 @@ public class IndicatorService implements Logging {
      * @param file Word file
      * @return List of Indicators
      */
-    public List<IndicatorResponse> extractIndicatorsFromWordFile(MultipartFile file) {
-        List<IndicatorResponse> result = new ArrayList<>();
-        List<Indicator> indicatorsList = indicatorRepository.findAll();
-        List<String> wordstoScan = new ArrayList<>(); // current words
+    public List<IndicatorResponse> extractIndicatorsFromWordFile(Path tmpfilePath, List<String> themeFilter) {
+        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
+        List<Indicator> indicatorsList;
+        if (themeFilter != null && !themeFilter.isEmpty()) {
+            indicatorsList = indicatorRepository.getIndicatorsByThemes(themeFilter);
+        } else {
+            indicatorsList = indicatorRepository.findAll();
+        }
+        List<String> wordstoScan = new ArrayList(); // current words
         // get the maximum indicator length
         int maxIndicatorLength = 1;
         if (indicatorsList != null && !indicatorsList.isEmpty()) {
             for (Indicator ind : indicatorsList) {
-                if(ind.getKeywordsList() != null) {
+                if (ind.getKeywordsList() != null) {
                     for (String words : ind.getKeywordsList()) {
                         int numberKeywords = words.split(" ").length;
                         if (numberKeywords > maxIndicatorLength) {
@@ -180,7 +185,7 @@ public class IndicatorService implements Logging {
 
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-//            File template = new File("/var/www/indicatorsExportTemplate.docx"); //resourceLoader.getResource("classpath:indicatorsExportTemplate.docx").getFile();
+            //File template = new File("/var/www/indicatorsExportTemplate.docx");
             WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(new ClassPathResource("indicatorsExportTemplate.docx").getFile());
             MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
             String textNodesXPath = "//w:t";
@@ -205,8 +210,9 @@ public class IndicatorService implements Logging {
 
     /**
      * Parse Nodes with indicators' label when the text param contains the indicators' var attribute
-     * @param textNode Node that will have elements parsed into
-     * @param text Text to be found in the indicators' var
+     *
+     * @param textNode   Node that will have elements parsed into
+     * @param text       Text to be found in the indicators' var
      * @param indicators Indicators that have the label to be parsed
      */
     protected void parseVarWithValue(Text textNode, String text, List<IndicatorResponse> indicators) {
@@ -284,5 +290,13 @@ public class IndicatorService implements Logging {
             logger().error("Failed to interpret worksheet. It must be in a wrong format.", e);
             throw new WorksheetInWrongFormatException();
         }*/
+    }
+
+    /**
+     * Get all thematic areas of indicators
+     * @return all thematic areas
+     */
+    public List<String> getAllThemes() {
+        return indicatorRepository.getThemes();
     }
 }

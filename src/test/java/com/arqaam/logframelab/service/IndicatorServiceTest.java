@@ -15,6 +15,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
@@ -22,6 +25,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -39,44 +43,30 @@ public class IndicatorServiceTest {
     private IndicatorService indicatorService;
 
     private final static Level[] mockLevels = new Level[]{
-        new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green"),
-        new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red"),
-        new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange"),
-        new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple")
+        new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green", 3),
+        new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red", 2),
+        new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange", 4),
+        new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple", 1)
     };
 
     @BeforeEach
     void setup(){
         when(levelRepository.findAll()).thenReturn(Arrays.asList(mockLevels));
-        when(levelRepository.findLevelByName("OUTPUT")).thenReturn(mockLevels[0]);
-        when(levelRepository.findLevelByName("OUTCOME")).thenReturn(mockLevels[1]);
-        when(levelRepository.findLevelByName("OTHER_OUTCOMES")).thenReturn(mockLevels[2]);
-        when(levelRepository.findLevelByName("IMPACT")).thenReturn(mockLevels[3]);
-
+        when(levelRepository.findAllByOrderByPriority()).thenReturn(Arrays.stream(mockLevels).sorted().collect(Collectors.toList()));
     }
-    //TODO because the word file is deleted then the other tests that need that file won't run successfully
+
     @Test
     void extractIndicatorsFromWordFile() throws IOException {
-//        when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
-//        String path = new ClassPathResource("test_doc.docx").getURI().getPath();
-////        Path path_ = Paths.get(path);
-////        File mock = mock(File.class);
-//////        doNothing().when(mock.delete());
-////        when(mock.delete()).thenReturn(false);
-//        File mock =new File(path);
-//        mock = spy(mock);
-////        File mock = mock(File.class, path);
-//
-////        doNothing().when(mock.delete());
-////        when(mock.is)
-//        when(mock.getPath()).thenReturn(path);
-//        when(mock.delete()).thenReturn(false);
-//        Path path_ = mock(Path.class);
-//        when(path_.toFile()).thenReturn(mock);
-////        Paths.get(path);
-//
-////        doNothing().when(path_.toFile().delete());
-//        List<IndicatorResponse> result = indicatorService.extractIndicatorsFromWordFile(path_);
+        when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
+        List<IndicatorResponse> expectedResult = new ArrayList<>();
+        expectedResult.add(IndicatorResponse.builder().build());
+        MultipartFile file = new MockMultipartFile("test_doc.docx", new ClassPathResource("test_doc.docx").getInputStream());
+        List<IndicatorResponse> result = indicatorService.extractIndicatorsFromWordFile(file, null);
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+        for(IndicatorResponse response : result){
+            System.out.println(response);
+        }
 //        assertEquals(1, result.size());
     }
 
@@ -85,18 +75,13 @@ public class IndicatorServiceTest {
         List<String> wordsToScan = Arrays.asList("food", "government", "policy", "retirement");
         List<Indicator> indicators = mockIndicatorList();
         // Test also indicators without keyword
-//        indicators.add(new Indicator(6L, "Name", "Description", "", new Level(), null));
         indicators.add(Indicator.builder().id(6L).name("Name").description("Description").build());
-        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
-        List<IndicatorResponse> result = new ArrayList<>();
-        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
+        Map<Long, Indicator> mapResult = new HashMap<>();
+        indicatorService.checkIndicators(wordsToScan, indicators, mapResult);
 
         assertEquals(3, mapResult.size());
-        assertEquals(3, result.size());
         for (int i = 0; i < 3; i++) {
-            assertEquals(indicators.get(i+1).getName(), result.get(i).getName());
-            assertEquals(indicators.get(i+1).getDescription(), result.get(i).getDescription());
-            assertEquals(indicators.get(i+1).getLevel().getTemplateVar(), result.get(i).getVar());
+            assertEquals(indicators.get(i+1), mapResult.values().toArray()[i]);
         }
     }
 
@@ -106,20 +91,14 @@ public class IndicatorServiceTest {
         keywordsPolicyList.add("policy");
         List<String> wordsToScan = Arrays.asList("food", "government", "policy", "retirement");
         List<Indicator> indicators = mockIndicatorList();
-//        indicators.add(new Indicator(4L,"Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support",
-//                "Digitalization", "policy", new Level(), keywordsPolicyList));
         indicators.add(Indicator.builder().id(4L).name("Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support")
                 .description("Digitalisation").keywords("policy").keywordsList(keywordsPolicyList).build());
-        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
-        List<IndicatorResponse> result = new ArrayList<>();
-        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
+        Map<Long, Indicator> mapResult = new HashMap<>();
+        indicatorService.checkIndicators(wordsToScan, indicators, mapResult);
 
         assertEquals(3, mapResult.size());
-        assertEquals(3, result.size());
         for (int i = 0; i < 3; i++) {
-            assertEquals(indicators.get(i+1).getName(), result.get(i).getName());
-            assertEquals(indicators.get(i+1).getDescription(), result.get(i).getDescription());
-            assertEquals(indicators.get(i+1).getLevel().getTemplateVar(), result.get(i).getVar());
+            assertEquals(indicators.get(i+1), mapResult.values().toArray()[i]);
         }
     }
 
@@ -127,22 +106,19 @@ public class IndicatorServiceTest {
     void checkIndicators_withoutIndicators() {
         List<String> wordsToScan = Arrays.asList("food", "government", "policy", "retirement");
         List<Indicator> indicators = new ArrayList<>();
-        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
-        List<IndicatorResponse> result = new ArrayList<>();
-        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
+        Map<Long, Indicator> mapResult = new HashMap<>();
+        indicatorService.checkIndicators(wordsToScan, indicators, mapResult);
 
         assertEquals(0, mapResult.size());
-        assertEquals(0, result.size());
     }
 
     @Test
     void checkIndicators_withoutWordsToScan() {
         List<String> wordsToScan = new ArrayList<>();
         List<Indicator> indicators = new ArrayList<>();
-        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
-        List<IndicatorResponse> result = new ArrayList<>();
-        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
-        assertTrue(result.isEmpty());
+        Map<Long, Indicator> mapResult = new HashMap<>();
+        indicatorService.checkIndicators(wordsToScan, indicators, mapResult);
+
         assertTrue(mapResult.isEmpty());
     }
 
@@ -227,10 +203,6 @@ public class IndicatorServiceTest {
 
 
     private List<Indicator> mockIndicatorList() {
-        Level level1 = new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green");
-        Level level2 = new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red");
-        Level level3 = new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange");
-        Level level4 = new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple");
         String keyword = "food insecurity,nutrition,farming,agriculture";
         List<Indicator> list = new ArrayList<>();
 
@@ -249,13 +221,13 @@ public class IndicatorServiceTest {
         keywordsGovPolicyList.add("policy");
 
         list.add(Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
-                .description("Food & Agriculture").keywords(keyword).level(level2).keywordsList(keywordsList).build());
+                .description("Food & Agriculture").keywords(keyword).level(mockLevels[1]).keywordsList(keywordsList).build());
         list.add(Indicator.builder().id(4L).name("Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support")
-                .description("Digitalisation").keywords("policy").level(level1).keywordsList(keywordsPolicyList).build());
+                .description("Digitalisation").keywords("policy").level(mockLevels[0]).keywordsList(keywordsPolicyList).build());
         list.add(Indicator.builder().id(5L).name("Revenue, excluding grants (% of GDP)")
-                .description("Public Sector").keywords("government").level(level4).keywordsList(keywordsGovList).build());
+                .description("Public Sector").keywords("government").level(mockLevels[3]).keywordsList(keywordsGovList).build());
         list.add(Indicator.builder().id(73L).name("Number of government policies developed or revised with civil society organisation participation through EU support")
-                .description("Public Sector").keywords("government policies, policy").level(level2).keywordsList(keywordsGovPolicyList).build());
+                .description("Public Sector").keywords("government policies, policy").level(mockLevels[1]).keywordsList(keywordsGovPolicyList).build());
 
         return list;
     }

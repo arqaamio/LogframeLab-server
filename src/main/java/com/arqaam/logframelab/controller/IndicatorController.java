@@ -1,6 +1,5 @@
 package com.arqaam.logframelab.controller;
 
-import com.arqaam.logframelab.exception.TmpFileCopyFailedException;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
 import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.IndicatorResponse;
@@ -20,13 +19,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.net.URLConnection;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
-import java.util.UUID;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -34,7 +28,6 @@ import java.util.UUID;
 public class IndicatorController implements Logging {
 
     private static final String WORD_FILE_EXTENSION = ".docx";
-
     private static final String WORKSHEET_FILE_EXTENSION = ".xlsx";
 
     @Autowired
@@ -47,22 +40,14 @@ public class IndicatorController implements Logging {
             @ApiResponse(code = 409, message = "Wrong file extension", response = Error.class),
             @ApiResponse(code = 500, message = "Failed to upload the file", response = Error.class)
     })
-    public ResponseEntity handleFileUpload(@RequestParam("file") MultipartFile file, @RequestParam("themeFilter") List<String> themeFilter) throws IOException {
+    public ResponseEntity handleFileUpload(@RequestParam("file") MultipartFile file, @RequestParam(value = "themeFilter", required = false) List<String> themeFilter) {
 
         logger().info("Extract Indicators from Word File. File Name: {}", file.getOriginalFilename());
         if(!file.getOriginalFilename().endsWith(WORD_FILE_EXTENSION)){
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
             throw new WrongFileExtensionException();
         }
-        Path tmpFilePath = Paths.get(System.getProperty("user.home")).resolve("tmp" + UUID.randomUUID()+".docx");
-        try {
-            Files.copy(file.getInputStream(), tmpFilePath);
-        } catch (IOException e){
-            logger().error("An unexpected error occurred when copying the file." +
-                    "File Name: {}, tmpFilePath: {}, error: {}", file.getOriginalFilename(), tmpFilePath, e);
-            throw new TmpFileCopyFailedException();
-        }
-        return  ResponseEntity.ok().body(indicatorService.extractIndicatorsFromWordFile(tmpFilePath, themeFilter));
+        return ResponseEntity.ok().body(indicatorService.extractIndicatorsFromWordFile(file, themeFilter));
     }
 
     @PostMapping(value = "/indicator/download", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -119,19 +104,8 @@ public class IndicatorController implements Logging {
 //        }
 //    }
 
-
-    @GetMapping("/indicator/themes")
-    @ApiOperation(value = "${IndicatorController.getThemes.value}", nickname = "getThemes", response = String.class, responseContainer = "List")
-    @ApiResponses({
-            @ApiResponse(code = 200, message = "themes was loaded"),
-            @ApiResponse(code = 500, message = "failed to upload themes", response = Error.class)
-    })
-    public List<String> getThemes(){
-        return indicatorService.getAllThemes();
-    }
-
     @PostMapping(value = "/indicator/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "${IndicatorController.handleFileUpload.value}", nickname = "handleFileUpload", response = IndicatorResponse.class, responseContainer = "List")
+    @ApiOperation(value = "${IndicatorController.importIndicatorFile.value}", nickname = "handleFileUpload", response = IndicatorResponse.class, responseContainer = "List")
     @ApiResponses({
             @ApiResponse(code = 200, message = "Indicators were imported"),
             @ApiResponse(code = 409, message = "Wrong file extension", response = Error.class),
@@ -144,16 +118,19 @@ public class IndicatorController implements Logging {
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
             throw new WrongFileExtensionException();
         }
-
-        Path tmpFilePath = Paths.get(System.getProperty("user.home")).resolve("tmp" + UUID.randomUUID()+WORKSHEET_FILE_EXTENSION);
-        try {
-            Files.copy(file.getInputStream(), tmpFilePath);
-        } catch (IOException e){
-            logger().error("An unexpected error occurred when copying the file." +
-                    "File Name: {}, tmpFilePath: {}, error: {}", file.getOriginalFilename(), tmpFilePath, e);
-            throw new TmpFileCopyFailedException();
-        }
-        indicatorService.importIndicators(tmpFilePath.toString());
+        indicatorService.importIndicators(file);
         return ResponseEntity.ok().body(null);
     }
+
+    @GetMapping("/indicator/themes")
+    @ApiOperation(value = "${IndicatorController.getThemes.value}", nickname = "getThemes", response = String.class, responseContainer = "List")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "themes was loaded"),
+            @ApiResponse(code = 500, message = "failed to upload themes", response = Error.class)
+    })
+    public List<String> getThemes(){
+        return indicatorService.getAllThemes();
+    }
+
+
 }

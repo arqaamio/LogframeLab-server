@@ -223,7 +223,7 @@ public class IndicatorService implements Logging {
             for (IndicatorResponse indicator : indicators) {
                 if (text.contains(indicator.getVar())) {
                     Text TextIndicator = factory.createText();
-                    TextIndicator.setValue(indicator.getLabel());
+                    TextIndicator.setValue(indicator.getName());
                     runParent.getContent().add(TextIndicator);
                     runParent.getContent().add(factory.createBr());
                     runParent.getContent().add(factory.createBr());

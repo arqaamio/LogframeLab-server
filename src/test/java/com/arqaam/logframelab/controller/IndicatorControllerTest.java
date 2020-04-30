@@ -152,7 +152,7 @@ class IndicatorControllerTest extends BaseControllerTest {
         int c = 0;
         for (Object obj : textNodes) {
             String currentText = ((Text) ((JAXBElement) obj).getValue()).getValue();
-            if(currentText.equals(indicators.get(c).getLabel())) {
+            if(currentText.equals(indicators.get(c).getName())) {
                 c++;
                 if(c == indicators.size()){
                     valid = true;
@@ -235,7 +235,7 @@ class IndicatorControllerTest extends BaseControllerTest {
                     .color(mockLevels[level].getColor())
                     .description("Description")
                     .disaggregation(level > 1) // Reusing random values
-                    .label("Indicator Label "+ i)
+                    .name("Indicator Label "+ i)
                     .var(mockLevels[level].getTemplateVar())
                     .build());
         }

@@ -12,7 +12,7 @@ public class IndicatorResponse {
     private long id;
     private String level;
     private String color;
-    private String label;
+    private String name;
     private String description;
     private String var;
     private String themes;

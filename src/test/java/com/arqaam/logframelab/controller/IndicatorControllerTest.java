@@ -103,9 +103,9 @@ class IndicatorControllerTest extends BaseControllerTest {
         keywordsList.add(keywordsFoodList.get(0));
         List<IndicatorResponse> expectedResult = getExpectedResult();
         expectedResult.add(IndicatorResponse.builder().id(6L).level(mockLevels[2].getName()).color(mockLevels[2].getColor())
-                .label("Name 6").description("Description").var(mockLevels[2].getTemplateVar()).build());
+                .name("Name 6").description("Description").var(mockLevels[2].getTemplateVar()).build());
         expectedResult.add(IndicatorResponse.builder().id(5L).level(mockLevels[2].getName()).color(mockLevels[2].getColor())
-                .label("Name 3").description("Description").var(mockLevels[2].getTemplateVar()).build());
+                .name("Name 3").description("Description").var(mockLevels[2].getTemplateVar()).build());
         List<Indicator> indicators = mockIndicatorList();
         // This showcases how keywords property is irrelevant, only keywordList is taken into consideration
         indicators.add(Indicator.builder().id(6L).name("Name 6").description("Description").level(mockLevels[2]).keywordsList(keywordsList).build());
@@ -206,16 +206,16 @@ class IndicatorControllerTest extends BaseControllerTest {
     private List<IndicatorResponse> getExpectedResult(){
         List<IndicatorResponse> list = new ArrayList<>();
         list.add(IndicatorResponse.builder().level(mockLevels[3].getName()).color(mockLevels[3].getColor())
-                .description("Public Sector").label("Revenue, excluding grants (% of GDP)")
+                .description("Public Sector").name("Revenue, excluding grants (% of GDP)")
                 .var(mockLevels[3].getTemplateVar()).build());
         list.add(IndicatorResponse.builder().level(mockLevels[1].getName()).color(mockLevels[1].getColor())
-                .description("Public Sector").label("Number of government policies developed or revised with civil society organisation participation through EU support")
+                .description("Public Sector").name("Number of government policies developed or revised with civil society organisation participation through EU support")
                 .var(mockLevels[1].getTemplateVar()).build());
         list.add(IndicatorResponse.builder().level(mockLevels[1].getName()).color(mockLevels[1].getColor())
-                .description("Food & Agriculture").label("Number of food insecure people receiving EU assistance")
+                .description("Food & Agriculture").name("Number of food insecure people receiving EU assistance")
                 .var(mockLevels[1].getTemplateVar()).build());
         list.add(IndicatorResponse.builder().level(mockLevels[0].getName()).color(mockLevels[0].getColor())
-                .description("Digitalisation").label("Number of policies/strategies/laws/regulation developed/revised for digitalisation with EU support")
+                .description("Digitalisation").name("Number of policies/strategies/laws/regulation developed/revised for digitalisation with EU support")
                 .var(mockLevels[0].getTemplateVar()).build());
         return list;
     }

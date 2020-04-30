@@ -118,7 +118,7 @@ public class IndicatorService implements Logging {
                                     .id(indicator.getId())
                                     .level(indicator.getLevel().getName())
                                     .color(indicator.getLevel().getColor())
-                                    .label(indicator.getName())
+                                    .name(indicator.getName())
                                     .description(indicator.getDescription())
                                     .var(indicator.getLevel().getTemplateVar())
                                     .themes(indicator.getThemes())

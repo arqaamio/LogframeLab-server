@@ -25,8 +25,10 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -49,13 +51,7 @@ class IndicatorControllerTest extends BaseControllerTest {
 
     @BeforeEach
     void setup(){
-        List<Level> levels = new ArrayList<>();
-        levels.add(mockLevels[3]);
-        levels.add(mockLevels[1]);
-        levels.add(mockLevels[0]);
-        levels.add(mockLevels[2]);
-
-        when(levelRepository.findAllByOrderByPriority()).thenReturn(levels);
+        when(levelRepository.findAllByOrderByPriority()).thenReturn(Arrays.stream(mockLevels).sorted().collect(Collectors.toList()));
     }
 
     @Test
@@ -82,8 +78,6 @@ class IndicatorControllerTest extends BaseControllerTest {
         keywordsFoodList.add("agriculture");
         keywordsFoodList.add("food");
         List<IndicatorResponse> expectedResult = getExpectedResult();
-        List<String> keywordList = new ArrayList<>();
-        keywordList.add("agriculture");
         List<Indicator> indicators = mockIndicatorList();
         indicators.add(Indicator.builder().id(1L).name("Name 1").description("Description").level(mockLevels[1])
                 .keywords("agriculture").keywordsList(keywordsFoodList).build());
@@ -150,6 +144,7 @@ class IndicatorControllerTest extends BaseControllerTest {
         ResponseEntity<Resource> response = testRestTemplate.exchange("/indicator/download", HttpMethod.POST,
                 new HttpEntity<>(indicators), Resource.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
 
         WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(response.getBody().getInputStream());
         List<Object> textNodes = wordMLPackage.getMainDocumentPart().getJAXBNodesViaXPath("//w:t", true);

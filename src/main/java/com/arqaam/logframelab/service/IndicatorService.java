@@ -49,15 +49,15 @@ public class IndicatorService implements Logging {
      * @param file Word file
      * @return List of Indicators
      */
-    public List<IndicatorResponse> extractIndicatorsFromWordFile(Path tmpfilePath, List<String> themeFilter) {
-        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
+    public List<IndicatorResponse> extractIndicatorsFromWordFile(MultipartFile file, List<String> themeFilter) {
+        List<IndicatorResponse> result = new ArrayList<>();
         List<Indicator> indicatorsList;
         if (themeFilter != null && !themeFilter.isEmpty()) {
             indicatorsList = indicatorRepository.getIndicatorsByThemes(themeFilter);
         } else {
             indicatorsList = indicatorRepository.findAll();
         }
-        List<String> wordstoScan = new ArrayList(); // current words
+        List<String> wordstoScan = new ArrayList<>(); // current words
         // get the maximum indicator length
         int maxIndicatorLength = 1;
         if (indicatorsList != null && !indicatorsList.isEmpty()) {
@@ -81,9 +81,8 @@ public class IndicatorService implements Logging {
                 Map<Long, Indicator> mapResult = new HashMap<>();
 
                 for (Object obj : textNodes) {
-                    Text text = (Text) ((JAXBElement) obj).getValue();
-                    String currentText = text.getValue();
-                    char[] strArray = currentText.toLowerCase().toCharArray();
+                    Text text =  ((JAXBElement<Text>) obj).getValue();
+                    char[] strArray = text.getValue().toLowerCase().toCharArray();
                     for (char c : strArray) {
                         // append current word to wordstoScan list
                         if (currentWord == null && p.matcher(c + "").find()) {
@@ -104,7 +103,7 @@ public class IndicatorService implements Logging {
                 }
                 if(!mapResult.isEmpty()) {
                     List<Level> levelsList = levelRepository.findAllByOrderByPriority();
-                    AtomicInteger c = new AtomicInteger(0);
+                    AtomicInteger c = new AtomicInteger(1);
                     logger().info("Starting the sort of the indicators {}", mapResult);
                     // Sort by Level and then by number of times a keyword was tricked
                     result = mapResult.values().stream().sorted((o1, o2) -> {
@@ -191,7 +190,7 @@ public class IndicatorService implements Logging {
             String textNodesXPath = "//w:t";
             List<Object> textNodes = mainDocumentPart.getJAXBNodesViaXPath(textNodesXPath, true);
             for(Object obj : textNodes) {
-                Text text = (Text) ((JAXBElement) obj).getValue();
+                Text text = ((JAXBElement<Text>) obj).getValue();
                 String value = text.getValue();
                 if (value != null && value.contains("{var}")) {
                     parseVarWithValue(text, value, indicatorResponses);

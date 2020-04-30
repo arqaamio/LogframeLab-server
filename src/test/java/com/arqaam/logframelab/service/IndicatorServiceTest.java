@@ -15,6 +15,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
@@ -22,6 +25,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -48,35 +52,21 @@ public class IndicatorServiceTest {
     @BeforeEach
     void setup(){
         when(levelRepository.findAll()).thenReturn(Arrays.asList(mockLevels));
-        when(levelRepository.findLevelByName("OUTPUT")).thenReturn(mockLevels[0]);
-        when(levelRepository.findLevelByName("OUTCOME")).thenReturn(mockLevels[1]);
-        when(levelRepository.findLevelByName("OTHER_OUTCOMES")).thenReturn(mockLevels[2]);
-        when(levelRepository.findLevelByName("IMPACT")).thenReturn(mockLevels[3]);
-
+        when(levelRepository.findAllByOrderByPriority()).thenReturn(Arrays.stream(mockLevels).sorted().collect(Collectors.toList()));
     }
-    //TODO because the word file is deleted then the other tests that need that file won't run successfully
+
     @Test
     void extractIndicatorsFromWordFile() throws IOException {
-//        when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
-//        String path = new ClassPathResource("test_doc.docx").getURI().getPath();
-////        Path path_ = Paths.get(path);
-////        File mock = mock(File.class);
-//////        doNothing().when(mock.delete());
-////        when(mock.delete()).thenReturn(false);
-//        File mock =new File(path);
-//        mock = spy(mock);
-////        File mock = mock(File.class, path);
-//
-////        doNothing().when(mock.delete());
-////        when(mock.is)
-//        when(mock.getPath()).thenReturn(path);
-//        when(mock.delete()).thenReturn(false);
-//        Path path_ = mock(Path.class);
-//        when(path_.toFile()).thenReturn(mock);
-////        Paths.get(path);
-//
-////        doNothing().when(path_.toFile().delete());
-//        List<IndicatorResponse> result = indicatorService.extractIndicatorsFromWordFile(path_);
+        when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
+        List<IndicatorResponse> expectedResult = new ArrayList<>();
+        expectedResult.add(IndicatorResponse.builder().build());
+        MultipartFile file = new MockMultipartFile("test_doc.docx", new ClassPathResource("test_doc.docx").getInputStream());
+        List<IndicatorResponse> result = indicatorService.extractIndicatorsFromWordFile(file, null);
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+        for(IndicatorResponse response : result){
+            System.out.println(response);
+        }
 //        assertEquals(1, result.size());
     }
 
@@ -85,23 +75,13 @@ public class IndicatorServiceTest {
         List<String> wordsToScan = Arrays.asList("food", "government", "policy", "retirement");
         List<Indicator> indicators = mockIndicatorList();
         // Test also indicators without keyword
-//        indicators.add(new Indicator(6L, "Name", "Description", "", new Level(), null));
         indicators.add(Indicator.builder().id(6L).name("Name").description("Description").build());
-//        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
         Map<Long, Indicator> mapResult = new HashMap<>();
-//        List<IndicatorResponse> result = new ArrayList<>();
-//        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
         indicatorService.checkIndicators(wordsToScan, indicators, mapResult);
-//        List<Indicator> result = (List<Indicator>) Arrays.asList(mapResult.values().stream().collect(Collector.of()));
 
         assertEquals(3, mapResult.size());
-//        assertEquals(3, result.size());
-//        assertEquals(indicators, mapResult);
         for (int i = 0; i < 3; i++) {
             assertEquals(indicators.get(i+1), mapResult.values().toArray()[i]);
-//            assertEquals(indicators.get(i+1).getName(), result.get(i).getLabel());
-//            assertEquals(indicators.get(i+1).getDescription(), result.get(i).getDescription());
-//            assertEquals(indicators.get(i+1).getLevel().getTemplateVar(), result.get(i).getVar());
         }
     }
 
@@ -111,24 +91,14 @@ public class IndicatorServiceTest {
         keywordsPolicyList.add("policy");
         List<String> wordsToScan = Arrays.asList("food", "government", "policy", "retirement");
         List<Indicator> indicators = mockIndicatorList();
-//        indicators.add(new Indicator(4L,"Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support",
-//                "Digitalization", "policy", new Level(), keywordsPolicyList));
         indicators.add(Indicator.builder().id(4L).name("Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support")
                 .description("Digitalisation").keywords("policy").keywordsList(keywordsPolicyList).build());
-//        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
-//        List<IndicatorResponse> result = new ArrayList<>();
         Map<Long, Indicator> mapResult = new HashMap<>();
-//        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
         indicatorService.checkIndicators(wordsToScan, indicators, mapResult);
 
         assertEquals(3, mapResult.size());
-//        assertEquals(3, result.size());
-//        assertEquals(indicators, mapResult);
         for (int i = 0; i < 3; i++) {
             assertEquals(indicators.get(i+1), mapResult.values().toArray()[i]);
-//            assertEquals(indicators.get(i+1).getName(), result.get(i).getLabel());
-//            assertEquals(indicators.get(i+1).getDescription(), result.get(i).getDescription());
-//            assertEquals(indicators.get(i+1).getLevel().getTemplateVar(), result.get(i).getVar());
         }
     }
 
@@ -136,27 +106,19 @@ public class IndicatorServiceTest {
     void checkIndicators_withoutIndicators() {
         List<String> wordsToScan = Arrays.asList("food", "government", "policy", "retirement");
         List<Indicator> indicators = new ArrayList<>();
-//        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
         Map<Long, Indicator> mapResult = new HashMap<>();
-        List<IndicatorResponse> result = new ArrayList<>();
-//        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
         indicatorService.checkIndicators(wordsToScan, indicators, mapResult);
 
         assertEquals(0, mapResult.size());
-        assertEquals(0, result.size());
     }
 
     @Test
     void checkIndicators_withoutWordsToScan() {
         List<String> wordsToScan = new ArrayList<>();
         List<Indicator> indicators = new ArrayList<>();
-//        Map<Long, IndicatorResponse> mapResult = new HashMap<>();
         Map<Long, Indicator> mapResult = new HashMap<>();
-        List<IndicatorResponse> result = new ArrayList<>();
-//        indicatorService.checkIndicators(wordsToScan, indicators, mapResult, result);
         indicatorService.checkIndicators(wordsToScan, indicators, mapResult);
 
-        assertTrue(result.isEmpty());
         assertTrue(mapResult.isEmpty());
     }
 

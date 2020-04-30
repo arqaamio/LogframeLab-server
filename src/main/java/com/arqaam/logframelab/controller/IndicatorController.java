@@ -39,7 +39,7 @@ public class IndicatorController implements Logging {
             @ApiResponse(code = 409, message = "Wrong file extension", response = Error.class),
             @ApiResponse(code = 500, message = "Failed to upload the file", response = Error.class)
     })
-    public ResponseEntity handleFileUpload(@RequestParam("file") MultipartFile file, @RequestParam("themeFilter") List<String> themeFilter) throws IOException {
+    public ResponseEntity handleFileUpload(@RequestParam("file") MultipartFile file, @RequestParam(value = "themeFilter", required = false) List<String> themeFilter) {
 
         logger().info("Extract Indicators from Word File. File Name: {}", file.getOriginalFilename());
         if(!file.getOriginalFilename().endsWith(WORD_FILE_EXTENSION)){

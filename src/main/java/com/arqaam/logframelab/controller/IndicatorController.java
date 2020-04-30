@@ -141,5 +141,4 @@ public class IndicatorController implements Logging {
         return indicatorService.getAllThemes();
     }
 
-
 }

@@ -7,9 +7,7 @@ import com.arqaam.logframelab.model.persistence.Level;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
 import com.arqaam.logframelab.util.Logging;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.docx4j.jaxb.Context;
 import org.docx4j.jaxb.XPathBinderAssociationIsPartialException;
@@ -26,8 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
@@ -117,7 +114,8 @@ public class IndicatorService implements Logging {
                         }
                         return 1;
                     }).map(indicator -> IndicatorResponse.builder()
-                                    .id(c.getAndIncrement())
+//                                    .id(c.getAndIncrement())
+                                    .id(indicator.getId())
                                     .level(indicator.getLevel().getName())
                                     .color(indicator.getLevel().getColor())
                                     .label(indicator.getName())
@@ -237,7 +235,7 @@ public class IndicatorService implements Logging {
      * Import Indicators from an worksheet/excel file with the extension xlsx
      * @param file Worksheet file
      */
-     public void importIndicators(MultipartFile file) {
+     public List<Indicator> importIndicators(MultipartFile file) {
         List<Level> levels = levelRepository.findAll();
         Map<String, Level> levelMap = new HashMap<>();
         for (Level lvl : levels){
@@ -246,6 +244,7 @@ public class IndicatorService implements Logging {
        
         logger().info("Importing indicators from xlsx, name {}", file.getName());
         try {
+            List<Indicator> indicatorList = new ArrayList<>();
             Iterator<Row> iterator = new XSSFWorkbook(file.getInputStream()).getSheetAt(0).iterator();
             // skip the headers row
             if (iterator.hasNext()) {
@@ -278,10 +277,11 @@ public class IndicatorService implements Logging {
                             .dataSource(currentRow.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
                             .build();
                     logger().info("Line {}, Saving this indicator {}", count, indicator);
-                    indicatorRepository.save(indicator);
+                    indicatorList.add(indicatorRepository.save(indicator));
                     count++;
                 }
             }
+            return indicatorList;
 
         } catch (IOException e) {
             logger().error("Failed to open worksheet.", e);
@@ -290,6 +290,88 @@ public class IndicatorService implements Logging {
             logger().error("Failed to interpret worksheet. It must be in a wrong format.", e);
             throw new WorksheetInWrongFormatException();
         }*/
+    }
+
+    /**
+     * Import Indicators from an worksheet/excel file with the extension xlsx
+     * @param indicatorResponses Indicators to written in the excel file
+     * @return Worksheet in xlsx format
+     */
+    public ByteArrayOutputStream exportIndicatorsInWorksheet(List<IndicatorResponse> indicatorResponses) {
+
+        List<Indicator> indicatorList = indicatorRepository.findAllById(indicatorResponses.stream()
+                                                           .map(IndicatorResponse::getId)
+                                                           .collect(Collectors.toList()));
+
+        logger().info("Write indicators into a worksheet, indicator {}", indicatorResponses);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet();
+        String[] columns = new String[]{"Level", "Themes", "Keywords", "Name", "Description", "Source", "Disaggregation", "DAC 5/CRS", "SDG", "Source of Verification", "Data Source"};
+
+        // Create a CellStyle with the font
+        Font boldFont = workbook.createFont();
+        boldFont.setBold(true);
+        CellStyle headerCellStyle = workbook.createCellStyle();
+        headerCellStyle.setFont(boldFont);
+
+        CellStyle redCellStyle = workbook.createCellStyle();
+        redCellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        redCellStyle.setFillForegroundColor(IndexedColors.RED.getIndex());
+
+        CellStyle yellowCellStyle = workbook.createCellStyle();
+        yellowCellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        yellowCellStyle.setFillForegroundColor(IndexedColors.YELLOW.getIndex());
+
+        // add the headers row
+        Row headerRow = sheet.createRow(0);
+        for (int i = 0; i < columns.length; i++) {
+            addCellWithStyle(headerRow, i, columns[i], headerCellStyle);
+        }
+
+        int rowNum = 1;
+        for (Indicator indicator : indicatorList) {
+            Row row = sheet.createRow(rowNum++);
+            row.createCell(0).setCellValue(indicator.getLevel().getName());
+            row.createCell(1).setCellValue(indicator.getThemes());
+            addCellWithStyle(row, 2, indicator.getKeywords(), yellowCellStyle);
+            row.createCell(3).setCellValue(indicator.getName());
+            row.createCell(4).setCellValue(indicator.getDescription());
+            row.createCell(5).setCellValue(indicator.getSource());
+            addCellWithStyle(row, 6, isNull(indicator.getDisaggregation())? "" : (indicator.getDisaggregation() ? "Yes" : "No"), yellowCellStyle);
+            addCellWithStyle(row, 7, indicator.getCrsCode(), redCellStyle);
+            addCellWithStyle(row, 8, indicator.getSdgCode(), redCellStyle);
+            addCellWithStyle(row, 9, indicator.getSourceVerification(), yellowCellStyle);
+            row.createCell(10).setCellValue(indicator.getDataSource());
+        }
+
+        // Resize all columns to fit the content size
+        for(int i = 0; i < columns.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+
+        try {
+            workbook.write(outputStream);
+            workbook.close();
+        } catch (IOException e) {
+            logger().error("Failed to write/close the worksheet",e);
+            throw new FailedToCloseFileException();
+        }
+        return outputStream;
+    }
+
+    /**
+     * Creates a cell with a certain style and with a set value
+     * @param row Row of the cell that will be created
+     * @param i Index of the column of the cell
+     * @param value Text of the cell
+     * @param cellStyle Cell style (color, font, ...)
+     */
+    private void addCellWithStyle(Row row, Integer i, String value, CellStyle cellStyle){
+        Cell cell = row.createCell(i);
+        cell.setCellValue(value);
+        cell.setCellStyle(cellStyle);
     }
 
     /**

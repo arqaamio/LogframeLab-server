@@ -3,6 +3,7 @@ package com.arqaam.logframelab.controller;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
 import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.IndicatorResponse;
+import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.service.IndicatorService;
 import com.arqaam.logframelab.util.Logging;
 import io.swagger.annotations.Api;
@@ -47,37 +48,46 @@ public class IndicatorController implements Logging {
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
             throw new WrongFileExtensionException();
         }
-        return ResponseEntity.ok().body(indicatorService.extractIndicatorsFromWordFile(file, themeFilter));
+        return ResponseEntity.ok(indicatorService.extractIndicatorsFromWordFile(file, themeFilter));
     }
 
     @PostMapping(value = "/indicator/download", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "${IndicatorController.downloadIndicators.value}", nickname = "handleFileUpload", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    @ApiOperation(value = "${IndicatorController.downloadIndicators.value}", nickname = "downloadIndicators", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @ApiResponses({
             @ApiResponse(code = 200, message = "File was uploaded"),
             @ApiResponse(code = 404, message = "Template not found", response = Error.class),
             @ApiResponse(code = 409, message = "Failed to download indicators. It cannot be empty", response = Error.class),
             @ApiResponse(code = 500, message = "File failed to upload", response = Error.class)
     })
-    public ResponseEntity<Resource> downloadIndicators(@RequestBody List<IndicatorResponse> indicators) {
+    public ResponseEntity<Resource> downloadIndicators(@RequestBody List<IndicatorResponse> indicators,
+                                                       @RequestParam(value = "worksheet", defaultValue = "false") Boolean worksheetFormat) {
 
-        logger().info("Downloading indicators. Indicators: {}", indicators);
+        logger().info("Downloading indicators. worksheetFormat {}, Indicators: {}", worksheetFormat, indicators);
         if(indicators.isEmpty()){
             String msg = "Failed to download indicators. It cannot be empty";
             logger().error(msg);
             throw new IllegalArgumentException(msg);
         }
-        ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsInWordFile(indicators);
+        ByteArrayOutputStream outputStream = null;
+        String extension = WORD_FILE_EXTENSION;
+        if(worksheetFormat){
+            outputStream = indicatorService.exportIndicatorsInWorksheet(indicators);
+            extension = WORKSHEET_FILE_EXTENSION;
+        }else {
+            outputStream = indicatorService.exportIndicatorsInWordFile(indicators);
+        }
+
         //get the mimetype
-        String mimeType = URLConnection.guessContentTypeFromName("indicators_export.docx");
+        String mimeType = URLConnection.guessContentTypeFromName("indicators_export" + extension);
         if (mimeType == null) {
             //unknown mimetype so set the mimetype to application/octet-stream
             mimeType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
             //  mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
         }
         HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.set("filename", "indicators_export.docx");
+        httpHeaders.set("filename", "indicators_export" + extension);
         httpHeaders.set("Access-Control-Expose-Headers", "*");
-        httpHeaders.set("Content-Disposition", "inline; filename=\"indicators_export.docx\"");
+        httpHeaders.set("Content-Disposition", "inline; filename=\"indicators_export" +extension +"\"");
 
         return ResponseEntity.ok().headers(httpHeaders).contentLength(outputStream.size())
                 .contentType(MediaType.parseMediaType(mimeType))
@@ -105,21 +115,20 @@ public class IndicatorController implements Logging {
 //    }
 
     @PostMapping(value = "/indicator/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "${IndicatorController.importIndicatorFile.value}", nickname = "handleFileUpload", response = IndicatorResponse.class, responseContainer = "List")
+    @ApiOperation(value = "${IndicatorController.importIndicatorFile.value}", nickname = "importIndicatorFile", response = Indicator.class, responseContainer = "List")
     @ApiResponses({
             @ApiResponse(code = 200, message = "Indicators were imported"),
             @ApiResponse(code = 409, message = "Wrong file extension", response = Error.class),
             @ApiResponse(code = 500, message = "Failed to import indicators", response = Error.class)
     })
-    public ResponseEntity<Void> importIndicatorFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<List<Indicator>> importIndicatorFile(@RequestParam("file") MultipartFile file) {
 
         logger().info("Import Indicators from a worksheet File. File Name: {}", file.getOriginalFilename());
         if(!file.getOriginalFilename().endsWith(WORKSHEET_FILE_EXTENSION)){
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
             throw new WrongFileExtensionException();
         }
-        indicatorService.importIndicators(file);
-        return ResponseEntity.ok().body(null);
+        return ResponseEntity.ok(indicatorService.importIndicators(file));
     }
 
     @GetMapping("/indicator/themes")

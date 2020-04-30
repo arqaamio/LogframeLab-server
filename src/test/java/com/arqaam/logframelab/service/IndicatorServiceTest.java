@@ -21,13 +21,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
@@ -53,6 +52,7 @@ public class IndicatorServiceTest {
     void setup(){
         when(levelRepository.findAll()).thenReturn(Arrays.asList(mockLevels));
         when(levelRepository.findAllByOrderByPriority()).thenReturn(Arrays.stream(mockLevels).sorted().collect(Collectors.toList()));
+        when(indicatorRepository.save(any(Indicator.class))).thenAnswer(i -> i.getArguments()[0]);
     }
 
     @Test
@@ -201,6 +201,36 @@ public class IndicatorServiceTest {
 
     }
 
+    @Test
+    void exportIndicatorsInWorksheet() {
+        List<Indicator> expectedResult = mockIndicatorList();
+
+        when(indicatorRepository.findAllById(any())).thenReturn(expectedResult);
+        ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsInWorksheet(createListIndicatorResponse());
+//        MultipartFile multipartFile = new MockMultipartFile("indicators_export.xlsx", outputStream.toByteArray());
+//        List<Indicator> result = indicatorService.importIndicators(multipartFile);
+//
+//        // because Id in the result is null, and in the expected result it isn't.
+//        for (int i = 0; i < expectedResult.size(); i++) {
+//            assertEquals(expectedResult.get(i).getLevel(), result.get(i).getLevel());
+//            assertEquals(expectedResult.get(i).getKeywordsList(), result.get(i).getKeywordsList());
+//            assertEquals(expectedResult.get(i).getDisaggregation(), result.get(i).getDisaggregation());
+//            assertEquals(expectedResult.get(i).getCrsCode(), result.get(i).getCrsCode());
+//            assertEquals(expectedResult.get(i).getDescription(), result.get(i).getDescription());
+//            assertEquals(expectedResult.get(i).getName(), result.get(i).getName());
+//            assertEquals(expectedResult.get(i).getSdgCode(), result.get(i).getSdgCode());
+//            assertEquals(expectedResult.get(i).getSource(), result.get(i).getSource());
+//            assertEquals(expectedResult.get(i).getThemes(), result.get(i).getThemes());
+//            assertEquals(expectedResult.get(i).getDataSource(), result.get(i).getDataSource());
+//            assertEquals(expectedResult.get(i).getSourceVerification(), result.get(i).getSourceVerification());
+//        }
+
+//        try(OutputStream fileOutputStream = new FileOutputStream("thefilename.xlsx")) {
+//            outputStream.writeTo(fileOutputStream);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+    }
 
     private List<Indicator> mockIndicatorList() {
         String keyword = "food insecurity,nutrition,farming,agriculture";
@@ -221,11 +251,32 @@ public class IndicatorServiceTest {
         keywordsGovPolicyList.add("policy");
 
         list.add(Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
+                .themes("Global Partnership for Sustainable Development")
+                .source("UN Sustainable Development Goals")
+                .disaggregation(true)
+                .crsCode("51010.0")
+                .sdgCode("19.4")
+                .sourceVerification("Capacity4Dev")
+                .dataSource("https://data.worldbank.org/indicator/SN.ITK.VITA.ZS?view=chart")
                 .description("Food & Agriculture").keywords(keyword).level(mockLevels[1]).keywordsList(keywordsList).build());
         list.add(Indicator.builder().id(4L).name("Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support")
+                .themes("Global Partnership for Sustainable Development")
+                .source("UN Sustainable Development Goals")
+                .disaggregation(true)
+                .crsCode("43060.0")
+                .sdgCode("1.a")
+                .sourceVerification("Capacity4Dev")
+                .dataSource("https://data.worldbank.org/indicator/SI.POV.URGP?view=chart")
                 .description("Digitalisation").keywords("policy").level(mockLevels[0]).keywordsList(keywordsPolicyList).build());
         list.add(Indicator.builder().id(5L).name("Revenue, excluding grants (% of GDP)")
-                .description("Public Sector").keywords("government").level(mockLevels[3]).keywordsList(keywordsGovList).build());
+                .themes("Global Partnership for Sustainable Development")
+                .source("UN Sustainable Development Goals")
+                .disaggregation(false)
+                .crsCode("99810.0")
+                .sdgCode("17.4")
+                .sourceVerification("HIPSO")
+                .dataSource("https://data.worldbank.org/indicator/EG.CFT.ACCS.ZS?view=chart")
+                .description("Technical Note, EURF 2.01").keywords("government").level(mockLevels[3]).keywordsList(keywordsGovList).build());
         list.add(Indicator.builder().id(73L).name("Number of government policies developed or revised with civil society organisation participation through EU support")
                 .description("Public Sector").keywords("government policies, policy").level(mockLevels[1]).keywordsList(keywordsGovPolicyList).build());
 
@@ -234,7 +285,7 @@ public class IndicatorServiceTest {
 
     private List<IndicatorResponse> createListIndicatorResponse() {
         List<IndicatorResponse> list = new ArrayList<>();
-        for (int i = 1; i < 4; i++) {
+        for (int i = 1; i < 6; i++) {
             list.add(IndicatorResponse.builder().id(i).level("IMPACT").color("color").name("Label "+i)
                     .description("Description").var("var").build());
         }

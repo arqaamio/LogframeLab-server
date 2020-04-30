@@ -243,6 +243,7 @@ public class IndicatorService implements Logging {
         for (Level lvl : levels){
             levelMap.put(lvl.getName(), lvl);
         }
+       
         logger().info("Importing indicators from xlsx, name {}", file.getName());
         try {
             Iterator<Row> iterator = new XSSFWorkbook(file.getInputStream()).getSheetAt(0).iterator();

@@ -1,5 +1,6 @@
 package com.arqaam.logframelab.controller;
 
+import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.exception.TmpFileCopyFailedException;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
 import com.arqaam.logframelab.model.Error;
@@ -30,6 +31,7 @@ import java.util.UUID;
 
 @CrossOrigin(origins = "*")
 @RestController
+@RequestMapping("indicator")
 @Api(tags = "Indicator")
 public class IndicatorController implements Logging {
 
@@ -37,10 +39,13 @@ public class IndicatorController implements Logging {
 
     private static final String WORKSHEET_FILE_EXTENSION = ".xlsx";
 
-    @Autowired
-    private IndicatorService indicatorService;
+    private final IndicatorService indicatorService;
 
-    @PostMapping(value = "/indicator/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public IndicatorController(IndicatorService indicatorService) {
+        this.indicatorService = indicatorService;
+    }
+
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "${IndicatorController.handleFileUpload.value}", nickname = "handleFileUpload", response = IndicatorResponse.class, responseContainer = "List")
     @ApiResponses({
             @ApiResponse(code = 200, message = "File was uploaded", response = IndicatorResponse.class, responseContainer = "List"),
@@ -65,7 +70,7 @@ public class IndicatorController implements Logging {
         return  ResponseEntity.ok().body(indicatorService.extractIndicatorsFromWordFile(tmpFilePath, themeFilter));
     }
 
-    @PostMapping(value = "/indicator/download", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/download", consumes = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "${IndicatorController.downloadIndicators.value}", nickname = "handleFileUpload", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @ApiResponses({
             @ApiResponse(code = 200, message = "File was uploaded"),
@@ -120,7 +125,7 @@ public class IndicatorController implements Logging {
 //    }
 
 
-    @GetMapping("/indicator/themes")
+    @GetMapping("/themes")
     @ApiOperation(value = "${IndicatorController.getThemes.value}", nickname = "getThemes", response = String.class, responseContainer = "List")
     @ApiResponses({
             @ApiResponse(code = 200, message = "themes was loaded"),
@@ -130,7 +135,7 @@ public class IndicatorController implements Logging {
         return indicatorService.getAllThemes();
     }
 
-    @PostMapping(value = "/indicator/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "${IndicatorController.handleFileUpload.value}", nickname = "handleFileUpload", response = IndicatorResponse.class, responseContainer = "List")
     @ApiResponses({
             @ApiResponse(code = 200, message = "Indicators were imported"),
@@ -155,5 +160,10 @@ public class IndicatorController implements Logging {
         }
         indicatorService.importIndicators(tmpFilePath.toString());
         return ResponseEntity.ok().body(null);
+    }
+
+    @GetMapping(value = "filters")
+    public ResponseEntity<FiltersDto> getFilters() {
+        return ResponseEntity.ok(indicatorService.getFilters());
     }
 }

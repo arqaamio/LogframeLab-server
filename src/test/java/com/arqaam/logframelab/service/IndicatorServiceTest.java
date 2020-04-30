@@ -94,7 +94,7 @@ public class IndicatorServiceTest {
         assertEquals(3, mapResult.size());
         assertEquals(3, result.size());
         for (int i = 0; i < 3; i++) {
-            assertEquals(indicators.get(i+1).getName(), result.get(i).getLabel());
+            assertEquals(indicators.get(i+1).getName(), result.get(i).getName());
             assertEquals(indicators.get(i+1).getDescription(), result.get(i).getDescription());
             assertEquals(indicators.get(i+1).getLevel().getTemplateVar(), result.get(i).getVar());
         }
@@ -117,7 +117,7 @@ public class IndicatorServiceTest {
         assertEquals(3, mapResult.size());
         assertEquals(3, result.size());
         for (int i = 0; i < 3; i++) {
-            assertEquals(indicators.get(i+1).getName(), result.get(i).getLabel());
+            assertEquals(indicators.get(i+1).getName(), result.get(i).getName());
             assertEquals(indicators.get(i+1).getDescription(), result.get(i).getDescription());
             assertEquals(indicators.get(i+1).getLevel().getTemplateVar(), result.get(i).getVar());
         }
@@ -158,7 +158,7 @@ public class IndicatorServiceTest {
         int c = 0;
         for (Object obj : textNodes) {
             String currentText = ((Text) ((JAXBElement) obj).getValue()).getValue();
-            if(currentText.equals(indicators.get(c).getLabel())) {
+            if(currentText.equals(indicators.get(c).getName())) {
                 c++;
                 if(c == indicators.size()){
                     valid = true;
@@ -180,7 +180,7 @@ public class IndicatorServiceTest {
         R result = (R) textNode.getParent();
         assertEquals(5*indicators.size(), result.getContent().size());
         for (int i = 0; i < indicators.size()*5; i+=5) {
-            assertEquals(indicators.get(i/5).getLabel(), ((Text)result.getContent().get(i)).getValue());
+            assertEquals(indicators.get(i/5).getName(), ((Text)result.getContent().get(i)).getValue());
             assertTrue(result.getContent().get(i+1) instanceof Br);
             assertTrue(result.getContent().get(i+2) instanceof Br);
             assertTrue(result.getContent().get(i+3) instanceof Br);
@@ -263,7 +263,7 @@ public class IndicatorServiceTest {
     private List<IndicatorResponse> createListIndicatorResponse() {
         List<IndicatorResponse> list = new ArrayList<>();
         for (int i = 1; i < 4; i++) {
-            list.add(IndicatorResponse.builder().id(i).level("IMPACT").color("color").label("Label "+i)
+            list.add(IndicatorResponse.builder().id(i).level("IMPACT").color("color").name("Label "+i)
                     .description("Description").var("var").build());
         }
         return list;

@@ -25,6 +25,7 @@ import org.docx4j.wml.Text;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
+import javax.persistence.EntityManager;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import java.io.ByteArrayOutputStream;
@@ -44,9 +45,12 @@ public class IndicatorService implements Logging {
 
     private final LevelRepository levelRepository;
 
-    public IndicatorService(IndicatorRepository indicatorRepository, LevelRepository levelRepository) {
+    private final EntityManager entityManager;
+
+    public IndicatorService(IndicatorRepository indicatorRepository, LevelRepository levelRepository, EntityManager entityManager) {
         this.indicatorRepository = indicatorRepository;
         this.levelRepository = levelRepository;
+        this.entityManager = entityManager;
     }
 
     /**
@@ -54,17 +58,19 @@ public class IndicatorService implements Logging {
      * @param tmpfilePath Temporary Path of the word file
      * @return List of Indicators
      */
-    public List<IndicatorResponse> extractIndicatorsFromWordFile(Path tmpfilePath, List<String> themeFilter) {
-        List<IndicatorResponse> result = new ArrayList();
+    public List<IndicatorResponse> extractIndicatorsFromWordFile(Path tmpfilePath, Map<String, Collection<Object>> themeFilter) {
+        List<IndicatorResponse> result = new ArrayList<>();
         Map<Long, IndicatorResponse> mapResult = new HashMap<>();
         List<Indicator> indicatorsList;
+
         if (themeFilter != null && !themeFilter.isEmpty()) {
-            indicatorsList = indicatorRepository.getIndicatorsByThemes(themeFilter);
+            String whereCondition = indicatorRepository.toSqlConditions(themeFilter);
+            indicatorsList = indicatorRepository.findAllByFilters(entityManager, whereCondition);
         } else {
             indicatorsList = indicatorRepository.findAll();
         }
         File tmpfile = tmpfilePath.toFile();
-        List<String> wordstoScan = new ArrayList(); // current words
+        List<String> wordstoScan = new ArrayList<>(); // current words
         // get the maximum indicator length
         int maxIndicatorLength = 1;
         if (indicatorsList != null && !indicatorsList.isEmpty()) {
@@ -320,11 +326,12 @@ public class IndicatorService implements Logging {
 
         FiltersDto filters = new FiltersDto();
 
-        filters.getThemes().addAll(filtersResult.stream().map(IndicatorFilters::getThemes).collect(Collectors.toList()));
+        filters.getThemes().addAll(filtersResult.stream().map(IndicatorFilters::getThemes).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
         filters.getDescriptions().addAll(filtersResult.stream().map(IndicatorFilters::getDescription).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
-        filters.getSources().addAll(filtersResult.stream().map(IndicatorFilters::getSource).collect(Collectors.toList()));
-        filters.getLevels().addAll(filtersResult.stream().map(IndicatorFilters::getLevel).collect(Collectors.toList()));
-        filters.getSdgCodes().addAll(filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+        filters.getSource().addAll(filtersResult.stream().map(IndicatorFilters::getSource).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+        filters.getLevel().addAll(filtersResult.stream().map(IndicatorFilters::getLevel).collect(Collectors.toList()));
+        filters.getSdg_code().addAll(filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+        filters.getCrs_code().addAll(filtersResult.stream().map(IndicatorFilters::getCrsCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
 
         return filters;
     }

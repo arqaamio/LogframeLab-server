@@ -22,6 +22,7 @@ import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.wml.ObjectFactory;
 import org.docx4j.wml.R;
 import org.docx4j.wml.Text;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
@@ -40,14 +41,11 @@ import static java.util.Objects.isNull;
 @Service
 public class IndicatorService implements Logging {
 
-    private final IndicatorRepository indicatorRepository;
+    @Autowired
+    private IndicatorRepository indicatorRepository;
 
-    private final LevelRepository levelRepository;
-
-    public IndicatorService(IndicatorRepository indicatorRepository, LevelRepository levelRepository) {
-        this.indicatorRepository = indicatorRepository;
-        this.levelRepository = levelRepository;
-    }
+    @Autowired
+    private LevelRepository levelRepository;
 
     /**
      * Extract Indicators from a Word file

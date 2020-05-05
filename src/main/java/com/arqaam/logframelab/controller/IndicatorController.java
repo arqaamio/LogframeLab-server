@@ -39,11 +39,8 @@ public class IndicatorController implements Logging {
 
     private static final String WORKSHEET_FILE_EXTENSION = ".xlsx";
 
-    private final IndicatorService indicatorService;
-
-    public IndicatorController(IndicatorService indicatorService) {
-        this.indicatorService = indicatorService;
-    }
+    @Autowired
+    private IndicatorService indicatorService;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "${IndicatorController.handleFileUpload.value}", nickname = "handleFileUpload", response = IndicatorResponse.class, responseContainer = "List")

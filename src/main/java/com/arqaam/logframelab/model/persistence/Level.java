@@ -1,9 +1,6 @@
 package com.arqaam.logframelab.model.persistence;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 
@@ -12,6 +9,7 @@ import javax.persistence.*;
 @Builder
 @Data
 @NoArgsConstructor
+@EqualsAndHashCode
 public class Level implements Comparable<Level> {
 
     @Id

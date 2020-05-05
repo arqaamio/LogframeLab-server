@@ -1,5 +1,6 @@
 package com.arqaam.logframelab.controller;
 
+import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
 import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.IndicatorResponse;
@@ -25,6 +26,7 @@ import java.util.List;
 
 @CrossOrigin(origins = "*")
 @RestController
+@RequestMapping("indicator")
 @Api(tags = "Indicator")
 public class IndicatorController implements Logging {
 
@@ -34,14 +36,14 @@ public class IndicatorController implements Logging {
     @Autowired
     private IndicatorService indicatorService;
 
-    @PostMapping(value = "/indicator/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "${IndicatorController.handleFileUpload.value}", nickname = "handleFileUpload", response = IndicatorResponse.class, responseContainer = "List")
     @ApiResponses({
             @ApiResponse(code = 200, message = "File was uploaded", response = IndicatorResponse.class, responseContainer = "List"),
             @ApiResponse(code = 409, message = "Wrong file extension", response = Error.class),
             @ApiResponse(code = 500, message = "Failed to upload the file", response = Error.class)
     })
-    public ResponseEntity handleFileUpload(@RequestParam("file") MultipartFile file, @RequestParam(value = "themeFilter", required = false) List<String> themeFilter) {
+    public ResponseEntity<List<IndicatorResponse>> handleFileUpload(@RequestParam("file") MultipartFile file, @RequestParam(value = "themeFilter", required = false) List<String> themeFilter) {
 
         logger().info("Extract Indicators from Word File. File Name: {}", file.getOriginalFilename());
         if(!file.getOriginalFilename().endsWith(WORD_FILE_EXTENSION)){
@@ -51,7 +53,7 @@ public class IndicatorController implements Logging {
         return ResponseEntity.ok(indicatorService.extractIndicatorsFromWordFile(file, themeFilter));
     }
 
-    @PostMapping(value = "/indicator/download", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/download", consumes = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "${IndicatorController.downloadIndicators.value}", nickname = "downloadIndicators", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @ApiResponses({
             @ApiResponse(code = 200, message = "File was uploaded"),
@@ -114,8 +116,9 @@ public class IndicatorController implements Logging {
 //        }
 //    }
 
-    @PostMapping(value = "/indicator/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "${IndicatorController.importIndicatorFile.value}", nickname = "importIndicatorFile", response = Indicator.class, responseContainer = "List")
+
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @ApiOperation(value = "${IndicatorController.handleFileUpload.value}", nickname = "handleFileUpload", response = IndicatorResponse.class, responseContainer = "List")
     @ApiResponses({
             @ApiResponse(code = 200, message = "Indicators were imported"),
             @ApiResponse(code = 409, message = "Wrong file extension", response = Error.class),
@@ -130,8 +133,7 @@ public class IndicatorController implements Logging {
         }
         return ResponseEntity.ok(indicatorService.importIndicators(file));
     }
-
-    @GetMapping("/indicator/themes")
+    @GetMapping("/themes")
     @ApiOperation(value = "${IndicatorController.getThemes.value}", nickname = "getThemes", response = String.class, responseContainer = "List")
     @ApiResponses({
             @ApiResponse(code = 200, message = "themes was loaded"),
@@ -141,4 +143,8 @@ public class IndicatorController implements Logging {
         return indicatorService.getAllThemes();
     }
 
+    @GetMapping("/filters")
+    public ResponseEntity<FiltersDto> getFilters() {
+        return ResponseEntity.ok(indicatorService.getFilters());
+    }
 }

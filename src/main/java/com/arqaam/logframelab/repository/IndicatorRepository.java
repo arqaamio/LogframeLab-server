@@ -1,6 +1,7 @@
 package com.arqaam.logframelab.repository;
 
 import com.arqaam.logframelab.model.persistence.Indicator;
+import com.arqaam.logframelab.model.projection.IndicatorFilters;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,4 +20,5 @@ public interface IndicatorRepository extends JpaRepository<Indicator, Long> {
   @Query(value = "select distinct(THEMES) from IND_INDICATOR where THEMES <> ''", nativeQuery = true)
   List<String> getThemes();
 
+  List<IndicatorFilters> getAllBy();
 }

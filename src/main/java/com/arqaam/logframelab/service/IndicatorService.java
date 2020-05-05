@@ -1,9 +1,11 @@
 package com.arqaam.logframelab.service;
 
+import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.exception.*;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.Level;
+import com.arqaam.logframelab.model.projection.IndicatorFilters;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
 import com.arqaam.logframelab.util.Logging;
@@ -380,5 +382,19 @@ public class IndicatorService implements Logging {
      */
     public List<String> getAllThemes() {
         return indicatorRepository.getThemes();
+    }
+
+    public FiltersDto getFilters() {
+        List<IndicatorFilters> filtersResult = indicatorRepository.getAllBy();
+
+        FiltersDto filters = new FiltersDto();
+
+        filters.getThemes().addAll(filtersResult.stream().map(IndicatorFilters::getThemes).collect(Collectors.toList()));
+        filters.getDescriptions().addAll(filtersResult.stream().map(IndicatorFilters::getDescription).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+        filters.getSources().addAll(filtersResult.stream().map(IndicatorFilters::getSource).collect(Collectors.toList()));
+        filters.getLevels().addAll(filtersResult.stream().map(IndicatorFilters::getLevel).collect(Collectors.toList()));
+        filters.getSdgCodes().addAll(filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+
+        return filters;
     }
 }

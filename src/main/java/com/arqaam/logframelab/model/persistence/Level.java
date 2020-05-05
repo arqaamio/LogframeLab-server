@@ -10,7 +10,7 @@ import javax.persistence.*;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode
-public class Level {
+public class Level implements Comparable<Level> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,4 +27,12 @@ public class Level {
 
     @Column(name = "COLOR")
     private String color;
+
+    @Column(name = "PRIORITY")
+    private Integer priority;
+
+    @Override
+    public int compareTo(Level o) {
+        return this.getPriority() > o.getPriority() ? 1 : (this.getPriority().equals(o.getPriority()) ? 0 : -1);
+    }
 }

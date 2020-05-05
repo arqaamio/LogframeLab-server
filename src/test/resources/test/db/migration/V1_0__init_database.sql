@@ -28,13 +28,13 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE IF NOT EXISTS `IND_INDICATOR` (
-                                               `ID` int NOT NULL AUTO_INCREMENT,
-                                               `NAME` varchar(250) NOT NULL,
-                                               `DESCRIPTION` varchar(250) DEFAULT NULL,
-                                               `KEYWORDS` varchar(250) DEFAULT NULL,
-                                               `LEVEL` int DEFAULT NULL,
-                                               PRIMARY KEY (`ID`),
-                                               KEY `LEVEL` (`LEVEL`)
+    `ID` int NOT NULL AUTO_INCREMENT,
+    `NAME` varchar(250) NOT NULL,
+    `DESCRIPTION` varchar(250) DEFAULT NULL,
+    `KEYWORDS` varchar(250) DEFAULT NULL,
+    `LEVEL` int DEFAULT NULL,
+    PRIMARY KEY (`ID`),
+    KEY `LEVEL` (`LEVEL`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1540 DEFAULT CHARSET=utf8;
 
 --
@@ -1593,12 +1593,12 @@ INSERT INTO `IND_INDICATOR` (`ID`, `NAME`, `DESCRIPTION`, `KEYWORDS`, `LEVEL`) V
 --
 
 CREATE TABLE IF NOT EXISTS `IND_LEVEL_INDICATOR` (
-                                                     `ID` int NOT NULL AUTO_INCREMENT,
-                                                     `NAME` varchar(250) NOT NULL,
-                                                     `DESCRIPTION` varchar(250) DEFAULT NULL,
-                                                     `TEMPLATE_VAR` varchar(25) DEFAULT NULL,
-                                                     `COLOR` varchar(25) DEFAULT NULL,
-                                                     PRIMARY KEY (`ID`)
+    `ID` int NOT NULL AUTO_INCREMENT,
+    `NAME` varchar(250) NOT NULL,
+    `DESCRIPTION` varchar(250) DEFAULT NULL,
+    `TEMPLATE_VAR` varchar(25) DEFAULT NULL,
+    `COLOR` varchar(25) DEFAULT NULL,
+    PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
 
 --

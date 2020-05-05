@@ -20,7 +20,7 @@ public interface IndicatorRepository extends JpaRepository<Indicator, Long> {
   @Query(value = "select * from IND_INDICATOR where DESCRIPTION in (:themes)", nativeQuery = true)
   List<Indicator> getIndicatorsByThemes(@Param("themes") List<String> themesList);
 
-  @Query(value = "select distinct(DESCRIPTION) from IND_INDICATOR where DESCRIPTION <> ''", nativeQuery = true)
+  @Query(value = "select distinct(THEMES) from IND_INDICATOR where THEMES <> ''", nativeQuery = true)
   List<String> getThemes();
 
   List<IndicatorFilters> getAllBy();

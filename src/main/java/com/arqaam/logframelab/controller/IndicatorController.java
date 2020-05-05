@@ -1,43 +1,31 @@
 package com.arqaam.logframelab.controller;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.net.URLConnection;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 import com.arqaam.logframelab.controller.dto.FiltersDto;
-import com.arqaam.logframelab.exception.TmpFileCopyFailedException;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
 import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.IndicatorResponse;
+import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.service.IndicatorService;
 import com.arqaam.logframelab.util.Logging;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.URLConnection;
+import java.util.List;
+import java.util.Map;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -46,17 +34,16 @@ import io.swagger.annotations.ApiResponses;
 public class IndicatorController implements Logging {
 
     private static final String WORD_FILE_EXTENSION = ".docx";
-
     private static final String WORKSHEET_FILE_EXTENSION = ".xlsx";
 
-    private final IndicatorService indicatorService;
-
+    @Autowired
+    private IndicatorService indicatorService;
     private final ObjectMapper mapper;
 
-    public IndicatorController(IndicatorService indicatorService, ObjectMapper mapper) {
-        this.indicatorService = indicatorService;
-        this.mapper = mapper;
-    }
+  public IndicatorController(IndicatorService indicatorService, ObjectMapper mapper) {
+    this.mapper = mapper;
+    this.indicatorService = indicatorService;
+  }
 
     @PostMapping(value = "upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "${IndicatorController.handleFileUpload.value}", nickname = "handleFileUpload", response = IndicatorResponse.class, responseContainer = "List")
@@ -71,46 +58,47 @@ public class IndicatorController implements Logging {
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
             throw new WrongFileExtensionException();
         }
-        Path tmpFilePath = Paths.get(System.getProperty("user.home")).resolve("tmp" + UUID.randomUUID()+".docx");
-        try {
-            Files.copy(file.getInputStream(), tmpFilePath);
-        } catch (IOException e){
-            logger().error("An unexpected error occurred when copying the file." +
-                    "File Name: {}, tmpFilePath: {}, error: {}", file.getOriginalFilename(), tmpFilePath, e);
-            throw new TmpFileCopyFailedException();
-        }
-        return  ResponseEntity.ok().body(indicatorService.extractIndicatorsFromWordFile(tmpFilePath,
+        return  ResponseEntity.ok().body(indicatorService.extractIndicatorsFromWordFile(file,
             mapper.convertValue(filter, Map.class)));
     }
 
     @PostMapping(value = "download", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "${IndicatorController.downloadIndicators.value}", nickname = "handleFileUpload", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    @ApiOperation(value = "${IndicatorController.downloadIndicators.value}", nickname = "downloadIndicators", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @ApiResponses({
             @ApiResponse(code = 200, message = "File was uploaded"),
             @ApiResponse(code = 404, message = "Template not found", response = Error.class),
             @ApiResponse(code = 409, message = "Failed to download indicators. It cannot be empty", response = Error.class),
             @ApiResponse(code = 500, message = "File failed to upload", response = Error.class)
     })
-    public ResponseEntity<Resource> downloadIndicators(@RequestBody List<IndicatorResponse> indicators) {
+    public ResponseEntity<Resource> downloadIndicators(@RequestBody List<IndicatorResponse> indicators,
+                                                       @RequestParam(value = "worksheet", defaultValue = "false") Boolean worksheetFormat) {
 
-        logger().info("Downloading indicators. Indicators: {}", indicators);
+        logger().info("Downloading indicators. worksheetFormat {}, Indicators: {}", worksheetFormat, indicators);
         if(indicators.isEmpty()){
             String msg = "Failed to download indicators. It cannot be empty";
             logger().error(msg);
             throw new IllegalArgumentException(msg);
         }
-        ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsInWordFile(indicators);
+        ByteArrayOutputStream outputStream = null;
+        String extension = WORD_FILE_EXTENSION;
+        if(worksheetFormat){
+            outputStream = indicatorService.exportIndicatorsInWorksheet(indicators);
+            extension = WORKSHEET_FILE_EXTENSION;
+        }else {
+            outputStream = indicatorService.exportIndicatorsInWordFile(indicators);
+        }
+
         //get the mimetype
-        String mimeType = URLConnection.guessContentTypeFromName("indicators_export.docx");
+        String mimeType = URLConnection.guessContentTypeFromName("indicators_export" + extension);
         if (mimeType == null) {
             //unknown mimetype so set the mimetype to application/octet-stream
             mimeType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
             //  mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
         }
         HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.set("filename", "indicators_export.docx");
+        httpHeaders.set("filename", "indicators_export" + extension);
         httpHeaders.set("Access-Control-Expose-Headers", "*");
-        httpHeaders.set("Content-Disposition", "inline; filename=\"indicators_export.docx\"");
+        httpHeaders.set("Content-Disposition", "inline; filename=\"indicators_export" +extension +"\"");
 
         return ResponseEntity.ok().headers(httpHeaders).contentLength(outputStream.size())
                 .contentType(MediaType.parseMediaType(mimeType))
@@ -155,27 +143,17 @@ public class IndicatorController implements Logging {
             @ApiResponse(code = 409, message = "Wrong file extension", response = Error.class),
             @ApiResponse(code = 500, message = "Failed to import indicators", response = Error.class)
     })
-    public ResponseEntity<Void> importIndicatorFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<List<Indicator>> importIndicatorFile(@RequestParam("file") MultipartFile file) {
 
         logger().info("Import Indicators from a worksheet File. File Name: {}", file.getOriginalFilename());
         if(!file.getOriginalFilename().endsWith(WORKSHEET_FILE_EXTENSION)){
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
             throw new WrongFileExtensionException();
         }
-
-        Path tmpFilePath = Paths.get(System.getProperty("user.home")).resolve("tmp" + UUID.randomUUID()+WORKSHEET_FILE_EXTENSION);
-        try {
-            Files.copy(file.getInputStream(), tmpFilePath);
-        } catch (IOException e){
-            logger().error("An unexpected error occurred when copying the file." +
-                    "File Name: {}, tmpFilePath: {}, error: {}", file.getOriginalFilename(), tmpFilePath, e);
-            throw new TmpFileCopyFailedException();
-        }
-        indicatorService.importIndicators(tmpFilePath.toString());
-        return ResponseEntity.ok().body(null);
+        return ResponseEntity.ok(indicatorService.importIndicators(file));
     }
 
-    @GetMapping(value = "filters")
+    @GetMapping("/filters")
     public ResponseEntity<FiltersDto> getFilters() {
         return ResponseEntity.ok(indicatorService.getFilters());
     }

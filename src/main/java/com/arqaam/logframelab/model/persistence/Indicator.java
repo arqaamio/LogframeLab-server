@@ -59,6 +59,10 @@ public class Indicator {
     @Transient
     private List<String> keywordsList;
 
+    @Transient
+    @Builder.Default
+    private Integer numTimes = 0;
+
     public List<String> getKeywordsList() {
         if(keywordsList == null && keywords != null && !keywords.isEmpty()){
             keywordsList = new ArrayList<>(Arrays.asList(keywords.split(",")));

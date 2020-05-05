@@ -7,10 +7,12 @@ import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.Level;
 import com.arqaam.logframelab.repository.IndicatorRepository;
+import com.arqaam.logframelab.repository.LevelRepository;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.Text;
 import org.junit.Rule;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.rules.ErrorCollector;
@@ -26,6 +28,7 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import java.io.IOException;
 import java.util.*;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -36,10 +39,10 @@ class IndicatorControllerTest extends BaseControllerTest {
 
   private static final Level[] mockLevels =
       new Level[] {
-        new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green"),
-        new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red"),
-        new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange"),
-        new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple")
+          new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green", 3),
+          new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red", 2),
+          new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange", 4),
+          new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple", 1)
       };
   private static final int DATABASE_THEMES_SIZE = 42;
   private static final int DATABASE_CRS_CODE_SIZE = 76;
@@ -48,6 +51,8 @@ class IndicatorControllerTest extends BaseControllerTest {
   private static final int DATABASE_LEVEL_SIZE = 3;
 
   @Autowired
+  private LevelRepository levelRepository;
+
   private IndicatorRepository indicatorRepository;
 
   @Rule
@@ -97,8 +102,6 @@ class IndicatorControllerTest extends BaseControllerTest {
         keywordsFoodList.add("agriculture");
         keywordsFoodList.add("food");
         List<IndicatorResponse> expectedResult = getExpectedResult();
-        List<String> keywordList = new ArrayList<>();
-        keywordList.add("agriculture");
         List<Indicator> indicators = mockIndicatorList();
         indicators.add(Indicator.builder().id(1L).name("Name 1").description("Description").level(mockLevels[1])
                 .keywords("agriculture").keywordsList(keywordsFoodList).build());
@@ -123,10 +126,10 @@ class IndicatorControllerTest extends BaseControllerTest {
         List<String> keywordsList = new ArrayList<>();
         keywordsList.add(keywordsFoodList.get(0));
         List<IndicatorResponse> expectedResult = getExpectedResult();
-        expectedResult.add(IndicatorResponse.builder().id(5L).level(mockLevels[2].getName()).color(mockLevels[2].getColor())
-                .label("Name 3").description("Description").var(mockLevels[2].getTemplateVar()).build());
         expectedResult.add(IndicatorResponse.builder().id(6L).level(mockLevels[2].getName()).color(mockLevels[2].getColor())
-                .label("Name 6").description("Description").var(mockLevels[2].getTemplateVar()).build());
+                .name("Name 6").description("Description").var(mockLevels[2].getTemplateVar()).build());
+        expectedResult.add(IndicatorResponse.builder().id(5L).level(mockLevels[2].getName()).color(mockLevels[2].getColor())
+                .name("Name 3").description("Description").var(mockLevels[2].getTemplateVar()).build());
         List<Indicator> indicators = mockIndicatorList();
         // This showcases how keywords property is irrelevant, only keywordList is taken into consideration
         indicators.add(Indicator.builder().id(6L).name("Name 6").description("Description").level(mockLevels[2]).keywordsList(keywordsList).build());
@@ -166,6 +169,7 @@ class IndicatorControllerTest extends BaseControllerTest {
         ResponseEntity<Resource> response = testRestTemplate.exchange("/indicator/download", HttpMethod.POST,
                 new HttpEntity<>(indicators), Resource.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
 
         WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(response.getBody().getInputStream());
         List<Object> textNodes = wordMLPackage.getMainDocumentPart().getJAXBNodesViaXPath("//w:t", true);
@@ -173,7 +177,7 @@ class IndicatorControllerTest extends BaseControllerTest {
         int c = 0;
         for (Object obj : textNodes) {
             String currentText = ((Text) ((JAXBElement) obj).getValue()).getValue();
-            if(currentText.equals(indicators.get(c).getLabel())) {
+            if(currentText.equals(indicators.get(c).getName())) {
                 c++;
                 if(c == indicators.size()){
                     valid = true;
@@ -210,9 +214,10 @@ class IndicatorControllerTest extends BaseControllerTest {
   }
 
     private List<Indicator> mockIndicatorList() {
+
         String keyword = "food insecurity,agriculture";
         List<Indicator> list = new ArrayList<>();
-
+        /*
         List<String> keywordsFoodList = new ArrayList<>();
         keywordsFoodList.add("agriculture");
         keywordsFoodList.add("food");
@@ -227,34 +232,34 @@ class IndicatorControllerTest extends BaseControllerTest {
         keywordsGovPolicyList.add("government policies");
         keywordsGovPolicyList.add("policy");
 
-//        list.add(Indicator.builder().id(4L).name("Number of policies/strategies/laws/regulation developed/revised for digitalisation with EU support")
-//                .description("Digitalisation").level(mockLevels[0]).keywords("policy").keywordsList(keywordsPolicyList).build());
-//        list.add(Indicator.builder().id(73L).name("Number of government policies developed or revised with civil society organisation participation through EU support")
-//                .description("Public Sector").level(mockLevels[1]).keywords("government policies, policy").keywordsList(keywordsGovPolicyList).build());
-//        list.add(Indicator.builder().id(5L).name("Revenue, excluding grants (% of GDP)")
-//                .description("Public Sector").level(mockLevels[3]).keywords("government").keywordsList(keywordsGovList).build());
-//        list.add(Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
-//                .description("Food & Agriculture").level(mockLevels[1]).keywords(keyword).keywordsList(keywordsFoodList).build());
 
+        list.add(Indicator.builder().id(4L).name("Number of policies/strategies/laws/regulation developed/revised for digitalisation with EU support")
+                .description("Digitalisation").level(mockLevels[0]).keywords("policy").keywordsList(keywordsPolicyList).build());
+        list.add(Indicator.builder().id(73L).name("Number of government policies developed or revised with civil society organisation participation through EU support")
+                .description("Public Sector").level(mockLevels[1]).keywords("government policies, policy").keywordsList(keywordsGovPolicyList).build());
+        list.add(Indicator.builder().id(5L).name("Revenue, excluding grants (% of GDP)")
+                .description("Public Sector").level(mockLevels[3]).keywords("government").keywordsList(keywordsGovList).build());
+        list.add(Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
+                .description("Food & Agriculture").level(mockLevels[1]).keywords(keyword).keywordsList(keywordsFoodList).build());
+        */
         list = indicatorRepository.findIndicatorByIdIn(Arrays.asList(4L, 73L, 5L, 1L));
 
         return list;
     }
 
     private List<IndicatorResponse> getExpectedResult(){
-
         List<IndicatorResponse> list = new ArrayList<>();
-        list.add(IndicatorResponse.builder().id(3).level(mockLevels[3].getName()).color(mockLevels[3].getColor())
-                .description("Public Sector").label("Revenue, excluding grants (% of GDP)")
+        list.add(IndicatorResponse.builder().level(mockLevels[3].getName()).color(mockLevels[3].getColor())
+                .description("Public Sector").name("Revenue, excluding grants (% of GDP)")
                 .var(mockLevels[3].getTemplateVar()).build());
-        list.add(IndicatorResponse.builder().id(2).level(mockLevels[1].getName()).color(mockLevels[1].getColor())
-                .description("Public Sector").label("Number of government policies developed or revised with civil society organisation participation through EU support")
+        list.add(IndicatorResponse.builder().level(mockLevels[1].getName()).color(mockLevels[1].getColor())
+                .description("Public Sector").name("Number of government policies developed or revised with civil society organisation participation through EU support")
                 .var(mockLevels[1].getTemplateVar()).build());
-        list.add(IndicatorResponse.builder().id(4).level(mockLevels[1].getName()).color(mockLevels[1].getColor())
-                .description("Food & Agriculture").label("Number of food insecure people receiving EU assistance")
+        list.add(IndicatorResponse.builder().level(mockLevels[1].getName()).color(mockLevels[1].getColor())
+                .description("Food & Agriculture").name("Number of food insecure people receiving EU assistance")
                 .var(mockLevels[1].getTemplateVar()).build());
-        list.add(IndicatorResponse.builder().id(1).level(mockLevels[0].getName()).color(mockLevels[0].getColor())
-                .description("Digitalisation").label("Number of policies/strategies/laws/regulation developed/revised for digitalisation with EU support")
+        list.add(IndicatorResponse.builder().level(mockLevels[0].getName()).color(mockLevels[0].getColor())
+                .description("Digitalisation").name("Number of policies/strategies/laws/regulation developed/revised for digitalisation with EU support")
                 .var(mockLevels[0].getTemplateVar()).build());
         return list;
     }
@@ -274,7 +279,7 @@ class IndicatorControllerTest extends BaseControllerTest {
                     .color(mockLevels[level].getColor())
                     .description("Description")
                     .disaggregation(level > 1) // Reusing random values
-                    .label("Indicator Label "+ i)
+                    .name("Indicator Label "+ i)
                     .var(mockLevels[level].getTemplateVar())
                     .build());
         }

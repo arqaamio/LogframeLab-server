@@ -1,25 +1,21 @@
 package com.arqaam.logframelab.repository;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import javax.persistence.EntityManager;
-import javax.persistence.TypedQuery;
-
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.projection.IndicatorFilters;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.List;
+
 @Repository
 public interface IndicatorRepository extends JpaRepository<Indicator, Long> {
 
   List<Indicator> findAll();
+
+  List<Indicator> findIndicatorByIdIn(Collection<Long> id);
 
   @Query(value = "select * from IND_INDICATOR where DESCRIPTION in (:themes)", nativeQuery = true)
   List<Indicator> getIndicatorsByThemes(@Param("themes") List<String> themesList);
@@ -29,31 +25,10 @@ public interface IndicatorRepository extends JpaRepository<Indicator, Long> {
 
   List<IndicatorFilters> getAllBy();
 
-  @Query(value = "select * from IND_INDICATOR where :filters", nativeQuery=true)
-  List<Indicator> findAllByFilters(@Param("filters") String filters);
-
-  default List<Indicator> findAllByFilters(EntityManager entityManager, String whereClause) {
-    TypedQuery<Indicator> query = entityManager.createQuery("select i from IND_INDICATOR i" + (whereClause.isEmpty() ? "" : " where " + whereClause), Indicator.class);
-    return query.getResultList();
-  }
-
-  default String toSqlConditions(Map<String, Collection<Object>> filterOptions) {
-    final StringBuilder queryConditions = new StringBuilder();
-    filterOptions.forEach(
-        (key, value) -> {
-          if (value != null && !value.isEmpty()) {
-            queryConditions
-                .append(key)
-                .append(" in ")
-                .append("(")
-                .append(value.stream().map(val -> (val instanceof Number) ? val.toString() : ("'" + val.toString() + "'")).collect(Collectors.joining(",")))
-                .append(") and ");
-          }
-        });
-    if (queryConditions.indexOf(" and ") > 0) {
-      queryConditions.delete(queryConditions.lastIndexOf(" and "), queryConditions.length());
-    }
-    
-    return queryConditions.toString();
-  }
+  List<Indicator> getAllByThemesInAndSourceInAndLevel_IdInAndSdgCodeInAndCrsCodeIn(
+      Collection<Object> themes,
+      Collection<Object> source,
+      Collection<Object> level,
+      Collection<Object> sdg_code,
+      Collection<Object> crs_code);
 }

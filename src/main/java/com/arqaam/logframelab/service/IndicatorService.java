@@ -58,17 +58,22 @@ public class IndicatorService implements Logging {
      * @param tmpfilePath Temporary Path of the word file
      * @return List of Indicators
      */
-    public List<IndicatorResponse> extractIndicatorsFromWordFile(Path tmpfilePath, Map<String, Collection<Object>> themeFilter) {
+    public List<IndicatorResponse> extractIndicatorsFromWordFile(Path tmpfilePath, Map<String, Collection<Object>> filter) {
         List<IndicatorResponse> result = new ArrayList<>();
         Map<Long, IndicatorResponse> mapResult = new HashMap<>();
         List<Indicator> indicatorsList;
 
-        if (themeFilter != null && !themeFilter.isEmpty()) {
-            String whereCondition = indicatorRepository.toSqlConditions(themeFilter);
-            indicatorsList = indicatorRepository.findAllByFilters(entityManager, whereCondition);
-        } else {
-            indicatorsList = indicatorRepository.findAll();
-        }
+    if (filter != null && !filter.isEmpty()) {
+      indicatorsList =
+          indicatorRepository.getAllByThemesInAndSourceInAndLevel_IdInAndSdgCodeInAndCrsCodeIn(
+              filter.get("themes"),
+              filter.get("source"),
+              filter.get("level").stream().map(level -> ((Map<String, Object>) level).get("id")).collect(Collectors.toSet()),
+              filter.get("sdg_code"),
+              filter.get("crs_code"));
+    } else {
+      indicatorsList = indicatorRepository.findAll();
+    }
         File tmpfile = tmpfilePath.toFile();
         List<String> wordstoScan = new ArrayList<>(); // current words
         // get the maximum indicator length
@@ -327,7 +332,6 @@ public class IndicatorService implements Logging {
         FiltersDto filters = new FiltersDto();
 
         filters.getThemes().addAll(filtersResult.stream().map(IndicatorFilters::getThemes).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
-        filters.getDescriptions().addAll(filtersResult.stream().map(IndicatorFilters::getDescription).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
         filters.getSource().addAll(filtersResult.stream().map(IndicatorFilters::getSource).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
         filters.getLevel().addAll(filtersResult.stream().map(IndicatorFilters::getLevel).collect(Collectors.toList()));
         filters.getSdg_code().addAll(filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));

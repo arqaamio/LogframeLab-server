@@ -23,13 +23,13 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<maven.compiler.source>1.8</maven.compiler.source>
-
 		<docx4j.version>6.1.2</docx4j.version>
 		<java.version>1.8</java.version>
 		<javaxb.version>2.1</javaxb.version>
 		<lombok.version>1.18.12</lombok.version>
 		<poi.version>4.1.2</poi.version>
 		<swagger.version>2.9.2</swagger.version>
+		<flyway.version>6.3.3</flyway.version>
 	</properties>
 
 	<dependencies>
@@ -90,13 +90,17 @@
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
-			<scope>runtime</scope>
+			<scope>test</scope>
 		</dependency>
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
             <scope>runtime</scope>
         </dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
@@ -107,6 +111,16 @@
 					<artifactId>junit-vintage-engine</artifactId>
 				</exclusion>
 			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-migrationsupport</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest</artifactId>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
@@ -126,7 +140,6 @@
 			<plugin>
 				<groupId>org.flywaydb</groupId>
 				<artifactId>flyway-maven-plugin</artifactId>
-				<version>4.0.3</version>
 			</plugin>
 		</plugins>
 	</build>

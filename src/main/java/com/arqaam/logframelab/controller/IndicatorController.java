@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.arqaam.logframelab.controller.dto.FiltersDto;
-import com.arqaam.logframelab.controller.dto.IndicatorUploadDto;
 import com.arqaam.logframelab.exception.TmpFileCopyFailedException;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
 import com.arqaam.logframelab.model.Error;
@@ -66,7 +65,7 @@ public class IndicatorController implements Logging {
             @ApiResponse(code = 409, message = "Wrong file extension", response = Error.class),
             @ApiResponse(code = 500, message = "Failed to upload the file", response = Error.class)
     })
-    public ResponseEntity handleFileUpload(@RequestPart("file") MultipartFile file, @RequestPart("filter") IndicatorUploadDto filter) throws IOException {
+    public ResponseEntity<?> handleFileUpload(@RequestPart("file") MultipartFile file, @RequestPart("filter") FiltersDto filter) throws IOException {
         logger().info("Extract Indicators from Word File. File Name: {}", file.getOriginalFilename());
         if(!file.getOriginalFilename().endsWith(WORD_FILE_EXTENSION)){
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
@@ -139,7 +138,7 @@ public class IndicatorController implements Logging {
     }
 */
 
-    @GetMapping("/themes")
+    @GetMapping("themes")
     @ApiOperation(value = "${IndicatorController.getThemes.value}", nickname = "getThemes", response = String.class, responseContainer = "List")
     @ApiResponses({
             @ApiResponse(code = 200, message = "themes was loaded"),

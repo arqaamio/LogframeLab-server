@@ -14,4 +14,5 @@ public class FiltersDto {
   private final Set<String> sources = new LinkedHashSet<>();
   private final Set<Level> levels = new LinkedHashSet<>();
   private final Set<String> sdgCodes = new LinkedHashSet<>();
+  private final Set<String> crsCodes = new LinkedHashSet<>();
 }

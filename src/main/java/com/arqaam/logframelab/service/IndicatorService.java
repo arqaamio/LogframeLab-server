@@ -310,7 +310,7 @@ public class IndicatorService implements Logging {
 
         XSSFWorkbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet();
-        String[] columns = new String[]{"Level", "Themes", "Keywords", "Name", "Description", "Source", "Disaggregation", "DAC 5/CRS", "SDG", "Source of Verification", "Data Source"};
+        String[] columns = new String[]{"Level", "Themes", "Name", "Description", "Source", "Disaggregation", "DAC 5/CRS", "SDG", "Source of Verification", "Data Source"};
 
         // Create a CellStyle with the font
         Font boldFont = workbook.createFont();
@@ -337,15 +337,14 @@ public class IndicatorService implements Logging {
             Row row = sheet.createRow(rowNum++);
             row.createCell(0).setCellValue(indicator.getLevel().getName());
             row.createCell(1).setCellValue(indicator.getThemes());
-            addCellWithStyle(row, 2, indicator.getKeywords(), yellowCellStyle);
-            row.createCell(3).setCellValue(indicator.getName());
-            row.createCell(4).setCellValue(indicator.getDescription());
-            row.createCell(5).setCellValue(indicator.getSource());
-            addCellWithStyle(row, 6, isNull(indicator.getDisaggregation())? "" : (indicator.getDisaggregation() ? "Yes" : "No"), yellowCellStyle);
-            addCellWithStyle(row, 7, indicator.getCrsCode(), redCellStyle);
-            addCellWithStyle(row, 8, indicator.getSdgCode(), redCellStyle);
-            addCellWithStyle(row, 9, indicator.getSourceVerification(), yellowCellStyle);
-            row.createCell(10).setCellValue(indicator.getDataSource());
+            row.createCell(2).setCellValue(indicator.getName());
+            row.createCell(3).setCellValue(indicator.getDescription());
+            row.createCell(4).setCellValue(indicator.getSource());
+            addCellWithStyle(row, 5, isNull(indicator.getDisaggregation())? "" : (indicator.getDisaggregation() ? "Yes" : "No"), yellowCellStyle);
+            addCellWithStyle(row, 6, indicator.getCrsCode(), redCellStyle);
+            addCellWithStyle(row, 7, indicator.getSdgCode(), redCellStyle);
+            addCellWithStyle(row, 8, indicator.getSourceVerification(), yellowCellStyle);
+            row.createCell(9).setCellValue(indicator.getDataSource());
         }
 
         // Resize all columns to fit the content size

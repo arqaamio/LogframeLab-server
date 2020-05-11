@@ -9,6 +9,8 @@ import com.arqaam.logframelab.model.projection.IndicatorFilters;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
 import com.arqaam.logframelab.util.Logging;
+import org.apache.poi.hwpf.HWPFDocument;
+import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.docx4j.jaxb.Context;
@@ -33,6 +35,7 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import java.io.*;
 import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -75,34 +78,48 @@ public class IndicatorService implements Logging {
                 }
             }
             try {
-                WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(file.getInputStream());
-                MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
-                String textNodesXPath = "//w:t";
-                List<Object> textNodes = mainDocumentPart.getJAXBNodesViaXPath(textNodesXPath, true);
-                Pattern p = Pattern.compile("[a-z0-9]", Pattern.CASE_INSENSITIVE);
-                StringBuffer currentWord = null;
                 Map<Long, Indicator> mapResult = new HashMap<>();
+                if(file.getOriginalFilename().matches("\\S+\\.docx$")) {
+                    WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(file.getInputStream());
+                    MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
+                    String textNodesXPath = "//w:t";
+                    List<Object> textNodes = mainDocumentPart.getJAXBNodesViaXPath(textNodesXPath, true);
+                    Pattern p = Pattern.compile("[a-z0-9]", Pattern.CASE_INSENSITIVE);
+                    StringBuffer currentWord = null;
 
-                for (Object obj : textNodes) {
-                    Text text =  ((JAXBElement<Text>) obj).getValue();
-                    char[] strArray = text.getValue().toLowerCase().toCharArray();
-                    for (char c : strArray) {
-                        // append current word to wordstoScan list
-                        if (currentWord == null && p.matcher(c + "").find()) {
-                            currentWord = new StringBuffer();
-                        } else if (currentWord != null && !p.matcher(c + "").find()) {
-                            wordstoScan.add(currentWord.toString());
-                            currentWord = null;
-                        }
-                        if (currentWord != null) {
-                            currentWord.append(c);
-                        }
-                        // clear wordstoScan list if exceed the max length of indicators
-                        if (wordstoScan.size() == maxIndicatorLength) {
-                            checkIndicators(wordstoScan, indicatorsList, mapResult);
-                            wordstoScan.remove(wordstoScan.size() - 1);
+                    for (Object obj : textNodes) {
+                        Text text = ((JAXBElement<Text>) obj).getValue();
+                        char[] strArray = text.getValue().toLowerCase().toCharArray();
+                        for (char c : strArray) {
+                            // append current word to wordstoScan list
+                            if (currentWord == null && p.matcher(c + "").find()) {
+                                currentWord = new StringBuffer();
+                            } else if (currentWord != null && !p.matcher(c + "").find()) {
+                                wordstoScan.add(currentWord.toString());
+                                currentWord = null;
+                            }
+                            if (currentWord != null) {
+                                currentWord.append(c);
+                            }
+                            // clear wordstoScan list if exceed the max length of indicators
+                            if (wordstoScan.size() == maxIndicatorLength) {
+                                checkIndicators(wordstoScan, indicatorsList, mapResult);
+                                wordstoScan.remove(wordstoScan.size() - 1);
+                            }
                         }
                     }
+                } else {
+                    // Read .doc
+                    HWPFDocument doc = new HWPFDocument(file.getInputStream());
+                    Matcher matcher = Pattern.compile("\\w+").matcher(new WordExtractor(doc).getText());
+                    while(matcher.find()){
+                        wordstoScan.add(matcher.group());
+                        if (wordstoScan.size() == maxIndicatorLength) {
+                            checkIndicators(wordstoScan, indicatorsList, mapResult);
+                            wordstoScan.clear();
+                        }
+                    }
+                    doc.close();
                 }
                 if(!mapResult.isEmpty()) {
                     List<Level> levelsList = levelRepository.findAllByOrderByPriority();

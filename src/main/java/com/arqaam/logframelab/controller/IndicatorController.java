@@ -22,7 +22,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -118,7 +122,7 @@ public class IndicatorController implements Logging {
 
 
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "${IndicatorController.handleFileUpload.value}", nickname = "handleFileUpload", response = IndicatorResponse.class, responseContainer = "List")
+    @ApiOperation(value = "${IndicatorController.importIndicatorFile.value}", nickname = "importIndicatorFile", response = IndicatorResponse.class, responseContainer = "List")
     @ApiResponses({
             @ApiResponse(code = 200, message = "Indicators were imported"),
             @ApiResponse(code = 409, message = "Wrong file extension", response = Error.class),
@@ -146,5 +150,25 @@ public class IndicatorController implements Logging {
     @GetMapping("/filters")
     public ResponseEntity<FiltersDto> getFilters() {
         return ResponseEntity.ok(indicatorService.getFilters());
+    }
+
+    @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ApiOperation(value = "${IndicatorController.getIndicators.value}", nickname = "getIndicators", response = IndicatorResponse.class, responseContainer = "List")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "File was uploaded", response = IndicatorResponse.class, responseContainer = "List"),
+            @ApiResponse(code = 500, message = "Unexpected error occurred", response = Error.class)
+    })
+    public ResponseEntity<List<IndicatorResponse>> getIndicators(@RequestParam(required = false) List<String> themes,
+                                                                 @RequestParam(required = false) List<String> sources,
+                                                                 @RequestParam(required = false) List<Long> levels,
+                                                                 @RequestParam(required = false) List<String> sdgCodes,
+                                                                 @RequestParam(required = false) List<String> crsCodes) {
+
+        logger().info("Retrieving Indicators with themes: {}, sources: {}, levels: {}, sdgCodes: {}, crsCodes: {}",
+                themes, sources, levels, sdgCodes, crsCodes);
+
+        return ResponseEntity.ok(indicatorService.getIndicators(Optional.ofNullable(themes), Optional.ofNullable(sources),
+                Optional.ofNullable(levels), Optional.ofNullable(sdgCodes), Optional.ofNullable(crsCodes))
+                .stream().map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList()));
     }
 }

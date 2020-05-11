@@ -7,16 +7,19 @@ import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.Level;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
+import com.arqaam.logframelab.service.IndicatorService;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -31,7 +34,8 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 class IndicatorControllerTest extends BaseControllerTest {
 
@@ -42,6 +46,18 @@ class IndicatorControllerTest extends BaseControllerTest {
             new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple", 1)
     };
 
+    private final static List<String> mockThemes = Arrays.asList("Digitalisation", "Education", "Poverty",
+            "Nutrition", "Agriculture", "Health", "WASH", "Electricity", "Private Sector",
+            "Infrastructure", "Migration", "Climate Change", "Environment", "Public Sector",
+            "Human Rights", "Conflict", "Food Security", "Equality", "Water and Sanitation");
+    private final static List<String> mockSources = Arrays.asList("Capacity4Dev", "EU", "WFP", "ECHO", "ECHO,WFP",
+            "ECHO,WHO", "FAO", "FAO,WHO", "WHO", "FANTA", "IPA", "WHO,FAO", "ACF",
+            "Nutrition Cluster", "Freendom House", "CyberGreen", "ITU",
+            "UN Sustainable Development Goals", "World Bank", "UNDP", "ILO", "IMF");
+    private final static List<String> mockSdgCodes = Arrays.asList("8.2", "7.1", "4.1", "1.a", "1.b") ;
+    private final static List<String> mockCrsCodes = Arrays.asList("99810.0", "15160.0", "24010.0", "15190.0", "43010.0", "24050.0", "43030.0");
+    private final static List<Long> mockLevelsId = Arrays.stream(mockLevels).map(Level::getId).collect(Collectors.toList());
+
     // Instead of mocking the repository maybe could load H2 memory with flyway
     @MockBean
     private LevelRepository levelRepository;
@@ -49,17 +65,24 @@ class IndicatorControllerTest extends BaseControllerTest {
     @MockBean
     private IndicatorRepository indicatorRepository;
 
+    @Autowired
+    private IndicatorService indicatorService;
+
     @BeforeEach
     void setup(){
         when(levelRepository.findAllByOrderByPriority()).thenReturn(Arrays.stream(mockLevels).sorted().collect(Collectors.toList()));
+        when(indicatorRepository.findAll(any(Specification.class))).
+                thenReturn(mockIndicatorList().stream()
+                        .filter(x -> mockThemes.contains(x.getThemes()) && mockLevelsId.contains(x.getLevel().getId()) && mockSources.contains(x.getSource())
+                                && mockSdgCodes.contains(x.getSdgCode()) && mockCrsCodes.contains(x.getCrsCode())).collect(Collectors.toList()));
+
+        when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
     }
 
     @Test
 //    @Sql("/test_indicators.sql")
     void handleFileUpload() {
         List<IndicatorResponse> expectedResult = getExpectedResult();
-        List<Indicator> indicators = mockIndicatorList();
-        when(indicatorRepository.findAll()).thenReturn(indicators);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
@@ -173,6 +196,46 @@ class IndicatorControllerTest extends BaseControllerTest {
         assertEqualsException(response, HttpStatus.CONFLICT, 6, IllegalArgumentException.class);
     }
 
+    @Test
+    void getIndicators() {
+        List<IndicatorResponse> expectedResult = getExpectedResult();
+        ResponseEntity<List<IndicatorResponse>> response = testRestTemplate.exchange("/indicator?themes="+String.join(",", mockThemes)+
+                        "&levels=" +mockLevelsId.stream().map(String::valueOf).collect(Collectors.joining(",")) +"&sources="+String.join(",", mockSources) +
+                        "&sdgCodes=" + String.join(",", mockSdgCodes) + "&crsCodes="+String.join(",", mockCrsCodes), HttpMethod.GET,
+                new HttpEntity<>(null), new ParameterizedTypeReference<List<IndicatorResponse>>() {});
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(indicatorRepository).findAll(any(Specification.class));
+        verify(indicatorRepository, times(0)).findAll();
+        assertEqualsIndicator(Arrays.asList(expectedResult.get(3), expectedResult.get(1), expectedResult.get(0), expectedResult.get(2)), response.getBody());
+    }
+
+    @Test
+    void getIndicators_someFilters() {
+        List<IndicatorResponse> expectedResult = getExpectedResult();
+        ResponseEntity<List<IndicatorResponse>> response = testRestTemplate.exchange("/indicator?themes="+String.join(",", mockThemes)+
+                        "&levels=" +mockLevelsId.stream().map(String::valueOf).collect(Collectors.joining(",")) +"&sources="+String.join(",", mockSources),
+                HttpMethod.GET, new HttpEntity<>(null), new ParameterizedTypeReference<List<IndicatorResponse>>() {});
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(indicatorRepository).findAll(any(Specification.class));
+        verify(indicatorRepository, times(0)).findAll();
+        assertEqualsIndicator(Arrays.asList(expectedResult.get(3), expectedResult.get(1), expectedResult.get(0), expectedResult.get(2)), response.getBody());
+    }
+
+    @Test
+    void getIndicators_noFilters() {
+        List<IndicatorResponse> expectedResult = mockIndicatorList().stream()
+                .map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList());
+        ResponseEntity<List<IndicatorResponse>> response = testRestTemplate.exchange("/indicator", HttpMethod.GET,
+                new HttpEntity<>(null), new ParameterizedTypeReference<List<IndicatorResponse>>() {});
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(indicatorRepository, times(0)).findAll(any(Specification.class));
+        verify(indicatorRepository).findAll();
+        assertEqualsIndicator(expectedResult, response.getBody());
+    }
+
     private List<Indicator> mockIndicatorList() {
         String keyword = "food insecurity,agriculture";
         List<Indicator> list = new ArrayList<>();
@@ -192,32 +255,29 @@ class IndicatorControllerTest extends BaseControllerTest {
         keywordsGovPolicyList.add("policy");
 
         list.add(Indicator.builder().id(4L).name("Number of policies/strategies/laws/regulation developed/revised for digitalisation with EU support")
-                .description("Digitalisation").level(mockLevels[0]).keywords("policy").keywordsList(keywordsPolicyList).build());
+                .description("Digitalisation").level(mockLevels[0]).keywords("policy").keywordsList(keywordsPolicyList)
+                .source(mockSources.get(0)).themes(mockThemes.get(0)).sdgCode(mockSdgCodes.get(0)).crsCode(mockCrsCodes.get(0)).build());
         list.add(Indicator.builder().id(73L).name("Number of government policies developed or revised with civil society organisation participation through EU support")
-                .description("Public Sector").level(mockLevels[1]).keywords("government policies, policy").keywordsList(keywordsGovPolicyList).build());
+                .description("Public Sector").level(mockLevels[1]).keywords("government policies, policy").keywordsList(keywordsGovPolicyList)
+                .source(mockSources.get(1)).themes(mockThemes.get(1)).sdgCode(mockSdgCodes.get(1)).crsCode(mockCrsCodes.get(1)).build());
         list.add(Indicator.builder().id(5L).name("Revenue, excluding grants (% of GDP)")
-                .description("Public Sector").level(mockLevels[3]).keywords("government").keywordsList(keywordsGovList).build());
+                .description("Public Sector").level(mockLevels[3]).keywords("government").keywordsList(keywordsGovList)
+                .source(mockSources.get(2)).themes(mockThemes.get(2)).sdgCode(mockSdgCodes.get(2)).crsCode(mockCrsCodes.get(2)).build());
         list.add(Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
-                .description("Food & Agriculture").level(mockLevels[1]).keywords(keyword).keywordsList(keywordsFoodList).build());
+                .description("Food & Agriculture").level(mockLevels[1]).keywords(keyword).keywordsList(keywordsFoodList)
+                .source(mockSources.get(3)).themes(mockThemes.get(3)).sdgCode(mockSdgCodes.get(3)).crsCode(mockCrsCodes.get(3)).build());
 
         return list;
     }
 
     private List<IndicatorResponse> getExpectedResult(){
-        List<IndicatorResponse> list = new ArrayList<>();
-        list.add(IndicatorResponse.builder().level(mockLevels[3].getName()).color(mockLevels[3].getColor())
-                .description("Public Sector").name("Revenue, excluding grants (% of GDP)")
-                .var(mockLevels[3].getTemplateVar()).build());
-        list.add(IndicatorResponse.builder().level(mockLevels[1].getName()).color(mockLevels[1].getColor())
-                .description("Public Sector").name("Number of government policies developed or revised with civil society organisation participation through EU support")
-                .var(mockLevels[1].getTemplateVar()).build());
-        list.add(IndicatorResponse.builder().level(mockLevels[1].getName()).color(mockLevels[1].getColor())
-                .description("Food & Agriculture").name("Number of food insecure people receiving EU assistance")
-                .var(mockLevels[1].getTemplateVar()).build());
-        list.add(IndicatorResponse.builder().level(mockLevels[0].getName()).color(mockLevels[0].getColor())
-                .description("Digitalisation").name("Number of policies/strategies/laws/regulation developed/revised for digitalisation with EU support")
-                .var(mockLevels[0].getTemplateVar()).build());
-        return list;
+        List<Indicator> indicators = mockIndicatorList();
+        List<IndicatorResponse> indicatorResponses = new ArrayList<>();
+        indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(2)));
+        indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(1)));
+        indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(3)));
+        indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(0)));
+        return indicatorResponses;
     }
 
     private List<IndicatorResponse> createIndicatorResponseList(int size){

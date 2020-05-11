@@ -58,8 +58,7 @@ public class IndicatorController implements Logging {
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
             throw new WrongFileExtensionException();
         }
-        return  ResponseEntity.ok().body(indicatorService.extractIndicatorsFromWordFile(file,
-            mapper.convertValue(filter, Map.class)));
+        return  ResponseEntity.ok().body(indicatorService.extractIndicatorsFromWordFile(file, filter));
     }
 
     @PostMapping(value = "download", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -153,7 +152,7 @@ public class IndicatorController implements Logging {
         return ResponseEntity.ok(indicatorService.importIndicators(file));
     }
 
-    @GetMapping("/filters")
+    @GetMapping("filters")
     public ResponseEntity<FiltersDto> getFilters() {
         return ResponseEntity.ok(indicatorService.getFilters());
     }

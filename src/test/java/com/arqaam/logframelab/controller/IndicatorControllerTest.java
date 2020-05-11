@@ -75,7 +75,7 @@ class IndicatorControllerTest extends BaseControllerTest {
             HttpMethod.POST,
             new HttpEntity<>(body, headers),
             new ParameterizedTypeReference<List<IndicatorResponse>>() {});
-
+logger.info("");
     assertEquals(HttpStatus.OK, response.getStatusCode());
     Objects.requireNonNull(response.getBody())
         .forEach(
@@ -301,7 +301,7 @@ class IndicatorControllerTest extends BaseControllerTest {
             "Nutrition", "Agriculture", "Health", "WASH", "Electricity", "Private Sector",
             "Infrastructure", "Migration", "Climate Change", "Environment", "Public Sector",
             "Human Rights", "Conflict", "Food Security", "Equality", "Water and Sanitation"));
-        filters.getCrs_code().addAll(Arrays.asList( "0.0", "16010.0"));
+        filters.getCrsCode().addAll(Arrays.asList( "0.0", "16010.0"));
         filters.getLevel().addAll(Arrays.asList(mockLevels));
         filters.getSource().addAll(Arrays.asList("Capacity4Dev", "EU", "WFP", "ECHO", "ECHO,WFP",
             "ECHO,WHO", "FAO", "FAO,WHO", "WHO", "FANTA", "IPA", "WHO,FAO", "ACF",

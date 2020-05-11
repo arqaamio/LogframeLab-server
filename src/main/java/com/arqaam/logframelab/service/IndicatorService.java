@@ -50,18 +50,18 @@ public class IndicatorService implements Logging {
      * @param file Word file
      * @return List of Indicators
      */
-    public List<IndicatorResponse> extractIndicatorsFromWordFile( MultipartFile file, Map<String, Collection<Object>> filter) {
+    public List<IndicatorResponse> extractIndicatorsFromWordFile( MultipartFile file, FiltersDto filter) {
         List<IndicatorResponse> result = new ArrayList<>();
         List<Indicator> indicatorsList;
 
     if (filter != null && !filter.isEmpty()) {
       indicatorsList =
-          indicatorRepository.getAllByThemesInAndSourceInAndLevel_IdInAndSdgCodeInAndCrsCodeIn(
-              filter.get("themes"),
-              filter.get("source"),
-              filter.get("level").stream().map(level -> ((Map<String, Object>) level).get("id")).collect(Collectors.toSet()),
-              filter.get("sdg_code"),
-              filter.get("crs_code"));
+          indicatorRepository.getAllByThemesInOrSourceInOrLevel_IdInOrSdgCodeInOrCrsCodeIn(
+              filter.getThemes(),
+              filter.getSource(),
+              filter.getLevel().stream().map(Level::getId).collect(Collectors.toSet()),
+              filter.getSdgCode(),
+              filter.getCrsCode());
     } else {
       indicatorsList = indicatorRepository.findAll();
     }
@@ -401,8 +401,8 @@ public class IndicatorService implements Logging {
         filters.getThemes().addAll(filtersResult.stream().map(IndicatorFilters::getThemes).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
         filters.getSource().addAll(filtersResult.stream().map(IndicatorFilters::getSource).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
         filters.getLevel().addAll(filtersResult.stream().map(IndicatorFilters::getLevel).collect(Collectors.toList()));
-        filters.getSdg_code().addAll(filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
-        filters.getCrs_code().addAll(filtersResult.stream().map(IndicatorFilters::getCrsCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+        filters.getSdgCode().addAll(filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+        filters.getCrsCode().addAll(filtersResult.stream().map(IndicatorFilters::getCrsCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
 
         return filters;
     }

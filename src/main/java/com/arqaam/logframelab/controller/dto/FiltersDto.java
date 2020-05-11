@@ -1,25 +1,42 @@
 package com.arqaam.logframelab.controller.dto;
 
 import com.arqaam.logframelab.model.persistence.Level;
-import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+import java.util.Collection;
 import java.util.LinkedHashSet;
-import java.util.Set;
 
-@Data
+@NoArgsConstructor
 public class FiltersDto {
 
-  private final Set<String> themes = new LinkedHashSet<>();
-  private final Set<String> source = new LinkedHashSet<>();
-  private final Set<Level> level = new LinkedHashSet<>();
-  private final Set<String> sdg_code = new LinkedHashSet<>();
-  private final Set<String> crs_code = new LinkedHashSet<>();
+  @Getter
+  private final Collection<String> themes = new LinkedHashSet<>();
 
-  public Set<String> getSdgCode() {
+  @Getter
+  private final Collection<String> source = new LinkedHashSet<>();
+
+  @Getter
+  private final Collection<Level> level = new LinkedHashSet<>();
+
+  private final Collection<String> sdg_code = new LinkedHashSet<>();
+  private final Collection<String> crs_code = new LinkedHashSet<>();
+
+  public Collection<String> getSdgCode() {
     return sdg_code;
   }
 
-  public Set<String> getCrsCode() {
+  public Collection<String> getCrsCode() {
     return crs_code;
+  }
+
+  @JsonIgnore
+  public boolean isEmpty() {
+    return themes.isEmpty()
+        && source.isEmpty()
+        && level.isEmpty()
+        && sdg_code.isEmpty()
+        && crs_code.isEmpty();
   }
 }

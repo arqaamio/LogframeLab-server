@@ -25,10 +25,10 @@ public interface IndicatorRepository extends JpaRepository<Indicator, Long> {
 
   List<IndicatorFilters> getAllBy();
 
-  List<Indicator> getAllByThemesInAndSourceInAndLevel_IdInAndSdgCodeInAndCrsCodeIn(
-      Collection<Object> themes,
-      Collection<Object> source,
-      Collection<Object> level,
-      Collection<Object> sdg_code,
-      Collection<Object> crs_code);
+  List<Indicator> getAllByThemesInOrSourceInOrLevel_IdInOrSdgCodeInOrCrsCodeIn(
+      Collection<String> themes,
+      Collection<String> source,
+      Collection<Long> level,
+      Collection<String> sdgCode,
+      Collection<String> crsCode);
 }

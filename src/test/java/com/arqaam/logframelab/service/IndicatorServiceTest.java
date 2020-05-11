@@ -16,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,7 +28,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest
 public class IndicatorServiceTest {
@@ -48,11 +49,30 @@ public class IndicatorServiceTest {
         new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple", 1)
     };
 
+    private final static List<String> mockThemes = Arrays.asList("Digitalisation", "Education", "Poverty",
+            "Nutrition", "Agriculture", "Health", "WASH", "Electricity", "Private Sector",
+            "Infrastructure", "Migration", "Climate Change", "Environment", "Public Sector",
+            "Human Rights", "Conflict", "Food Security", "Equality", "Water and Sanitation");
+    private final static List<String> mockSources = Arrays.asList("Capacity4Dev", "EU", "WFP", "ECHO", "ECHO,WFP",
+            "ECHO,WHO", "FAO", "FAO,WHO", "WHO", "FANTA", "IPA", "WHO,FAO", "ACF",
+            "Nutrition Cluster", "Freendom House", "CyberGreen", "ITU",
+            "UN Sustainable Development Goals", "World Bank", "UNDP", "ILO", "IMF");
+    private final static List<String> mockSdgCodes = Arrays.asList("8.2", "7.1", "4.1", "1.a", "1.b") ;
+    private final static List<String> mockCrsCodes = Arrays.asList("99810.0", "15160.0", "24010.0", "15190.0", "43010.0", "24050.0", "43030.0");
+    private final static List<Long> mockLevelsId = Arrays.stream(mockLevels).map(Level::getId).collect(Collectors.toList());
+
     @BeforeEach
     void setup(){
+
         when(levelRepository.findAll()).thenReturn(Arrays.asList(mockLevels));
         when(levelRepository.findAllByOrderByPriority()).thenReturn(Arrays.stream(mockLevels).sorted().collect(Collectors.toList()));
         when(indicatorRepository.save(any(Indicator.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
+
+        when(indicatorRepository.findAll(any(Specification.class))).
+            thenReturn(mockIndicatorList().stream()
+                        .filter(x -> mockThemes.contains(x.getThemes()) && mockLevelsId.contains(x.getLevel().getId()) && mockSources.contains(x.getSource())
+                                && mockSdgCodes.contains(x.getSdgCode()) && mockCrsCodes.contains(x.getCrsCode())).collect(Collectors.toList()));
     }
 
     @Test
@@ -290,5 +310,46 @@ public class IndicatorServiceTest {
                     .description("Description").var("var").build());
         }
         return list;
+    }
+
+    @Test
+    void getIndicators() {
+        List<Indicator> expectedResult = mockIndicatorList().stream()
+                .filter(x -> mockThemes.contains(x.getThemes()) && mockLevelsId.contains(x.getLevel().getId()) && mockSources.contains(x.getSource())
+                        && mockSdgCodes.contains(x.getSdgCode()) && mockCrsCodes.contains(x.getCrsCode())).collect(Collectors.toList());
+
+        List<Indicator> result = indicatorService.getIndicators(Optional.of(mockThemes),
+                Optional.of(mockSources), Optional.of(mockLevelsId), Optional.of(mockSdgCodes), Optional.of(mockCrsCodes));
+        verify(indicatorRepository).findAll(any(Specification.class));
+        verify(indicatorRepository, times(0)).findAll();
+        assertEquals(expectedResult, result);
+    }
+
+    @Test
+    void getIndicators_someFilters() {
+        when(indicatorRepository.findAll(any(Specification.class))).
+                thenReturn(mockIndicatorList().stream()
+                        .filter(x -> mockThemes.contains(x.getThemes()) && mockLevelsId.contains(x.getLevel().getId()) && mockSources.contains(x.getSource())
+                        ).collect(Collectors.toList()));
+
+        List<Indicator> expectedResult = mockIndicatorList().stream()
+                .filter(x -> mockThemes.contains(x.getThemes()) && mockLevelsId.contains(x.getLevel().getId()) && mockSources.contains(x.getSource())
+                ).collect(Collectors.toList());
+
+        List<Indicator> result = indicatorService.getIndicators(Optional.of(mockThemes),
+                Optional.of(mockSources), Optional.of(mockLevelsId), Optional.empty(), Optional.empty());
+        verify(indicatorRepository).findAll(any(Specification.class));
+        verify(indicatorRepository, times(0)).findAll();
+        assertEquals(expectedResult, result);
+    }
+
+    @Test
+    void getIndicators_noFilter() {
+        List<Indicator> expectedResult = mockIndicatorList();
+        List<Indicator> result = indicatorService.getIndicators(Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.empty(), Optional.empty());
+        verify(indicatorRepository, times(0)).findAll(any(Specification.class));
+        verify(indicatorRepository).findAll();
+        assertEquals(expectedResult, result);
     }
 }

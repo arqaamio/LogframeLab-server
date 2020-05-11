@@ -1,7 +1,9 @@
 package com.arqaam.logframelab.controller;
 
 import com.arqaam.logframelab.model.Error;
+import org.junit.Rule;
 import org.junit.jupiter.migrationsupport.rules.EnableRuleMigrationSupport;
+import org.junit.rules.ErrorCollector;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -17,6 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ActiveProfiles(profiles = "integration")
 @EnableRuleMigrationSupport
 public class BaseControllerTest {
+    @Rule
+    public ErrorCollector collector = new ErrorCollector();
+
     @Autowired
     protected TestRestTemplate testRestTemplate;
 

@@ -20,15 +20,19 @@ import org.docx4j.wml.ObjectFactory;
 import org.docx4j.wml.R;
 import org.docx4j.wml.Text;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -111,7 +115,6 @@ public class IndicatorService implements Logging {
                 }
                 if(!mapResult.isEmpty()) {
                     List<Level> levelsList = levelRepository.findAllByOrderByPriority();
-                    AtomicInteger c = new AtomicInteger(1);
                     logger().info("Starting the sort of the indicators {}", mapResult);
                     // Sort by Level and then by number of times a keyword was tricked
                     result = mapResult.values().stream().sorted((o1, o2) -> {
@@ -124,22 +127,7 @@ public class IndicatorService implements Logging {
                             if(level.getPriority().equals(o2.getLevel().getPriority())) return 1;
                         }
                         return 1;
-                    }).map(indicator -> IndicatorResponse.builder()
-//                                    .id(c.getAndIncrement())
-                                    .id(indicator.getId())
-                                    .level(indicator.getLevel().getName())
-                                    .color(indicator.getLevel().getColor())
-                                    .name(indicator.getName())
-                                    .description(indicator.getDescription())
-                                    .var(indicator.getLevel().getTemplateVar())
-                                    .themes(indicator.getThemes())
-                                    .disaggregation(indicator.getDisaggregation())
-                                    .crsCode(indicator.getCrsCode())
-                                    .sdgCode(indicator.getSdgCode())
-                                    .source(indicator.getSource())
-                                    .numTimes(indicator.getNumTimes())
-                                    .build()
-                    ).collect(Collectors.toList());
+                    }).map(this::convertIndicatorToIndicatorResponse).collect(Collectors.toList());
                 }
             } catch (XPathBinderAssociationIsPartialException | JAXBException e) {
                 logger().error("Failed to process temporary word file", e);
@@ -319,7 +307,7 @@ public class IndicatorService implements Logging {
 
         XSSFWorkbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet();
-        String[] columns = new String[]{"Level", "Themes", "Keywords", "Name", "Description", "Source", "Disaggregation", "DAC 5/CRS", "SDG", "Source of Verification", "Data Source"};
+        String[] columns = new String[]{"Level", "Themes", "Name", "Description", "Source", "Disaggregation", "DAC 5/CRS", "SDG", "Source of Verification", "Data Source"};
 
         // Create a CellStyle with the font
         Font boldFont = workbook.createFont();
@@ -346,15 +334,14 @@ public class IndicatorService implements Logging {
             Row row = sheet.createRow(rowNum++);
             row.createCell(0).setCellValue(indicator.getLevel().getName());
             row.createCell(1).setCellValue(indicator.getThemes());
-            addCellWithStyle(row, 2, indicator.getKeywords(), yellowCellStyle);
-            row.createCell(3).setCellValue(indicator.getName());
-            row.createCell(4).setCellValue(indicator.getDescription());
-            row.createCell(5).setCellValue(indicator.getSource());
-            addCellWithStyle(row, 6, isNull(indicator.getDisaggregation())? "" : (indicator.getDisaggregation() ? "Yes" : "No"), yellowCellStyle);
-            addCellWithStyle(row, 7, indicator.getCrsCode(), redCellStyle);
-            addCellWithStyle(row, 8, indicator.getSdgCode(), redCellStyle);
-            addCellWithStyle(row, 9, indicator.getSourceVerification(), yellowCellStyle);
-            row.createCell(10).setCellValue(indicator.getDataSource());
+            row.createCell(2).setCellValue(indicator.getName());
+            row.createCell(3).setCellValue(indicator.getDescription());
+            row.createCell(4).setCellValue(indicator.getSource());
+            addCellWithStyle(row, 5, isNull(indicator.getDisaggregation())? "" : (indicator.getDisaggregation() ? "Yes" : "No"), yellowCellStyle);
+            addCellWithStyle(row, 6, indicator.getCrsCode(), redCellStyle);
+            addCellWithStyle(row, 7, indicator.getSdgCode(), redCellStyle);
+            addCellWithStyle(row, 8, indicator.getSourceVerification(), yellowCellStyle);
+            row.createCell(9).setCellValue(indicator.getDataSource());
         }
 
         // Resize all columns to fit the content size
@@ -405,5 +392,53 @@ public class IndicatorService implements Logging {
         filters.getCrsCode().addAll(filtersResult.stream().map(IndicatorFilters::getCrsCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
 
         return filters;
+    }
+
+    /**
+     * Returns indicators that match the filters
+     * @param themes List of Themes
+     * @param sources List of Sources
+     * @param levels List of Levels id
+     * @param sdgCodes List of SDG codes
+     * @param crsCodes List of CRS Codes
+     * @return List of IndicatorResponse
+     */
+    public List<Indicator> getIndicators(Optional<List<String>> themes, Optional<List<String>> sources, Optional<List<Long>> levels,
+                                                 Optional<List<String>> sdgCodes, Optional<List<String>> crsCodes) {
+        logger().info("Starting repository call with with themes: {}, sources: {}, levels: {}, sdgCodes: {}, crsCodes: {}",
+                themes, sources, levels, sdgCodes, crsCodes);
+        return !themes.isPresent() && !sources.isPresent() && !levels.isPresent() && !sdgCodes.isPresent() && !crsCodes.isPresent() ?
+            indicatorRepository.findAll() :
+            indicatorRepository.findAll((Specification<Indicator>) (root, criteriaQuery, criteriaBuilder) -> {
+                List<Predicate> predicates = new ArrayList<>();
+                themes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("themes")).value(x))));
+                sources.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("source")).value(x))));
+                levels.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("level").get("id")).value(x))));
+                sdgCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("sdgCode")).value(x))));
+                crsCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("crsCode")).value(x))));
+                return criteriaBuilder.and(predicates.toArray(new Predicate[predicates.size()]));
+            });
+    }
+
+    /**
+     * Converts Indicator to Indicator response
+     * @param indicator Indicator to be converted
+     * @return IndicatorResponse
+     */
+    public IndicatorResponse convertIndicatorToIndicatorResponse(Indicator indicator) {
+        return IndicatorResponse.builder()
+                .id(indicator.getId())
+                .level(indicator.getLevel().getName())
+                .color(indicator.getLevel().getColor())
+                .name(indicator.getName())
+                .description(indicator.getDescription())
+                .var(indicator.getLevel().getTemplateVar())
+                .themes(indicator.getThemes())
+                .disaggregation(indicator.getDisaggregation())
+                .crsCode(indicator.getCrsCode())
+                .sdgCode(indicator.getSdgCode())
+                .source(indicator.getSource())
+                .numTimes(indicator.getNumTimes())
+                .build();
     }
 }

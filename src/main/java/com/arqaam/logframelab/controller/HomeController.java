@@ -8,6 +8,6 @@ public class HomeController {
 
   @GetMapping
   public String home() {
-    return "Indicator web app";
+    return "LogframeLab web app";
   }
 }

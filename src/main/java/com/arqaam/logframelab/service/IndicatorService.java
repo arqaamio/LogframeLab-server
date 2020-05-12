@@ -172,8 +172,7 @@ public class IndicatorService implements Logging {
 
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            //File template = new File("/var/www/indicatorsExportTemplate.docx");
-            WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(new ClassPathResource("indicatorsExportTemplate.docx").getFile());
+            WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(new ClassPathResource("indicatorsExportTemplate.docx").getInputStream());
             MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
             String textNodesXPath = "//w:t";
             List<Object> textNodes = mainDocumentPart.getJAXBNodesViaXPath(textNodesXPath, true);

@@ -95,10 +95,6 @@ public class IndicatorServiceTest {
         List<IndicatorResponse> result = indicatorService.extractIndicatorsFromWordFile(file, null);
         assertNotNull(result);
         assertFalse(result.isEmpty());
-        System.out.println("----------------------------------------------------------------------------------------------");
-        for(IndicatorResponse response : result){
-            System.out.println(response);
-        }
         assertEquals(expectedResult, result);
     }
     @Test

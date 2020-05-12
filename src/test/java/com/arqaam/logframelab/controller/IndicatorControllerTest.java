@@ -154,11 +154,11 @@ class IndicatorControllerTest extends BaseControllerTest {
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", new ClassPathResource("test_doc.docx"));
-        ResponseEntity<String> response = testRestTemplate.exchange("/indicator/upload", HttpMethod.POST,
-                new HttpEntity<>(body, headers), String.class);
+        ResponseEntity<List<IndicatorResponse>> response = testRestTemplate.exchange("/indicator/upload", HttpMethod.POST,
+                new HttpEntity<>(body, headers), new ParameterizedTypeReference<List<IndicatorResponse>>() {});
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-//        assertEqualsIndicator(expectedResult, response.getBody());
+        assertEqualsIndicator(expectedResult, response.getBody());
     }
 
     @Test

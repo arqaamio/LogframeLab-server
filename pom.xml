@@ -24,12 +24,12 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <docx4j.version>6.1.2</docx4j.version>
-        <java.version>1.8</java.version>
         <javaxb.version>2.1</javaxb.version>
         <lombok.version>1.18.12</lombok.version>
         <poi.version>4.1.2</poi.version>
         <swagger.version>2.9.2</swagger.version>
         <flyway.version>6.3.3</flyway.version>
+        <testcontainer.version>1.14.1</testcontainer.version>
     </properties>
 
     <dependencies>
@@ -92,11 +92,6 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
             <scope>runtime</scope>
@@ -141,6 +136,18 @@
             <version>${flyway.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mysql</artifactId>
+            <version>${testcontainer.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${testcontainer.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -159,43 +166,8 @@
             <plugin>
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-maven-plugin</artifactId>
-                <version>4.0.3</version>
             </plugin>
         </plugins>
     </build>
-
-    <profiles>
-        <profile>
-            <id>h2-test</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <configuration>
-                            <systemPropertyVariables>
-                                <jdbc.driver>org.h2.Driver</jdbc.driver>
-                                <jdbc.url>jdbc:h2:mem:testdb</jdbc.url>
-                                <jdbc.username>sa</jdbc.username>
-                                <flyway.locations>migrations</flyway.locations>
-                                <flyway.driver>org.h2.Driver</flyway.driver>
-                                <flyway.url>jdbc:h2:mem:testdb</flyway.url>
-                                <flyway.user>sa</flyway.user>
-                            </systemPropertyVariables>
-                            <includes>
-                                <include>AuthTests.java</include>
-                            </includes>
-                        </configuration>
-                        <goals>
-                            <goal>test</goal>
-                        </goals>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 
 </project>

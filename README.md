@@ -18,17 +18,17 @@ cd LogframeLab-server
 docker-compose up -d
 
 ## 6- Run database flyway migrate 
-mvn clean flyway:migrate -Dflyway.configFile=flywayConfig.properties
+mvn flyway:clean flyway:migrate -Dflyway.configFile=flywayConfig.properties
 
-## 7- Run logframelab spring boot application (profiles:dev swagger,  port:8082)
-mvn spring-boot:run -Dspring-boot.run.profiles=dev,swagger
+## 7- Run logframelab spring boot application (profiles:dev,  port:8082)
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
 ## phpMyAdmin (database:arqaam)
 phpmyadmin: http://127.0.0.1:8080/
 
 ## Swagger
 You can find the API documentation at http://127.0.0.1:8082/swagger-ui.html
-=======
+
 # How to contribute
 
 ## 1- Fork the project
@@ -39,7 +39,7 @@ git clone https://github.com/username/repository.git
 ## 3- open the project directory
 cd LogframeLab-server
 
-## 4- Sync the loacl forked repository with the main repo 
+## 4- Sync the local forked repository with the main repo 
 git remote add upstream https://github.com/arqaamio/LogframeLab-server.git
 git fetch upstream
 

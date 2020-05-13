@@ -1,9 +1,6 @@
 package com.arqaam.logframelab.model.persistence;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 
@@ -12,7 +9,8 @@ import javax.persistence.*;
 @Builder
 @Data
 @NoArgsConstructor
-public class Level {
+@EqualsAndHashCode
+public class Level implements Comparable<Level> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,4 +27,12 @@ public class Level {
 
     @Column(name = "COLOR")
     private String color;
+
+    @Column(name = "PRIORITY")
+    private Integer priority;
+
+    @Override
+    public int compareTo(Level o) {
+        return this.getPriority() > o.getPriority() ? 1 : (this.getPriority().equals(o.getPriority()) ? 0 : -1);
+    }
 }

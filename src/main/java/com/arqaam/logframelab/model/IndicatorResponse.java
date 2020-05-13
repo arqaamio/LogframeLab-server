@@ -1,11 +1,6 @@
 package com.arqaam.logframelab.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import java.util.List;
+import lombok.*;
 
 @AllArgsConstructor
 @Builder
@@ -13,11 +8,18 @@ import java.util.List;
 @NoArgsConstructor
 public class IndicatorResponse {
 
+    @EqualsAndHashCode.Exclude
     private long id;
     private String level;
     private String color;
-    private String label;
+    private String name;
     private String description;
-    private List<String> keys;
     private String var;
+    private String themes;
+    private String source;
+    private Boolean disaggregation;
+    private String crsCode;
+    private String sdgCode;
+    @EqualsAndHashCode.Exclude
+    private int numTimes;
 }

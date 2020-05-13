@@ -1,6 +1,8 @@
 package com.arqaam.logframelab.repository.initializer;
 
 import org.jetbrains.annotations.NotNull;
+import org.junit.Rule;
+import org.junit.rules.ErrorCollector;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.util.TestPropertyValues;
 import org.springframework.context.ApplicationContextInitializer;
@@ -17,6 +19,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @ContextConfiguration(initializers = BaseDatabaseTest.Initializer.class)
 @Testcontainers
 public interface BaseDatabaseTest {
+
+  @Rule ErrorCollector collector = new ErrorCollector();
 
   @Container
   MySQLContainer<?> mySQLContainer =

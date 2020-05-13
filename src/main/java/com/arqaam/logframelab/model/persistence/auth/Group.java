@@ -7,7 +7,6 @@ import lombok.ToString;
 
 import javax.persistence.*;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 @Data
@@ -27,5 +26,4 @@ public class Group extends AuditableEntity<Integer> {
   @ToString.Exclude
   @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
   private Set<GroupMember> members = new HashSet<>();
-
 }

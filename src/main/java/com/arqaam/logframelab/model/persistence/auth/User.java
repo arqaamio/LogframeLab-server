@@ -35,6 +35,10 @@ public class User extends AuditableEntity<String> {
     group.getMembers().add(groupMember);
   }
 
+  public void addGroups(Collection<Group> groups) {
+    groups.forEach(this::addGroup);
+  }
+
   public void removeGroup(Group group) {
     for (Iterator<GroupMember> iterator = groupMembership.iterator(); iterator.hasNext(); ) {
       GroupMember membership = iterator.next();

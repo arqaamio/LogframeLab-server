@@ -1,6 +1,7 @@
 package com.arqaam.logframelab.auth;
 
 import com.arqaam.logframelab.model.persistence.auth.Group;
+import com.arqaam.logframelab.model.persistence.auth.GroupMember;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import com.arqaam.logframelab.repository.GroupRepository;
 import com.arqaam.logframelab.repository.UserRepository;
@@ -9,12 +10,22 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
-import java.util.logging.Logger;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.hamcrest.Matchers.*;
 
 @DataJpaTest
 public class AuthTests implements BaseDatabaseTest {
 
-  private final Logger logger = Logger.getLogger(AuthTests.class.getName());
+  private static final int USER_GROUP_ID = 2;
+  private static final int USER_GROUP_MEMBERSHIP_SIZE = 1;
+  private static final int FIRST_IN_LIST = 0;
+
+  private static final int ADMIN_GROUP_ID = 1;
+  private static final int SEC_ADMIN_GROUP_ID = 3;
+  private static final int ADMIN_GROUPS_SIZE = 2;
 
   @Autowired
   private GroupRepository groupRepository;
@@ -23,14 +34,62 @@ public class AuthTests implements BaseDatabaseTest {
   private UserRepository userRepository;
 
   @Test
-  public void createUserInGroupTest() {
+  public void whenUserIsCreatedInGroup_ThenCheckMembership() {
     User user = User.builder().username("user").password("password").enabled(true).build();
     Group userGroup =
         groupRepository
-            .findById(2)
-            .orElseThrow(() -> new IllegalStateException("Group not found for 2"));
+            .findById(USER_GROUP_ID)
+            .orElseThrow(() -> new IllegalStateException("Group not found for " + USER_GROUP_ID));
     user.addGroup(userGroup);
 
-    logger.info(userRepository.save(user).toString());
+    User savedUser = userRepository.save(user);
+
+    List<GroupMember> memberships = savedUser.getGroupMembership();
+
+    collector.checkThat(memberships, hasSize(USER_GROUP_MEMBERSHIP_SIZE));
+    collector.checkThat(memberships.get(FIRST_IN_LIST).getGroup(), equalTo(userGroup));
+  }
+
+  @Test
+  public void whenUserIsCreatedInGroups_ThenCheckMembership() {
+    User userInGroups = createUserInGroups();
+
+    List<GroupMember> memberships = userInGroups.getGroupMembership();
+
+    List<Integer> groupIds = Arrays.asList(ADMIN_GROUP_ID, SEC_ADMIN_GROUP_ID);
+
+    collector.checkThat(memberships, hasSize(ADMIN_GROUPS_SIZE));
+    collector.checkThat(
+        memberships.stream()
+            .map(groupMember -> groupMember.getGroup().getId())
+            .collect(Collectors.toList()),
+        containsInAnyOrder(groupIds));
+  }
+
+  @Test
+  public void whenUserIsRemovedFromGroup_ThenCheckMembershipPersisted() {
+    User userInGroups = createUserInGroups();
+
+    userInGroups.removeGroup(
+        groupRepository
+            .findById(SEC_ADMIN_GROUP_ID)
+            .orElseThrow(
+                () -> new IllegalStateException("Group not found for " + SEC_ADMIN_GROUP_ID)));
+
+    User userWithSingleGroup = userRepository.save(userInGroups);
+
+    List<GroupMember> groupMembership = userWithSingleGroup.getGroupMembership();
+
+    collector.checkThat(groupMembership, hasSize(1));
+    collector.checkThat(groupMembership.get(FIRST_IN_LIST).getGroup().getId(), is(ADMIN_GROUP_ID));
+  }
+
+  private User createUserInGroups() {
+    User adminUser = User.builder().username("admin").password("admin").enabled(true).build();
+    List<Group> adminGroups =
+        groupRepository.findAllById(Arrays.asList(ADMIN_GROUP_ID, SEC_ADMIN_GROUP_ID));
+    adminUser.addGroups(adminGroups);
+
+    return userRepository.save(adminUser);
   }
 }

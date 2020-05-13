@@ -60,7 +60,7 @@ public class IndicatorService implements Logging {
 
     if (filter != null && !filter.isEmpty()) {
       indicatorsList =
-          indicatorRepository.getAllByThemesInOrSourceInOrLevel_IdInOrSdgCodeInOrCrsCodeIn(
+          indicatorRepository.getAllByThemesInAndSourceInAndLevel_IdInAndSdgCodeAndOrCrsCodeIn(
               filter.getThemes(),
               filter.getSource(),
               filter.getLevel().stream().map(Level::getId).collect(Collectors.toSet()),

@@ -1,22 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.2.6.RELEASE</version>
-		<relativePath/> <!-- lookup parent from repository -->
-	</parent>
-	<groupId>com.arqaam</groupId>
-	<artifactId>LogframeLab-server</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
-	<name>LogframeLab-server</name>
-	<description>LogFrameLab API</description>
-	<organization>
-		<name>Arqaam</name>
-		<url>https://www.arqaam.org/</url>
-	</organization>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.2.6.RELEASE</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    <groupId>com.arqaam</groupId>
+    <artifactId>LogframeLab-server</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <name>LogframeLab-server</name>
+    <description>LogFrameLab API</description>
+    <organization>
+        <name>Arqaam</name>
+        <url>https://www.arqaam.org/</url>
+    </organization>
 
     <properties>
         <java.version>1.8</java.version>
@@ -30,6 +31,12 @@
         <swagger.version>2.9.2</swagger.version>
         <flyway.version>6.3.3</flyway.version>
         <testcontainer.version>1.14.1</testcontainer.version>
+
+        <database.url>jdbc:mysql://127.0.0.1:3306</database.url>
+        <database.user>user</database.user>
+        <database.password>user</database.password>
+        <database.schema>arqaam</database.schema>
+        <database.migration.location>filesystem:db/migration</database.migration.location>
     </properties>
 
     <dependencies>
@@ -74,11 +81,11 @@
             <artifactId>poi-ooxml</artifactId>
             <version>${poi.version}</version>
         </dependency>
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-compress</artifactId>
-			<version>1.20</version>
-		</dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>1.20</version>
+        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -114,8 +121,9 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <!-- Test dependencies -->
@@ -174,5 +182,32 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.flywaydb</groupId>
+                        <artifactId>flyway-maven-plugin</artifactId>
+                        <configuration>
+                            <user>${database.user}</user>
+                            <password>${database.password}</password>
+                            <schemas>
+                                <schema>${database.schema}</schema>
+                            </schemas>
+                            <url>${database.url}</url>
+                            <locations>${database.migration.location}</locations>
+                            <defaultSchema>${database.schema}</defaultSchema>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>

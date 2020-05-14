@@ -30,7 +30,7 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
   private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
   public WebSecurityConfiguration(
-      @Qualifier("custom") UserDetailsService userDetailsService,
+      @Qualifier("arqaamUserDetailsService") UserDetailsService userDetailsService,
       JwtAuthFilter jwtAuthFilter,
       JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
     this.userDetailsService = userDetailsService;
@@ -41,11 +41,6 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
   @Override
   protected void configure(AuthenticationManagerBuilder authBuilder) throws Exception {
     authBuilder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder());
-  }
-
-  @Bean
-  public JwtAuthFilter jwtAuthFilter() {
-    return jwtAuthFilter;
   }
 
   @Bean

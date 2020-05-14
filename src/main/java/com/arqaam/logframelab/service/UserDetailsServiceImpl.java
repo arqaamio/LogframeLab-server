@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.Optional;
 
 @Service
-@Qualifier("custom")
+@Qualifier("arqaamUserDetailsService")
 public class UserDetailsServiceImpl implements UserDetailsService {
 
   private final UserRepository userRepository;

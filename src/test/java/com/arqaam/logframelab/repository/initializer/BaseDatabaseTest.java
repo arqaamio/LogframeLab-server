@@ -20,7 +20,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 public interface BaseDatabaseTest {
 
-  @Rule ErrorCollector collector = new ErrorCollector();
+  @Rule
+  ErrorCollector collector = new ErrorCollector();
 
   @Container
   MySQLContainer<?> mySQLContainer =

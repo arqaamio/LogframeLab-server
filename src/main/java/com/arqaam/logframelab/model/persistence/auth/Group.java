@@ -22,6 +22,7 @@ public class Group extends AuditableEntity<Integer> {
   @Column(name = "GROUP_NAME")
   private String name;
 
+  @JoinColumn(name = "GROUP_ID")
   @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
   private Set<GroupAuthority> authorities = new HashSet<>();
 

@@ -12,6 +12,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.*;
@@ -44,17 +45,17 @@ public class AuthTests implements BaseDatabaseTest {
 
     User savedUser = userRepository.save(user);
 
-    List<GroupMember> memberships = savedUser.getGroupMembership();
+    Set<GroupMember> memberships = savedUser.getGroupMembership();
 
     collector.checkThat(memberships, hasSize(USER_GROUP_MEMBERSHIP_SIZE));
-    collector.checkThat(memberships.get(FIRST_IN_LIST).getGroup(), equalTo(userGroup));
+    collector.checkThat(memberships.toArray(new GroupMember[]{})[FIRST_IN_LIST].getGroup(), equalTo(userGroup));
   }
 
   @Test
   public void whenUserIsCreatedInGroups_ThenCheckMembership() {
     User userInGroups = createUserInGroups();
 
-    List<GroupMember> memberships = userInGroups.getGroupMembership();
+    Set<GroupMember> memberships = userInGroups.getGroupMembership();
 
     List<Integer> groupIds = Arrays.asList(ADMIN_GROUP_ID, SEC_ADMIN_GROUP_ID);
 
@@ -78,10 +79,10 @@ public class AuthTests implements BaseDatabaseTest {
 
     User userWithSingleGroup = userRepository.save(userInGroups);
 
-    List<GroupMember> groupMembership = userWithSingleGroup.getGroupMembership();
+    Set<GroupMember> groupMembership = userWithSingleGroup.getGroupMembership();
 
     collector.checkThat(groupMembership, hasSize(1));
-    collector.checkThat(groupMembership.get(FIRST_IN_LIST).getGroup().getId(), is(ADMIN_GROUP_ID));
+    collector.checkThat(groupMembership.toArray(new GroupMember[]{})[FIRST_IN_LIST].getGroup().getId(), is(ADMIN_GROUP_ID));
   }
 
   private User createUserInGroups() {

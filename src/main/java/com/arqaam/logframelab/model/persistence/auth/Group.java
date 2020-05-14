@@ -22,6 +22,9 @@ public class Group extends AuditableEntity<Integer> {
   @Column(name = "GROUP_NAME")
   private String name;
 
+  @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
+  private Set<GroupAuthority> authorities = new HashSet<>();
+
   @EqualsAndHashCode.Exclude
   @ToString.Exclude
   @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)

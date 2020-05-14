@@ -2,26 +2,28 @@ package com.arqaam.logframelab.model.persistence.auth;
 
 import com.arqaam.logframelab.model.persistence.AuditableEntity;
 import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import javax.persistence.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Data
 @Entity(name = "User")
 @Table(name = "USERS")
-@EqualsAndHashCode(callSuper = false)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User extends AuditableEntity<String> {
+public class User extends AuditableEntity<String> implements UserDetails {
 
   @EqualsAndHashCode.Exclude
   @ToString.Exclude
   @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-  private final List<GroupMember> groupMembership = new ArrayList<>();
+  private final Set<GroupMember> groupMembership = new HashSet<>();
 
-  @Id
-  private String username;
+  @Id private String username;
 
   @Column(name = "PASSWORD")
   private String password;
@@ -50,5 +52,52 @@ public class User extends AuditableEntity<String> {
         membership.setUser(null);
       }
     }
+  }
+
+  @Override
+  public Collection<? extends GrantedAuthority> getAuthorities() {
+    return groupMembership.stream()
+        .flatMap(
+            groupMember ->
+                groupMember.getGroup().getAuthorities().stream()
+                    .map(
+                        groupAuthority ->
+                            new SimpleGrantedAuthority(groupAuthority.getId().getAuthority())))
+        .collect(Collectors.toSet());
+  }
+
+  @Override
+  public boolean isAccountNonExpired() {
+    return true;
+  }
+
+  @Override
+  public boolean isAccountNonLocked() {
+    return this.isEnabled();
+  }
+
+  @Override
+  public boolean isCredentialsNonExpired() {
+    return true;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof User)) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+    User user = (User) o;
+    return getUsername().equals(user.getUsername());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), getUsername());
   }
 }

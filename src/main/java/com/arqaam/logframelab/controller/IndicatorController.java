@@ -22,8 +22,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -36,6 +34,10 @@ public class IndicatorController implements Logging {
 
     private static final String WORD_FILE_EXTENSION = ".docx";
     private static final String WORKSHEET_FILE_EXTENSION = ".xlsx";
+
+    private static final String WORKSHEET_DEFAULT_FORMAT = "xlsx";
+    private static final String WORD_FORMAT = "word";
+    private static final String DFID_FORMAT = "dfid";
 
     @Autowired
     private IndicatorService indicatorService;
@@ -66,21 +68,29 @@ public class IndicatorController implements Logging {
             @ApiResponse(code = 500, message = "File failed to upload", response = Error.class)
     })
     public ResponseEntity<Resource> downloadIndicators(@RequestBody List<IndicatorResponse> indicators,
-                                                       @RequestParam(value = "worksheet", defaultValue = "false") Boolean worksheetFormat) {
+                                                       @RequestParam(value = "format", defaultValue = WORD_FILE_EXTENSION) String format) {
 
-        logger().info("Downloading indicators. worksheetFormat {}, Indicators: {}", worksheetFormat, indicators);
+        logger().info("Downloading indicators. format {}, Indicators: {}", format, indicators);
         if(indicators.isEmpty()){
             String msg = "Failed to download indicators. It cannot be empty";
             logger().error(msg);
             throw new IllegalArgumentException(msg);
         }
-        ByteArrayOutputStream outputStream = null;
+        ByteArrayOutputStream outputStream;
         String extension = WORD_FILE_EXTENSION;
-        if(worksheetFormat){
-            outputStream = indicatorService.exportIndicatorsInWorksheet(indicators);
-            extension = WORKSHEET_FILE_EXTENSION;
-        }else {
-            outputStream = indicatorService.exportIndicatorsInWordFile(indicators);
+        switch (format) {
+            case WORKSHEET_DEFAULT_FORMAT:
+                outputStream = indicatorService.exportIndicatorsInWorksheet(indicators);
+                extension = WORKSHEET_FILE_EXTENSION;
+                break;
+            case DFID_FORMAT:
+                outputStream = indicatorService.exportIndicatorsDFIDFormat(indicators);
+                extension = WORKSHEET_FILE_EXTENSION;
+                break;
+            case WORD_FORMAT:
+            default:
+                outputStream = indicatorService.exportIndicatorsInWordFile(indicators);
+                break;
         }
 
         //get the mimetype

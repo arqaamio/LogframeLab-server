@@ -5,6 +5,9 @@ import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.Level;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
+import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.Br;
@@ -22,7 +25,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -60,6 +65,8 @@ public class IndicatorServiceTest {
     private final static List<String> mockSdgCodes = Arrays.asList("8.2", "7.1", "4.1", "1.a", "1.b") ;
     private final static List<String> mockCrsCodes = Arrays.asList("99810.0", "15160.0", "24010.0", "15190.0", "43010.0", "24050.0", "43030.0");
     private final static List<Long> mockLevelsId = Arrays.stream(mockLevels).map(Level::getId).collect(Collectors.toList());
+    private final static List<String> mockSourceVerification = Arrays.asList("World Bank Data", "EU", "SDG Country Data",
+            "Project's M&E system", "UNDP Global Human Development Indicators");
 
     @BeforeEach
     void setup(){
@@ -252,6 +259,126 @@ public class IndicatorServiceTest {
 //        }
     }
 
+    @Test
+    void exportIndicatorsDFIDFormat() throws IOException {
+        when(indicatorRepository.findAllById(any())).thenReturn(mockIndicatorList());
+        List<Indicator> impactIndicators = mockIndicatorList().stream().filter(x -> x.getLevel().equals(mockLevels[3])).collect(Collectors.toList());
+        List<Indicator> outcomeIndicators = mockIndicatorList().stream().filter(x -> x.getLevel().equals(mockLevels[1])).collect(Collectors.toList());
+        List<Indicator> outputIndicators = mockIndicatorList().stream().filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
+
+        ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsDFIDFormat(getExpectedResult());
+
+        assertNotNull(outputStream);
+        XSSFSheet sheet = new XSSFWorkbook(new ByteArrayInputStream(outputStream.toByteArray())).getSheetAt(0);
+
+        int rowIndex = 1;
+        rowIndex = validateTemplateLevel(sheet, impactIndicators, rowIndex, IndicatorService.IMPACT_NUM_TEMP_INDIC);
+        rowIndex = validateTemplateLevel(sheet, outcomeIndicators, rowIndex, IndicatorService.OUTCOME_NUM_TEMP_INDIC);
+        validateTemplateLevel(sheet, outputIndicators, rowIndex, IndicatorService.OUTPUT_NUM_TEMP_INDIC);
+
+        sheet.getWorkbook().close();
+    }
+
+    @Test
+    void exportIndicatorsDFIDFormat_noImpactIndicators_newRowsOutcome() throws IOException {
+        List<Indicator> mockIndicators = mockIndicatorList().stream().filter(x -> !x.getLevel().equals(mockLevels[3])).collect(Collectors.toList());
+        mockIndicators.add(new Indicator(100L,"Extra indicator 1", "","", mockLevels[1], "",
+                "", false, "", "", mockSourceVerification.get(0), "", null, 0));
+        mockIndicators.add(new Indicator(100L,"Extra indicator 2", "","", mockLevels[1], "",
+                "", false, "", "", mockSourceVerification.get(1), "", null, 0));
+        mockIndicators.add(new Indicator(100L,"Extra indicator 3", "","", mockLevels[1], "",
+                "", false, "", "", mockSourceVerification.get(2), "", null, 0));
+        when(indicatorRepository.findAllById(any())).thenReturn(mockIndicators);
+
+        ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsDFIDFormat(mockIndicators.stream()
+                .map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList()));
+
+        assertNotNull(outputStream);
+        XSSFSheet sheet = new XSSFWorkbook(new ByteArrayInputStream(outputStream.toByteArray())).getSheetAt(0);
+
+        int rowIndex = 1;
+        rowIndex = validateTemplateLevel(sheet, Collections.emptyList(), rowIndex, IndicatorService.IMPACT_NUM_TEMP_INDIC);
+        rowIndex = validateTemplateLevel(sheet, mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[1])).collect(Collectors.toList()),
+                rowIndex, IndicatorService.OUTCOME_NUM_TEMP_INDIC);
+        validateTemplateLevel(sheet, mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList()),
+                rowIndex, IndicatorService.OUTPUT_NUM_TEMP_INDIC);
+        sheet.getWorkbook().close();
+    }
+
+    @Test
+    void exportIndicatorsDFIDFormat_noOutcomeIndicators_newRowsOutput() throws IOException {
+        List<Indicator> mockIndicators = mockIndicatorList().stream().filter(x -> !x.getLevel().equals(mockLevels[1])).collect(Collectors.toList());
+        mockIndicators.add(new Indicator(100L,"Extra indicator 1", "","", mockLevels[0], "",
+                "", false, "", "", mockSourceVerification.get(0), "", null, 0));
+        mockIndicators.add(new Indicator(100L,"Extra indicator 2", "","", mockLevels[0], "",
+                "", false, "", "", mockSourceVerification.get(1), "", null, 0));
+        mockIndicators.add(new Indicator(100L,"Extra indicator 3", "","", mockLevels[0], "",
+                "", false, "", "", mockSourceVerification.get(2), "", null, 0));
+        when(indicatorRepository.findAllById(any())).thenReturn(mockIndicators);
+
+        ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsDFIDFormat(mockIndicators.stream()
+                .map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList()));
+
+        assertNotNull(outputStream);
+        XSSFSheet sheet = new XSSFWorkbook(new ByteArrayInputStream(outputStream.toByteArray())).getSheetAt(0);
+
+        int rowIndex = 1;
+        rowIndex = validateTemplateLevel(sheet, mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[3])).collect(Collectors.toList()),
+                rowIndex, IndicatorService.IMPACT_NUM_TEMP_INDIC);
+        rowIndex = validateTemplateLevel(sheet, Collections.emptyList(), rowIndex, IndicatorService.OUTCOME_NUM_TEMP_INDIC);
+        validateTemplateLevel(sheet, mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList()),
+                rowIndex, IndicatorService.OUTPUT_NUM_TEMP_INDIC);
+        sheet.getWorkbook().close();
+    }
+
+    @Test
+    void exportIndicatorsDFIDFormat_noOutputIndicators_newRowsImpact() throws IOException {
+        List<Indicator> mockIndicators = mockIndicatorList().stream().filter(x -> !x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
+        mockIndicators.add(new Indicator(100L,"Extra indicator 1", "","", mockLevels[3], "",
+                "", false, "", "", mockSourceVerification.get(0), "", null, 0));
+        mockIndicators.add(new Indicator(100L,"Extra indicator 2", "","", mockLevels[3], "",
+                "", false, "", "", mockSourceVerification.get(1), "", null, 0));
+        mockIndicators.add(new Indicator(100L,"Extra indicator 3", "","", mockLevels[3], "",
+                "", false, "", "", mockSourceVerification.get(2), "", null, 0));
+        when(indicatorRepository.findAllById(any())).thenReturn(mockIndicators);
+
+        ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsDFIDFormat(mockIndicators.stream()
+                .map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList()));
+
+        assertNotNull(outputStream);
+        XSSFSheet sheet = new XSSFWorkbook(new ByteArrayInputStream(outputStream.toByteArray())).getSheetAt(0);
+
+        int rowIndex = 1;
+        rowIndex = validateTemplateLevel(sheet, mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[3])).collect(Collectors.toList()),
+                rowIndex, IndicatorService.IMPACT_NUM_TEMP_INDIC);
+        rowIndex = validateTemplateLevel(sheet, mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[1])).collect(Collectors.toList()),
+                rowIndex, IndicatorService.OUTCOME_NUM_TEMP_INDIC);
+        validateTemplateLevel(sheet, Collections.emptyList(), rowIndex, IndicatorService.OUTPUT_NUM_TEMP_INDIC);
+        sheet.getWorkbook().close();
+    }
+    @Test
+    void exportIndicatorsDFIDFormat_newRowsForEveryLevel() throws IOException {
+        List<Indicator> mockIndicators = mockIndicatorList();
+        mockIndicators.addAll(mockIndicatorList());
+        mockIndicators.addAll(mockIndicatorList());
+        when(indicatorRepository.findAllById(any())).thenReturn(mockIndicators);
+
+        ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsDFIDFormat(mockIndicators.stream()
+                .map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList()));
+
+        assertNotNull(outputStream);
+        XSSFSheet sheet = new XSSFWorkbook(new ByteArrayInputStream(outputStream.toByteArray())).getSheetAt(0);
+
+        int rowIndex = 1;
+        rowIndex = validateTemplateLevel(sheet, mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[3])).collect(Collectors.toList()),
+                rowIndex, IndicatorService.IMPACT_NUM_TEMP_INDIC);
+        rowIndex = validateTemplateLevel(sheet, mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[1])).collect(Collectors.toList()),
+                rowIndex, IndicatorService.OUTCOME_NUM_TEMP_INDIC);
+        validateTemplateLevel(sheet, mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList()),
+                rowIndex, IndicatorService.OUTPUT_NUM_TEMP_INDIC);
+        sheet.getWorkbook().close();
+    }
+
     private List<Indicator> mockIndicatorList() {
         String keyword = "food insecurity,nutrition,farming,agriculture";
         List<Indicator> list = new ArrayList<>();
@@ -298,7 +425,8 @@ public class IndicatorServiceTest {
                 .dataSource("https://data.worldbank.org/indicator/EG.CFT.ACCS.ZS?view=chart")
                 .description("Technical Note, EURF 2.01").keywords("government").level(mockLevels[3]).keywordsList(keywordsGovList).build());
         list.add(Indicator.builder().id(73L).name("Number of government policies developed or revised with civil society organisation participation through EU support")
-                .description("Public Sector").keywords("government policies, policy").level(mockLevels[1]).keywordsList(keywordsGovPolicyList).build());
+                .description("Public Sector").keywords("government policies, policy").level(mockLevels[1]).keywordsList(keywordsGovPolicyList)
+                .sourceVerification(mockSourceVerification.get(3)).build());
 
         return list;
     }
@@ -351,5 +479,49 @@ public class IndicatorServiceTest {
         verify(indicatorRepository, times(0)).findAll(any(Specification.class));
         verify(indicatorRepository).findAll();
         assertEquals(expectedResult, result);
+    }
+
+    private List<IndicatorResponse> getExpectedResult(){
+        List<Indicator> indicators = mockIndicatorList();
+        List<IndicatorResponse> indicatorResponses = new ArrayList<>();
+        indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(2)));
+        indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(1)));
+        indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(3)));
+        indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(0)));
+        return indicatorResponses;
+    }
+
+    private Integer validateTemplateLevel(XSSFSheet sheet, List<Indicator> indicators, Integer rowIndex, Integer numberTemplateIndicators){
+        List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();
+        Integer initialRow = rowIndex;
+
+        for (Indicator indicator : indicators) {
+            assertEquals("", sheet.getRow(rowIndex + 1).getCell(3).getStringCellValue());
+            assertEquals(indicator.getName(), sheet.getRow(rowIndex + 1).getCell(2).getStringCellValue());
+            assertEquals(indicator.getSourceVerification(), sheet.getRow(rowIndex + 3).getCell(3).getStringCellValue());
+            rowIndex += 4;
+        }
+
+        int count = indicators.size();
+        while(count<numberTemplateIndicators){
+            assertEquals("", sheet.getRow(rowIndex+1).getCell(2).getStringCellValue());
+            assertEquals("", sheet.getRow(rowIndex+3).getCell(3).getStringCellValue());
+            rowIndex+=4;
+            count++;
+        }
+
+        // check merged cells in first column
+        int finalRowIndex = rowIndex;
+        if(indicators.size()>numberTemplateIndicators){
+            if(numberTemplateIndicators.equals(IndicatorService.OUTPUT_NUM_TEMP_INDIC)){
+                assertTrue(mergedRegions.stream().anyMatch(x -> x.getLastColumn() == 0 && x.getFirstRow() == initialRow + numberTemplateIndicators * 4 - 1
+                        && x.getLastRow() == finalRowIndex - 1));
+            }else {
+                assertTrue(mergedRegions.stream().anyMatch(x -> x.getLastColumn() == 0 && x.getFirstRow() == initialRow + numberTemplateIndicators * 3
+                        && x.getLastRow() == finalRowIndex - 1));
+            }
+        }
+
+        return rowIndex;
     }
 }

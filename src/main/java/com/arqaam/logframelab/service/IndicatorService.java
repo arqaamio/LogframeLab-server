@@ -24,10 +24,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import java.io.ByteArrayOutputStream;
@@ -59,13 +56,7 @@ public class IndicatorService implements Logging {
         List<Indicator> indicatorsList;
 
     if (filter != null && !filter.isEmpty()) {
-      indicatorsList =
-          indicatorRepository.getAllByThemesInAndSourceInAndLevel_IdInAndSdgCodeAndOrCrsCodeIn(
-              filter.getThemes(),
-              filter.getSource(),
-              filter.getLevel().stream().map(Level::getId).collect(Collectors.toSet()),
-              filter.getSdgCode(),
-              filter.getCrsCode());
+      indicatorsList = indicatorRepository.findAll(specificationForIndicatorFromFilter(filter));
     } else {
       indicatorsList = indicatorRepository.findAll();
     }
@@ -143,7 +134,9 @@ public class IndicatorService implements Logging {
         return result;
     }
 
-    /**
+
+
+  /**
      * Fills a list of indicators that contain certain words
      * @param wordsToScan Words to find in the indicators' keyword list
      * @param indicators Indicators to be analyzed
@@ -441,4 +434,53 @@ public class IndicatorService implements Logging {
                 .numTimes(indicator.getNumTimes())
                 .build();
     }
+
+  private Specification<Indicator> specificationForIndicatorFromFilter(FiltersDto filter) {
+    return (root, criteriaQuery, criteriaBuilder) -> {
+      List<Predicate> predicates = new ArrayList<>();
+      if (filter.getThemes().size() > 0) {
+        predicates.add(
+            criteriaBuilder.and(criteriaBuilder.in(root.get("themes")).value(filter.getThemes())));
+      } else {
+        predicates.add(criteriaBuilder.like(root.get("themes"), "%"));
+      }
+
+      if (filter.getSource().size() > 0) {
+        predicates.add(
+            criteriaBuilder.and(criteriaBuilder.in(root.get("source")).value(filter.getSource())));
+      } else {
+        predicates.add(criteriaBuilder.like(root.get("source"), "%"));
+      }
+
+      if (filter.getLevel().size() > 0) {
+        predicates.add(
+            criteriaBuilder.and(
+                criteriaBuilder
+                    .in(root.get("level").get("id"))
+                    .value(
+                        filter.getLevel().stream()
+                            .map(Level::getId)
+                            .collect(Collectors.toList()))));
+      } else {
+        predicates.add(criteriaBuilder.like(root.get("level").get("id").as(String.class), "_"));
+      }
+
+      if (filter.getSdgCode().size() > 0) {
+        predicates.add(
+            criteriaBuilder.and(
+                criteriaBuilder.in(root.get("sdgCode")).value(filter.getSdgCode())));
+      } else {
+        predicates.add(criteriaBuilder.like(root.get("sdgCode"), "%"));
+      }
+
+      if (filter.getCrsCode().size() > 0) {
+        predicates.add(
+            criteriaBuilder.and(
+                criteriaBuilder.in(root.get("crsCode")).value(filter.getCrsCode())));
+      } else {
+        predicates.add(criteriaBuilder.like(root.get("crsCode"), "%"));
+      }
+      return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+    };
+  }
 }

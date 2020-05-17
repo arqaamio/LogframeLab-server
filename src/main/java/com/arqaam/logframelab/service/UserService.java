@@ -9,4 +9,6 @@ public interface UserService {
   Optional<User> getFirstUserByGroupName(String groupName);
 
   User save(User user);
+
+  Optional<User> findByUsername(String username);
 }

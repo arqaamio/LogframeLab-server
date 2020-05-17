@@ -13,4 +13,9 @@ public interface UserRepository extends JpaRepository<User, String> {
 
   @Query(value = "from User u  join u.groupMembership m join m.group g where g.name = :groupName")
   Optional<User> findUserByGroupName(@Param("groupName") String groupName);
+
+  Optional<User> findByUsername(String username);
+
+  @Query(value = "from User u join fetch u.groupMembership m where u.username = :username")
+  Optional<User> findByUsernameWithGroupMemberships(@Param("username") String username);
 }

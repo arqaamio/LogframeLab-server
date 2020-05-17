@@ -34,7 +34,6 @@ public class User extends AuditableEntity<String> implements UserDetails {
   public void addGroup(Group group) {
     GroupMember groupMember = new GroupMember(this, group);
     groupMembership.add(groupMember);
-    group.getMembers().add(groupMember);
   }
 
   public void addGroups(Collection<Group> groups) {
@@ -47,7 +46,6 @@ public class User extends AuditableEntity<String> implements UserDetails {
 
       if (membership.getUser().equals(this) && membership.getGroup().equals(group)) {
         iterator.remove();
-        membership.getGroup().getMembers().remove(membership);
         membership.setGroup(null);
         membership.setUser(null);
       }

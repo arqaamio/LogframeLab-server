@@ -26,7 +26,7 @@ public class JwtTokenProvider {
     secretKey = secretKey == null ? Keys.secretKeyFor(SignatureAlgorithm.HS512) : secretKey;
   }
 
-  public String generateJwsToken(User user) throws NoSuchAlgorithmException {
+  public String generateJwsToken(User user) {
     return Jwts.builder()
         .setSubject(user.getUsername())
         .setIssuedAt(Date.from(Instant.now()))

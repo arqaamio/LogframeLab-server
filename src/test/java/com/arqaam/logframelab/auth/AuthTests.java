@@ -7,7 +7,6 @@ import com.arqaam.logframelab.repository.GroupRepository;
 import com.arqaam.logframelab.repository.UserRepository;
 import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.migrationsupport.rules.EnableRuleMigrationSupport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
@@ -19,7 +18,6 @@ import java.util.stream.Collectors;
 import static org.hamcrest.Matchers.*;
 
 @DataJpaTest
-@EnableRuleMigrationSupport
 public class AuthTests implements BaseDatabaseTest {
 
   private static final int USER_GROUP_ID = 2;

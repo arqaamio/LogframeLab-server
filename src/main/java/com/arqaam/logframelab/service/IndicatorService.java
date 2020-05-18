@@ -110,13 +110,14 @@ public class IndicatorService implements Logging {
                     }
                 } else {
                     // Read .doc
+                    logger().info("Searching indicators in .doc file. maxIndicatorLength: {}", maxIndicatorLength);
                     HWPFDocument doc = new HWPFDocument(file.getInputStream());
                     Matcher matcher = Pattern.compile("\\w+").matcher(new WordExtractor(doc).getText());
                     while(matcher.find()){
                         wordstoScan.add(matcher.group());
                         if (wordstoScan.size() == maxIndicatorLength) {
                             checkIndicators(wordstoScan, indicatorsList, mapResult);
-                            wordstoScan.clear();
+                            wordstoScan.remove(wordstoScan.size() - 1);
                         }
                     }
                     doc.close();

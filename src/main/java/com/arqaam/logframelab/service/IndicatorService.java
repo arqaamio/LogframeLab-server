@@ -9,7 +9,11 @@ import com.arqaam.logframelab.model.projection.IndicatorFilters;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
 import com.arqaam.logframelab.util.Logging;
+import org.apache.poi.hwpf.HWPFDocument;
+import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.docx4j.jaxb.Context;
 import org.docx4j.jaxb.XPathBinderAssociationIsPartialException;
@@ -25,14 +29,13 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -41,25 +44,32 @@ import static java.util.Objects.isNull;
 @Service
 public class IndicatorService implements Logging {
 
+
+    /**
+     * Indicates the number of indicators template the level has by default
+     */
+    protected final static Integer IMPACT_NUM_TEMP_INDIC = 1, OUTCOME_NUM_TEMP_INDIC = 3, OUTPUT_NUM_TEMP_INDIC = 2;
+
     @Autowired
     private IndicatorRepository indicatorRepository;
 
     @Autowired
-    private LevelRepository levelRepository;
+    private  LevelRepository levelRepository;
 
     /**
      * Extract Indicators from a Word file
      * @param file Word file
      * @return List of Indicators
      */
-    public List<IndicatorResponse> extractIndicatorsFromWordFile(MultipartFile file, List<String> themeFilter) {
+    public List<IndicatorResponse> extractIndicatorsFromWordFile( MultipartFile file, FiltersDto filter) {
         List<IndicatorResponse> result = new ArrayList<>();
         List<Indicator> indicatorsList;
-        if (themeFilter != null && !themeFilter.isEmpty()) {
-            indicatorsList = indicatorRepository.getIndicatorsByThemes(themeFilter);
-        } else {
-            indicatorsList = indicatorRepository.findAll();
-        }
+
+    if (filter != null && !filter.isEmpty()) {
+      indicatorsList = indicatorRepository.findAll(specificationForIndicatorFromFilter(filter));
+    } else {
+      indicatorsList = indicatorRepository.findAll();
+    }
         List<String> wordstoScan = new ArrayList<>(); // current words
         // get the maximum indicator length
         int maxIndicatorLength = 1;
@@ -75,34 +85,49 @@ public class IndicatorService implements Logging {
                 }
             }
             try {
-                WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(file.getInputStream());
-                MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
-                String textNodesXPath = "//w:t";
-                List<Object> textNodes = mainDocumentPart.getJAXBNodesViaXPath(textNodesXPath, true);
-                Pattern p = Pattern.compile("[a-z0-9]", Pattern.CASE_INSENSITIVE);
-                StringBuffer currentWord = null;
                 Map<Long, Indicator> mapResult = new HashMap<>();
+                if(file.getOriginalFilename().matches("\\S+\\.docx$")) {
+                    WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(file.getInputStream());
+                    MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
+                    String textNodesXPath = "//w:t";
+                    List<Object> textNodes = mainDocumentPart.getJAXBNodesViaXPath(textNodesXPath, true);
+                    Pattern p = Pattern.compile("[a-z0-9]", Pattern.CASE_INSENSITIVE);
+                    StringBuffer currentWord = null;
 
-                for (Object obj : textNodes) {
-                    Text text =  ((JAXBElement<Text>) obj).getValue();
-                    char[] strArray = text.getValue().toLowerCase().toCharArray();
-                    for (char c : strArray) {
-                        // append current word to wordstoScan list
-                        if (currentWord == null && p.matcher(c + "").find()) {
-                            currentWord = new StringBuffer();
-                        } else if (currentWord != null && !p.matcher(c + "").find()) {
-                            wordstoScan.add(currentWord.toString());
-                            currentWord = null;
+                    for (Object obj : textNodes) {
+                        Text text = ((JAXBElement<Text>) obj).getValue();
+                        char[] strArray = text.getValue().toLowerCase().toCharArray();
+                        for (char c : strArray) {
+                            // append current word to wordstoScan list
+                            if (currentWord == null && p.matcher(c + "").find()) {
+                                currentWord = new StringBuffer();
+                            } else if (currentWord != null && !p.matcher(c + "").find()) {
+                                wordstoScan.add(currentWord.toString());
+                                currentWord = null;
+                            }
+                            if (currentWord != null) {
+                                currentWord.append(c);
+                            }
+                            // clear wordstoScan list if exceed the max length of indicators
+                            if (wordstoScan.size() == maxIndicatorLength) {
+                                checkIndicators(wordstoScan, indicatorsList, mapResult);
+                                wordstoScan.remove(wordstoScan.size() - 1);
+                            }
                         }
-                        if (currentWord != null) {
-                            currentWord.append(c);
-                        }
-                        // clear wordstoScan list if exceed the max length of indicators
+                    }
+                } else {
+                    // Read .doc
+                    logger().info("Searching indicators in .doc file. maxIndicatorLength: {}", maxIndicatorLength);
+                    HWPFDocument doc = new HWPFDocument(file.getInputStream());
+                    Matcher matcher = Pattern.compile("\\w+").matcher(new WordExtractor(doc).getText());
+                    while(matcher.find()){
+                        wordstoScan.add(matcher.group());
                         if (wordstoScan.size() == maxIndicatorLength) {
                             checkIndicators(wordstoScan, indicatorsList, mapResult);
                             wordstoScan.remove(wordstoScan.size() - 1);
                         }
                     }
+                    doc.close();
                 }
                 if(!mapResult.isEmpty()) {
                     List<Level> levelsList = levelRepository.findAllByOrderByPriority();
@@ -134,7 +159,9 @@ public class IndicatorService implements Logging {
         return result;
     }
 
-    /**
+
+
+  /**
      * Fills a list of indicators that contain certain words
      * @param wordsToScan Words to find in the indicators' keyword list
      * @param indicators Indicators to be analyzed
@@ -376,11 +403,11 @@ public class IndicatorService implements Logging {
 
         FiltersDto filters = new FiltersDto();
 
-        filters.getThemes().addAll(filtersResult.stream().map(IndicatorFilters::getThemes).collect(Collectors.toList()));
-        filters.getDescriptions().addAll(filtersResult.stream().map(IndicatorFilters::getDescription).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
-        filters.getSources().addAll(filtersResult.stream().map(IndicatorFilters::getSource).collect(Collectors.toList()));
-        filters.getLevels().addAll(filtersResult.stream().map(IndicatorFilters::getLevel).collect(Collectors.toList()));
-        filters.getSdgCodes().addAll(filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+        filters.getThemes().addAll(filtersResult.stream().map(IndicatorFilters::getThemes).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+        filters.getSource().addAll(filtersResult.stream().map(IndicatorFilters::getSource).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+        filters.getLevel().addAll(filtersResult.stream().map(IndicatorFilters::getLevel).collect(Collectors.toList()));
+        filters.getSdgCode().addAll(filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+        filters.getCrsCode().addAll(filtersResult.stream().map(IndicatorFilters::getCrsCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
 
         return filters;
     }
@@ -431,5 +458,160 @@ public class IndicatorService implements Logging {
                 .source(indicator.getSource())
                 .numTimes(indicator.getNumTimes())
                 .build();
+    }
+
+  private Specification<Indicator> specificationForIndicatorFromFilter(FiltersDto filter) {
+    return (root, criteriaQuery, criteriaBuilder) -> {
+      List<Predicate> predicates = new ArrayList<>();
+      if (filter.getThemes().size() > 0) {
+        predicates.add(
+            criteriaBuilder.and(criteriaBuilder.in(root.get("themes")).value(filter.getThemes())));
+      } else {
+        predicates.add(criteriaBuilder.like(root.get("themes"), "%"));
+      }
+
+      if (filter.getSource().size() > 0) {
+        predicates.add(
+            criteriaBuilder.and(criteriaBuilder.in(root.get("source")).value(filter.getSource())));
+      } else {
+        predicates.add(criteriaBuilder.like(root.get("source"), "%"));
+      }
+
+      if (filter.getLevel().size() > 0) {
+        predicates.add(
+            criteriaBuilder.and(
+                criteriaBuilder
+                    .in(root.get("level").get("id"))
+                    .value(
+                        filter.getLevel().stream()
+                            .map(Level::getId)
+                            .collect(Collectors.toList()))));
+      } else {
+        predicates.add(criteriaBuilder.like(root.get("level").get("id").as(String.class), "_"));
+      }
+
+      if (filter.getSdgCode().size() > 0) {
+        predicates.add(
+            criteriaBuilder.and(
+                criteriaBuilder.in(root.get("sdgCode")).value(filter.getSdgCode())));
+      } else {
+        predicates.add(criteriaBuilder.like(root.get("sdgCode"), "%"));
+      }
+
+      if (filter.getCrsCode().size() > 0) {
+        predicates.add(
+            criteriaBuilder.and(
+                criteriaBuilder.in(root.get("crsCode")).value(filter.getCrsCode())));
+      } else {
+        predicates.add(criteriaBuilder.like(root.get("crsCode"), "%"));
+      }
+      return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+    };
+  }
+    /**
+     * Fills the DFID template with the indicators
+     * @param indicatorResponse Indicators to fill the indicator file
+     * @return The DFID template filled with the indicators
+     */
+    public ByteArrayOutputStream exportIndicatorsDFIDFormat(List<IndicatorResponse> indicatorResponse){
+        try {
+            logger().info("Start exporting Indicators in DFID format");
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            XSSFWorkbook wk = new XSSFWorkbook(new ClassPathResource("RF_Template.xlsx").getInputStream());
+            XSSFSheet sheet  = wk.getSheetAt(0);
+            List<Level> levels = levelRepository.findAllByOrderByPriority();
+            List<Indicator> indicatorList = indicatorRepository.findAllById(indicatorResponse.stream()
+                    .mapToLong(IndicatorResponse::getId).boxed().collect(Collectors.toList()));
+            List<Indicator> impactIndicators = new ArrayList<>();
+            List<Indicator> outcomeIndicators = new ArrayList<>();
+            List<Indicator> outputIndicators = new ArrayList<>();
+
+            for (Indicator indicator : indicatorList) {
+                // Can't do switch because the values aren't known before runtime
+                if(levels.get(0).equals(indicator.getLevel())) {
+                    impactIndicators.add(indicator);
+                }else if(levels.get(1).equals(indicator.getLevel())) {
+                    outcomeIndicators.add(indicator);
+                }else {
+                    outputIndicators.add(indicator);
+                }
+            }
+
+            logger().info("Impact Indicators: {}\nOutcome Indicators: {}\nOutput Indicators: {}", impactIndicators, outcomeIndicators, outputIndicators);
+            int startRowNewIndicator = 1;
+            startRowNewIndicator = fillIndicatorsPerLevel(sheet, impactIndicators, startRowNewIndicator, IMPACT_NUM_TEMP_INDIC);
+            startRowNewIndicator = fillIndicatorsPerLevel(sheet, outcomeIndicators, startRowNewIndicator, OUTCOME_NUM_TEMP_INDIC);
+            fillIndicatorsPerLevel(sheet, outputIndicators, startRowNewIndicator, OUTPUT_NUM_TEMP_INDIC);
+            wk.write(output);
+            wk.close();
+            return output;
+        } catch (IOException e) {
+            logger().error("Failed to open template worksheet.", e);
+            throw new FailedToOpenWorksheetException();
+        }
+    }
+
+    /**
+     * Fill the level's template indicators with the values and add new rows if necessary.
+     * @param sheet The Template worksheet's sheet
+     * @param indicatorList List of Indicators to fill on the template
+     * @param startRowNewIndicator Index of the row where the template starts
+     * @param numberTemplateIndicators Number of Indicator's Template of this level
+     * @return Index of the row where the next template starts
+     */
+    private Integer fillIndicatorsPerLevel(XSSFSheet sheet, List<Indicator> indicatorList, Integer startRowNewIndicator,
+                                           Integer numberTemplateIndicators){
+        Integer initialRow = startRowNewIndicator;
+        int count = 0;
+        logger().info("Starting to fill Indicators. Start Row New Indicator {}, Number of template indicators of level: {}",
+                startRowNewIndicator, numberTemplateIndicators);
+        // Fill the available spaces
+        while(count < indicatorList.size() && count < numberTemplateIndicators) {
+            sheet.getRow(startRowNewIndicator + 1).getCell(2).setCellValue(indicatorList.get(count).getName());
+            sheet.getRow(startRowNewIndicator + 3).getCell(3).setCellValue(indicatorList.get(count).getSourceVerification());
+            startRowNewIndicator +=4;
+            count++;
+        }
+
+        // If needs new rows
+        if (indicatorList.size() > numberTemplateIndicators) {
+            logger().info("Adding new rows to worksheet to insert indicators. IndicatorList Size: {}", indicatorList.size());
+            for (int i = numberTemplateIndicators; i < indicatorList.size(); i++) {
+                if (numberTemplateIndicators == i && numberTemplateIndicators.equals(OUTCOME_NUM_TEMP_INDIC)) {
+                    logger().info("Searching for cells needing unmerging in the first column, numberTemplateIndicators: {}", numberTemplateIndicators);
+                    // Unmerge merged on the first column, so it can be merged later
+                    List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();
+                    for (int j = 0; j < mergedRegions.size(); j++) {
+                        // Check every first row of template indicators including the last row of the previous template
+                        if (mergedRegions.get(j).getLastColumn() == 0 && mergedRegions.get(j).getLastRow() == startRowNewIndicator - 1) {
+                            sheet.removeMergedRegion(j);
+                        }
+                    }
+                }
+                // Add new rows and copy the indicator template
+                sheet.shiftRows(startRowNewIndicator, sheet.getLastRowNum(), 4);
+                sheet.copyRows(startRowNewIndicator - 4, startRowNewIndicator, startRowNewIndicator, new CellCopyPolicy());
+
+                // Clear cell for future merge
+                sheet.getRow(startRowNewIndicator).getCell(0).setCellValue("");
+
+                // Set values
+                sheet.getRow(startRowNewIndicator + 1).getCell(2).setCellValue(indicatorList.get(i).getName());
+                sheet.getRow(startRowNewIndicator + 3).getCell(3).setCellValue(indicatorList.get(i).getSourceVerification());
+                startRowNewIndicator += 4;
+            }
+
+
+            // Merge first column
+            if(numberTemplateIndicators.equals(OUTPUT_NUM_TEMP_INDIC)) {
+                sheet.addMergedRegion(new CellRangeAddress(initialRow + numberTemplateIndicators * 4 - 1, startRowNewIndicator - 1, 0, 0));
+            } else {
+                sheet.addMergedRegion(new CellRangeAddress(initialRow + numberTemplateIndicators * 3, startRowNewIndicator - 1, 0, 0));
+            }
+            return startRowNewIndicator;
+        }
+
+        // Number of the row of the next level's template
+        return initialRow + numberTemplateIndicators * 4;
     }
 }

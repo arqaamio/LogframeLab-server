@@ -13,4 +13,6 @@ public interface IndicatorFilters {
   Level getLevel();
 
   String getSdgCode();
+
+  String getCrsCode();
 }

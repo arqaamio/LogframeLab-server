@@ -21,9 +21,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -37,27 +36,31 @@ public class IndicatorController implements Logging {
     private static final String WORD_FILE_EXTENSION = ".docx";
     private static final String WORKSHEET_FILE_EXTENSION = ".xlsx";
 
+
+    private static final String WORKSHEET_DEFAULT_FORMAT = "xlsx";
+    private static final String WORD_FORMAT = "word";
+    private static final String DFID_FORMAT = "dfid";
+
     @Autowired
     private IndicatorService indicatorService;
 
-    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "${IndicatorController.handleFileUpload.value}", nickname = "handleFileUpload", response = IndicatorResponse.class, responseContainer = "List")
     @ApiResponses({
             @ApiResponse(code = 200, message = "File was uploaded", response = IndicatorResponse.class, responseContainer = "List"),
             @ApiResponse(code = 409, message = "Wrong file extension", response = Error.class),
             @ApiResponse(code = 500, message = "Failed to upload the file", response = Error.class)
     })
-    public ResponseEntity<List<IndicatorResponse>> handleFileUpload(@RequestParam("file") MultipartFile file, @RequestParam(value = "themeFilter", required = false) List<String> themeFilter) {
-
+    public ResponseEntity<List<IndicatorResponse>> handleFileUpload(@RequestPart("file") MultipartFile file, @RequestPart("filter") FiltersDto filter) throws IOException {
         logger().info("Extract Indicators from Word File. File Name: {}", file.getOriginalFilename());
-        if(!file.getOriginalFilename().endsWith(WORD_FILE_EXTENSION)){
+        if(!file.getOriginalFilename().matches("\\S+(\\.docx$|\\.doc$)")){
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
             throw new WrongFileExtensionException();
         }
-        return ResponseEntity.ok(indicatorService.extractIndicatorsFromWordFile(file, themeFilter));
+        return  ResponseEntity.ok().body(indicatorService.extractIndicatorsFromWordFile(file, filter));
     }
 
-    @PostMapping(value = "/download", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "download", consumes = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "${IndicatorController.downloadIndicators.value}", nickname = "downloadIndicators", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @ApiResponses({
             @ApiResponse(code = 200, message = "File was uploaded"),
@@ -66,21 +69,29 @@ public class IndicatorController implements Logging {
             @ApiResponse(code = 500, message = "File failed to upload", response = Error.class)
     })
     public ResponseEntity<Resource> downloadIndicators(@RequestBody List<IndicatorResponse> indicators,
-                                                       @RequestParam(value = "worksheet", defaultValue = "false") Boolean worksheetFormat) {
+                                                       @RequestParam(value = "format", defaultValue = WORD_FILE_EXTENSION) String format) {
 
-        logger().info("Downloading indicators. worksheetFormat {}, Indicators: {}", worksheetFormat, indicators);
+        logger().info("Downloading indicators. format {}, Indicators: {}", format, indicators);
         if(indicators.isEmpty()){
             String msg = "Failed to download indicators. It cannot be empty";
             logger().error(msg);
             throw new IllegalArgumentException(msg);
         }
-        ByteArrayOutputStream outputStream = null;
+        ByteArrayOutputStream outputStream;
         String extension = WORD_FILE_EXTENSION;
-        if(worksheetFormat){
-            outputStream = indicatorService.exportIndicatorsInWorksheet(indicators);
-            extension = WORKSHEET_FILE_EXTENSION;
-        }else {
-            outputStream = indicatorService.exportIndicatorsInWordFile(indicators);
+        switch (format) {
+            case WORKSHEET_DEFAULT_FORMAT:
+                outputStream = indicatorService.exportIndicatorsInWorksheet(indicators);
+                extension = WORKSHEET_FILE_EXTENSION;
+                break;
+            case DFID_FORMAT:
+                outputStream = indicatorService.exportIndicatorsDFIDFormat(indicators);
+                extension = WORKSHEET_FILE_EXTENSION;
+                break;
+            case WORD_FORMAT:
+            default:
+                outputStream = indicatorService.exportIndicatorsInWordFile(indicators);
+                break;
         }
 
         //get the mimetype
@@ -99,7 +110,7 @@ public class IndicatorController implements Logging {
                 .contentType(MediaType.parseMediaType(mimeType))
                 .body(new ByteArrayResource(outputStream.toByteArray()));
     }
-// This remains here in case the changes that were done end up not working. After tested, this should be removed.
+/* This remains here in case the changes that were done end up not working. After tested, this should be removed.
 //    public void downloadIndicators(HttpServletRequest request, HttpServletResponse response, @RequestBody List<IndicatorResponse> indicators) throws IOException {
 //        ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsInWordFile(indicators);
 //        if (outputStream != null) {
@@ -118,10 +129,20 @@ public class IndicatorController implements Logging {
 //            InputStream inputStream = new BufferedInputStream(new ByteArrayInputStream(outputStream.toByteArray()));
 //            FileCopyUtils.copy(inputStream, response.getOutputStream());
 //        }
-//    }
+    }
+*/
 
+    @GetMapping("themes")
+    @ApiOperation(value = "${IndicatorController.getThemes.value}", nickname = "getThemes", response = String.class, responseContainer = "List")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "themes was loaded"),
+            @ApiResponse(code = 500, message = "failed to upload themes", response = Error.class)
+    })
+    public List<String> getThemes(){
+        return indicatorService.getAllThemes();
+    }
 
-    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "${IndicatorController.importIndicatorFile.value}", nickname = "importIndicatorFile", response = IndicatorResponse.class, responseContainer = "List")
     @ApiResponses({
             @ApiResponse(code = 200, message = "Indicators were imported"),
@@ -137,17 +158,8 @@ public class IndicatorController implements Logging {
         }
         return ResponseEntity.ok(indicatorService.importIndicators(file));
     }
-    @GetMapping("/themes")
-    @ApiOperation(value = "${IndicatorController.getThemes.value}", nickname = "getThemes", response = String.class, responseContainer = "List")
-    @ApiResponses({
-            @ApiResponse(code = 200, message = "themes was loaded"),
-            @ApiResponse(code = 500, message = "failed to upload themes", response = Error.class)
-    })
-    public List<String> getThemes(){
-        return indicatorService.getAllThemes();
-    }
 
-    @GetMapping("/filters")
+    @GetMapping("filters")
     public ResponseEntity<FiltersDto> getFilters() {
         return ResponseEntity.ok(indicatorService.getFilters());
     }

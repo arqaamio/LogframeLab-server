@@ -5,6 +5,7 @@ import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.Level;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
+import org.apache.http.entity.ContentType;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.Br;
@@ -43,10 +44,10 @@ public class IndicatorServiceTest {
     private IndicatorService indicatorService;
 
     private final static Level[] mockLevels = new Level[]{
-        new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green", 3),
-        new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red", 2),
-        new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange", 4),
-        new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple", 1)
+            new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green", 3),
+            new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red", 2),
+            new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange", 4),
+            new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple", 1)
     };
 
     private final static List<String> mockThemes = Arrays.asList("Digitalisation", "Education", "Poverty",
@@ -70,7 +71,7 @@ public class IndicatorServiceTest {
         when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
 
         when(indicatorRepository.findAll(any(Specification.class))).
-            thenReturn(mockIndicatorList().stream()
+                thenReturn(mockIndicatorList().stream()
                         .filter(x -> mockThemes.contains(x.getThemes()) && mockLevelsId.contains(x.getLevel().getId()) && mockSources.contains(x.getSource())
                                 && mockSdgCodes.contains(x.getSdgCode()) && mockCrsCodes.contains(x.getCrsCode())).collect(Collectors.toList()));
     }
@@ -78,29 +79,35 @@ public class IndicatorServiceTest {
     @Test
     void extractIndicatorsFromWordFile() throws IOException {
         when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
-        List<IndicatorResponse> expectedResult = new ArrayList<>();
-        expectedResult.add(IndicatorResponse.builder().build());
-        MultipartFile file = new MockMultipartFile("test_doc.docx", new ClassPathResource("test_doc.docx").getInputStream());
+        List<IndicatorResponse> expectedResult = getExpectedResult();
+        MultipartFile file = new MockMultipartFile("test_doc.docx", "test_doc.docx", ContentType.APPLICATION_OCTET_STREAM.toString(), new ClassPathResource("test_doc.docx").getInputStream());
         List<IndicatorResponse> result = indicatorService.extractIndicatorsFromWordFile(file, null);
         assertNotNull(result);
         assertFalse(result.isEmpty());
-        for(IndicatorResponse response : result){
-            System.out.println(response);
-        }
-//        assertEquals(1, result.size());
+        assertEquals(expectedResult, result);
     }
 
+    @Test
+    void extractIndicatorsFromWordFile_doc() throws IOException {
+        when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
+        List<IndicatorResponse> expectedResult = getExpectedResult();
+        MultipartFile file = new MockMultipartFile("test_doc.doc", "test_doc.doc", ContentType.APPLICATION_OCTET_STREAM.toString(), new ClassPathResource("test_doc.doc").getInputStream());
+        List<IndicatorResponse> result = indicatorService.extractIndicatorsFromWordFile(file, null);
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+        assertEquals(expectedResult, result);
+    }
     @Test
     void checkIndicators() {
         List<String> wordsToScan = Arrays.asList("food", "government", "policy", "retirement");
         List<Indicator> indicators = mockIndicatorList();
         // Test also indicators without keyword
-        indicators.add(Indicator.builder().id(6L).name("Name").description("Description").build());
+        indicators.add(Indicator.builder().id(0L).name("Name").description("Description").build());
         Map<Long, Indicator> mapResult = new HashMap<>();
         indicatorService.checkIndicators(wordsToScan, indicators, mapResult);
-
-        assertEquals(3, mapResult.size());
-        for (int i = 0; i < 3; i++) {
+        indicators = indicators.stream().sorted(Comparator.comparing(Indicator::getId)).collect(Collectors.toList());
+        assertEquals(indicators.size() - 1, mapResult.size());
+        for (int i = 0; i < mapResult.values().size(); i++) {
             assertEquals(indicators.get(i+1), mapResult.values().toArray()[i]);
         }
     }
@@ -111,14 +118,14 @@ public class IndicatorServiceTest {
         keywordsPolicyList.add("policy");
         List<String> wordsToScan = Arrays.asList("food", "government", "policy", "retirement");
         List<Indicator> indicators = mockIndicatorList();
-        indicators.add(Indicator.builder().id(4L).name("Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support")
+        indicators.add(Indicator.builder().id(73L).name("Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support")
                 .description("Digitalisation").keywords("policy").keywordsList(keywordsPolicyList).build());
         Map<Long, Indicator> mapResult = new HashMap<>();
         indicatorService.checkIndicators(wordsToScan, indicators, mapResult);
-
-        assertEquals(3, mapResult.size());
-        for (int i = 0; i < 3; i++) {
-            assertEquals(indicators.get(i+1), mapResult.values().toArray()[i]);
+        indicators = indicators.stream().sorted(Comparator.comparing(Indicator::getId)).collect(Collectors.toList());
+        assertEquals(indicators.size() - 1, mapResult.size());
+        for (int i = 0; i < indicators.size() - 1; i++) {
+            assertEquals(indicators.get(i), mapResult.values().toArray()[i]);
         }
     }
 
@@ -253,12 +260,12 @@ public class IndicatorServiceTest {
     }
 
     private List<Indicator> mockIndicatorList() {
-        String keyword = "food insecurity,nutrition,farming,agriculture";
+        String keyword = "food insecurity,agriculture";
         List<Indicator> list = new ArrayList<>();
 
-        List<String> keywordsList = new ArrayList<>();
-        keywordsList.add("agriculture");
-        keywordsList.add("nutrition");
+        List<String> keywordsFoodList = new ArrayList<>();
+        keywordsFoodList.add("agriculture");
+        keywordsFoodList.add("food");
 
         List<String> keywordsPolicyList = new ArrayList<>();
         keywordsPolicyList.add("policy");
@@ -270,35 +277,18 @@ public class IndicatorServiceTest {
         keywordsGovPolicyList.add("government policies");
         keywordsGovPolicyList.add("policy");
 
-        list.add(Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
-                .themes("Global Partnership for Sustainable Development")
-                .source("UN Sustainable Development Goals")
-                .disaggregation(true)
-                .crsCode("51010.0")
-                .sdgCode("19.4")
-                .sourceVerification("Capacity4Dev")
-                .dataSource("https://data.worldbank.org/indicator/SN.ITK.VITA.ZS?view=chart")
-                .description("Food & Agriculture").keywords(keyword).level(mockLevels[1]).keywordsList(keywordsList).build());
-        list.add(Indicator.builder().id(4L).name("Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support")
-                .themes("Global Partnership for Sustainable Development")
-                .source("UN Sustainable Development Goals")
-                .disaggregation(true)
-                .crsCode("43060.0")
-                .sdgCode("1.a")
-                .sourceVerification("Capacity4Dev")
-                .dataSource("https://data.worldbank.org/indicator/SI.POV.URGP?view=chart")
-                .description("Digitalisation").keywords("policy").level(mockLevels[0]).keywordsList(keywordsPolicyList).build());
-        list.add(Indicator.builder().id(5L).name("Revenue, excluding grants (% of GDP)")
-                .themes("Global Partnership for Sustainable Development")
-                .source("UN Sustainable Development Goals")
-                .disaggregation(false)
-                .crsCode("99810.0")
-                .sdgCode("17.4")
-                .sourceVerification("HIPSO")
-                .dataSource("https://data.worldbank.org/indicator/EG.CFT.ACCS.ZS?view=chart")
-                .description("Technical Note, EURF 2.01").keywords("government").level(mockLevels[3]).keywordsList(keywordsGovList).build());
+        list.add(Indicator.builder().id(4L).name("Number of policies/strategies/laws/regulation developed/revised for digitalisation with EU support")
+                .description("Digitalisation").level(mockLevels[0]).keywords("policy").keywordsList(keywordsPolicyList)
+                .source(mockSources.get(0)).themes(mockThemes.get(0)).sdgCode(mockSdgCodes.get(0)).crsCode(mockCrsCodes.get(0)).build());
         list.add(Indicator.builder().id(73L).name("Number of government policies developed or revised with civil society organisation participation through EU support")
-                .description("Public Sector").keywords("government policies, policy").level(mockLevels[1]).keywordsList(keywordsGovPolicyList).build());
+                .description("Public Sector").level(mockLevels[1]).keywords("government policies, policy").keywordsList(keywordsGovPolicyList)
+                .source(mockSources.get(1)).themes(mockThemes.get(1)).sdgCode(mockSdgCodes.get(1)).crsCode(mockCrsCodes.get(1)).build());
+        list.add(Indicator.builder().id(5L).name("Revenue, excluding grants (% of GDP)")
+                .description("Public Sector").level(mockLevels[3]).keywords("government").keywordsList(keywordsGovList)
+                .source(mockSources.get(2)).themes(mockThemes.get(2)).sdgCode(mockSdgCodes.get(2)).crsCode(mockCrsCodes.get(2)).build());
+        list.add(Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
+                .description("Food & Agriculture").level(mockLevels[1]).keywords(keyword).keywordsList(keywordsFoodList)
+                .source(mockSources.get(3)).themes(mockThemes.get(3)).sdgCode(mockSdgCodes.get(3)).crsCode(mockCrsCodes.get(3)).build());
 
         return list;
     }
@@ -351,5 +341,15 @@ public class IndicatorServiceTest {
         verify(indicatorRepository, times(0)).findAll(any(Specification.class));
         verify(indicatorRepository).findAll();
         assertEquals(expectedResult, result);
+    }
+
+    private List<IndicatorResponse> getExpectedResult(){
+        List<Indicator> indicators = mockIndicatorList();
+        List<IndicatorResponse> indicatorResponses = new ArrayList<>();
+        indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(2)));
+        indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(1)));
+        indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(3)));
+        indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(0)));
+        return indicatorResponses;
     }
 }

@@ -60,4 +60,9 @@ git push --set-upstream origin feature/<feature_name>
 
 ## 10- Pull request the new feature/<feature_name> branch against the develop branch in the main repository 
 
+## Running Integration Tests
+In order to run the integration tests that require the actual beans to be used in Dependency Injection locally, do the following:
+* Manually create the __*integration_tests*__ database with __root__ user and password __root__. These credentials align with the docker config.
+* Run the usual *mvn test* command. This will pick up the configuration specifics from the __application-integration.properties__ file.  
+
 [![License: CC BY-NC-SA 4.0](https://licensebuttons.net/l/by-nc-sa/4.0/80x15.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/)

@@ -19,19 +19,16 @@ import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.wml.ObjectFactory;
 import org.docx4j.wml.R;
 import org.docx4j.wml.Text;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -41,25 +38,28 @@ import static java.util.Objects.isNull;
 @Service
 public class IndicatorService implements Logging {
 
-    @Autowired
-    private IndicatorRepository indicatorRepository;
+  private final IndicatorRepository indicatorRepository;
 
-    @Autowired
-    private LevelRepository levelRepository;
+  private final LevelRepository levelRepository;
 
+  public IndicatorService(IndicatorRepository indicatorRepository, LevelRepository levelRepository) {
+    this.levelRepository = levelRepository;
+    this.indicatorRepository = indicatorRepository;
+  }
     /**
      * Extract Indicators from a Word file
      * @param file Word file
      * @return List of Indicators
      */
-    public List<IndicatorResponse> extractIndicatorsFromWordFile(MultipartFile file, List<String> themeFilter) {
+    public List<IndicatorResponse> extractIndicatorsFromWordFile( MultipartFile file, FiltersDto filter) {
         List<IndicatorResponse> result = new ArrayList<>();
         List<Indicator> indicatorsList;
-        if (themeFilter != null && !themeFilter.isEmpty()) {
-            indicatorsList = indicatorRepository.getIndicatorsByThemes(themeFilter);
-        } else {
-            indicatorsList = indicatorRepository.findAll();
-        }
+
+    if (filter != null && !filter.isEmpty()) {
+      indicatorsList = indicatorRepository.findAll(specificationForIndicatorFromFilter(filter));
+    } else {
+      indicatorsList = indicatorRepository.findAll();
+    }
         List<String> wordstoScan = new ArrayList<>(); // current words
         // get the maximum indicator length
         int maxIndicatorLength = 1;
@@ -134,7 +134,9 @@ public class IndicatorService implements Logging {
         return result;
     }
 
-    /**
+
+
+  /**
      * Fills a list of indicators that contain certain words
      * @param wordsToScan Words to find in the indicators' keyword list
      * @param indicators Indicators to be analyzed
@@ -375,11 +377,11 @@ public class IndicatorService implements Logging {
 
         FiltersDto filters = new FiltersDto();
 
-        filters.getThemes().addAll(filtersResult.stream().map(IndicatorFilters::getThemes).collect(Collectors.toList()));
-        filters.getDescriptions().addAll(filtersResult.stream().map(IndicatorFilters::getDescription).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
-        filters.getSources().addAll(filtersResult.stream().map(IndicatorFilters::getSource).collect(Collectors.toList()));
-        filters.getLevels().addAll(filtersResult.stream().map(IndicatorFilters::getLevel).collect(Collectors.toList()));
-        filters.getSdgCodes().addAll(filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+        filters.getThemes().addAll(filtersResult.stream().map(IndicatorFilters::getThemes).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+        filters.getSource().addAll(filtersResult.stream().map(IndicatorFilters::getSource).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+        filters.getLevel().addAll(filtersResult.stream().map(IndicatorFilters::getLevel).collect(Collectors.toList()));
+        filters.getSdgCode().addAll(filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+        filters.getCrsCode().addAll(filtersResult.stream().map(IndicatorFilters::getCrsCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
 
         return filters;
     }
@@ -431,4 +433,53 @@ public class IndicatorService implements Logging {
                 .numTimes(indicator.getNumTimes())
                 .build();
     }
+
+  private Specification<Indicator> specificationForIndicatorFromFilter(FiltersDto filter) {
+    return (root, criteriaQuery, criteriaBuilder) -> {
+      List<Predicate> predicates = new ArrayList<>();
+      if (filter.getThemes().size() > 0) {
+        predicates.add(
+            criteriaBuilder.and(criteriaBuilder.in(root.get("themes")).value(filter.getThemes())));
+      } else {
+        predicates.add(criteriaBuilder.like(root.get("themes"), "%"));
+      }
+
+      if (filter.getSource().size() > 0) {
+        predicates.add(
+            criteriaBuilder.and(criteriaBuilder.in(root.get("source")).value(filter.getSource())));
+      } else {
+        predicates.add(criteriaBuilder.like(root.get("source"), "%"));
+      }
+
+      if (filter.getLevel().size() > 0) {
+        predicates.add(
+            criteriaBuilder.and(
+                criteriaBuilder
+                    .in(root.get("level").get("id"))
+                    .value(
+                        filter.getLevel().stream()
+                            .map(Level::getId)
+                            .collect(Collectors.toList()))));
+      } else {
+        predicates.add(criteriaBuilder.like(root.get("level").get("id").as(String.class), "_"));
+      }
+
+      if (filter.getSdgCode().size() > 0) {
+        predicates.add(
+            criteriaBuilder.and(
+                criteriaBuilder.in(root.get("sdgCode")).value(filter.getSdgCode())));
+      } else {
+        predicates.add(criteriaBuilder.like(root.get("sdgCode"), "%"));
+      }
+
+      if (filter.getCrsCode().size() > 0) {
+        predicates.add(
+            criteriaBuilder.and(
+                criteriaBuilder.in(root.get("crsCode")).value(filter.getCrsCode())));
+      } else {
+        predicates.add(criteriaBuilder.like(root.get("crsCode"), "%"));
+      }
+      return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+    };
+  }
 }

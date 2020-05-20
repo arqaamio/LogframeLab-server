@@ -1,7 +1,7 @@
 package com.arqaam.logframelab.controller;
 
-import com.arqaam.logframelab.controller.dto.auth.AuthenticateUserRequestDto;
 import com.arqaam.logframelab.controller.dto.FiltersDto;
+import com.arqaam.logframelab.controller.dto.auth.AuthenticateUserRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.JwtAuthenticationTokenResponse;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
 import com.arqaam.logframelab.model.Error;
@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -51,6 +52,9 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
 
     private static final FiltersDto EMPTY_FILTER = new FiltersDto();
 
+  private final static List<String> mockSourceVerification = Arrays.asList("World Bank Data", "EU", "SDG Country Data",
+      "Project's M&E system", "UNDP Global Human Development Indicators");
+
   private static final List<String> mockThemes =
       Arrays.asList(
           "Digitalisation",
@@ -64,8 +68,6 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
           "Private Sector",
           "Infrastructure",
           "Migration",
-    private final static List<String> mockSourceVerification = Arrays.asList("World Bank Data", "EU", "SDG Country Data",
-            "Project's M&E system", "UNDP Global Human Development Indicators");
           "Climate Change",
           "Environment",
           "Public Sector",
@@ -108,13 +110,14 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
   private static final String SEC_ADMIN_PASSWORD = "password";
   @MockBean private LevelRepository levelRepository;
   @MockBean private IndicatorRepository indicatorRepository;
-  @Autowired private IndicatorService indicatorService;
-  private static String bearerToken = null;
+  private LevelRepository levelRepositoryMock;
+  private IndicatorRepository indicatorRepositoryMock;
+
+  @Autowired private IndicatorService indicatorService;  private static String bearerToken = null;
 
   @BeforeEach
   void setup() {
-        when(levelRepositoryMock.findAllByOrderByPriority()).thenReturn(Arrays.stream(mockLevels).sorted().collect(Collectors.toList()));
-        when(indicatorRepositoryMock.findAll(any(Specification.class))).
+    when(levelRepositoryMock.findAllByOrderByPriority()).thenReturn(Arrays.stream(mockLevels).sorted().collect(Collectors.toList()));
     when(indicatorRepository.findAll(any(Specification.class)))
         .thenReturn(
             mockIndicatorList().stream()
@@ -146,50 +149,36 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
     bearerToken = tokenResponse.getToken();
   }
 
+
   @Test
   void handleFileUpload() {
-    List<IndicatorResponse> expectedResult = getExpectedResult();
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-    headers.setBearerAuth(bearerToken);
-        FiltersDto filters = getSampleFilter();
+
+    FiltersDto filters = getSampleFilter();
 
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("file", new ClassPathResource("test_doc.docx"));
+    body.add("filter", filters);
+
     ResponseEntity<List<IndicatorResponse>> response =
         testRestTemplate.exchange(
-        body.add("filter", filters);
             "/indicator/upload",
             HttpMethod.POST,
             new HttpEntity<>(body, headers),
             new ParameterizedTypeReference<List<IndicatorResponse>>() {});
-
-        ResponseEntity<List<IndicatorResponse>> response =
-                testRestTemplate.exchange(
-                        "/indicator/upload",
-                        HttpMethod.POST,
-                        new HttpEntity<>(body, headers),
-                        new ParameterizedTypeReference<List<IndicatorResponse>>() {
-                        });
-    assertEquals(HttpStatus.OK, response.getStatusCode());
-    assertEqualsIndicator(expectedResult, response.getBody());
+    collector.checkThat(response.getStatusCode(), is(HttpStatus.OK));
         Objects.requireNonNull(response.getBody())
-                .forEach(
-                        resp -> {
-                            collector.checkThat(
-                                    (filters.getThemes().contains(resp.getThemes())), is(Boolean.TRUE));
-                            collector.checkThat(
-                                    filters.getLevel().stream()
-                                            .map(level -> level.getId().toString())
-                                            .collect(Collectors.toSet())
-                                            .contains(resp.getLevel()),
-                                    is(Boolean.TRUE));
-                            collector.checkThat(filters.getSource().contains(resp.getSource()), is(Boolean.TRUE));
-                            collector.checkThat(
-                                    filters.getCrsCode().contains(resp.getCrsCode()), is(Boolean.TRUE));
-                            collector.checkThat(
-                                    filters.getSdgCode().contains(resp.getCrsCode()), is(Boolean.TRUE));
-                        });
+            .forEach(
+                  resp -> {
+                collector.checkThat(filters.getThemes(), hasItem(resp.getThemes()));
+                collector.checkThat(
+                    filters.getLevel().stream().map(Level::getName).collect(Collectors.toSet()),
+                    hasItem(resp.getLevel()));
+                collector.checkThat(filters.getSource(), hasItem(resp.getSource()));
+                collector.checkThat(filters.getCrsCode(), hasItem(resp.getCrsCode()));
+                collector.checkThat(filters.getSdgCode(), hasItem(resp.getSdgCode()));
+              });
   }
 
   @Test
@@ -222,15 +211,12 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
     headers.setBearerAuth(bearerToken);
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("file", new ClassPathResource("test_doc.docx"));
-        body.add("filter", EMPTY_FILTER);
+    body.add("filter", EMPTY_FILTER);
     ResponseEntity<List<IndicatorResponse>> response =
         testRestTemplate.exchange(
             "/indicator/upload",
             HttpMethod.POST,
-                new HttpEntity<>(body, headers), new ParameterizedTypeReference<List<IndicatorResponse>>() {
-                });
-            new HttpEntity<>(body, headers),
-            new ParameterizedTypeReference<List<IndicatorResponse>>() {});
+                new HttpEntity<>(body, headers), new ParameterizedTypeReference<List<IndicatorResponse>>() {});
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEqualsIndicator(expectedResult, response.getBody());
@@ -299,10 +285,7 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
         testRestTemplate.exchange(
             "/indicator/upload",
             HttpMethod.POST,
-                new HttpEntity<>(body, headers), new ParameterizedTypeReference<List<IndicatorResponse>>() {
-                });
-            new HttpEntity<>(body, headers),
-            new ParameterizedTypeReference<List<IndicatorResponse>>() {});
+                new HttpEntity<>(body, headers), new ParameterizedTypeReference<List<IndicatorResponse>>() {});
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEqualsIndicator(expectedResult, response.getBody());
@@ -382,11 +365,6 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(bearerToken);
     ResponseEntity<List<IndicatorResponse>> response =
-        ResponseEntity<List<IndicatorResponse>> response = testRestTemplate.exchange("/indicator?themes=" + String.join(",", mockThemes) +
-                        "&levels=" + mockLevelsId.stream().map(String::valueOf).collect(Collectors.joining(",")) + "&sources=" + String.join(",", mockSources) +
-                        "&sdgCodes=" + String.join(",", mockSdgCodes) + "&crsCodes=" + String.join(",", mockCrsCodes), HttpMethod.GET,
-                new HttpEntity<>(null), new ParameterizedTypeReference<List<IndicatorResponse>>() {
-                });
         testRestTemplate.exchange(
             "/indicator?themes="
                 + String.join(",", mockThemes)
@@ -421,8 +399,6 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
     headers.setBearerAuth(bearerToken);
     ResponseEntity<List<IndicatorResponse>> response =
         testRestTemplate.exchange(
-                HttpMethod.GET, new HttpEntity<>(null), new ParameterizedTypeReference<List<IndicatorResponse>>() {
-                });
             "/indicator?themes="
                 + String.join(",", mockThemes)
                 + "&levels="
@@ -453,7 +429,6 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
       headers.setBearerAuth(bearerToken);
         ResponseEntity<List<IndicatorResponse>> response = testRestTemplate.exchange("/indicator", HttpMethod.GET,
                 new HttpEntity<>(headers), new ParameterizedTypeReference<List<IndicatorResponse>>() {});
-                });
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(indicatorRepositoryMock, times(0)).findAll(any(Specification.class));
@@ -581,7 +556,7 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
     return list;
   }
 
-    private void assertEqualsIndicator(List<IndicatorResponse> expectedResult, List<IndicatorResponse> result) {
+    private void assertEqualsIndicator(
       List<IndicatorResponse> expectedResult, List<IndicatorResponse> result) {
     assertNotNull(result);
     assertEquals(expectedResult.size(), result.size());
@@ -591,20 +566,23 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
     }
   }
 
-    private FiltersDto getSampleFilter() {
+
+      private FiltersDto getSampleFilter() {
         FiltersDto filters = new FiltersDto();
         filters.getThemes().addAll(Arrays.asList("Digitalisation", "Education", "Poverty",
-                "Nutrition", "Agriculture", "Health", "WASH", "Electricity", "Private Sector",
-                "Infrastructure", "Migration", "Climate Change", "Environment", "Public Sector",
-                "Human Rights", "Conflict", "Food Security", "Equality", "Water and Sanitation"));
-        filters.getCrsCode().addAll(Arrays.asList("0.0", "16010.0"));
+            "Nutrition", "Agriculture", "Health", "WASH", "Electricity", "Private Sector",
+            "Infrastructure", "Migration", "Climate Change", "Environment", "Public Sector",
+            "Human Rights", "Conflict", "Food Security", "Equality", "Water and Sanitation"));
+        filters.getCrsCode().addAll(Arrays.asList( "0.0", "16010.0", "24010.0", "15190.0",
+            "99810.0", "15160.0", "15160.0"));
         filters.getLevel().addAll(Arrays.asList(mockLevels));
         filters.getSource().addAll(Arrays.asList("Capacity4Dev", "EU", "WFP", "ECHO", "ECHO,WFP",
-                "ECHO,WHO", "FAO", "FAO,WHO", "WHO", "FANTA", "IPA", "WHO,FAO", "ACF",
-                "Nutrition Cluster", "Freendom House", "CyberGreen", "ITU",
-                "UN Sustainable Development Goals", "World Bank", "UNDP", "ILO", "IMF"));
+            "ECHO,WHO", "FAO", "FAO,WHO", "WHO", "FANTA", "IPA", "WHO,FAO", "ACF",
+            "Nutrition Cluster", "Freendom House", "CyberGreen", "ITU",
+            "UN Sustainable Development Goals", "World Bank", "UNDP", "ILO", "IMF"));
+        filters.getSdgCode().addAll(Arrays.asList("4.1", "7.1", "1.a", "8.2"));
         return filters;
-    }
+      }
 }
 //    private Integer validateTemplateLevel(XSSFSheet sheet, List<Indicator> indicators, Integer rowIndex, Integer numberTemplateIndicators){
 //        List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();

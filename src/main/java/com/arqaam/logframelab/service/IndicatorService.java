@@ -12,6 +12,8 @@ import com.arqaam.logframelab.util.Logging;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.docx4j.jaxb.Context;
 import org.docx4j.jaxb.XPathBinderAssociationIsPartialException;
@@ -21,6 +23,7 @@ import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.wml.ObjectFactory;
 import org.docx4j.wml.R;
 import org.docx4j.wml.Text;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -41,14 +44,18 @@ import static java.util.Objects.isNull;
 @Service
 public class IndicatorService implements Logging {
 
-  private final IndicatorRepository indicatorRepository;
 
-  private final LevelRepository levelRepository;
+    /**
+     * Indicates the number of indicators template the level has by default
+     */
+    protected final static Integer IMPACT_NUM_TEMP_INDIC = 1, OUTCOME_NUM_TEMP_INDIC = 3, OUTPUT_NUM_TEMP_INDIC = 2;
 
-  public IndicatorService(IndicatorRepository indicatorRepository, LevelRepository levelRepository) {
-    this.levelRepository = levelRepository;
-    this.indicatorRepository = indicatorRepository;
-  }
+    @Autowired
+    private IndicatorRepository indicatorRepository;
+
+    @Autowired
+    private  LevelRepository levelRepository;
+
     /**
      * Extract Indicators from a Word file
      * @param file Word file
@@ -501,4 +508,110 @@ public class IndicatorService implements Logging {
       return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
     };
   }
+    /**
+     * Fills the DFID template with the indicators
+     * @param indicatorResponse Indicators to fill the indicator file
+     * @return The DFID template filled with the indicators
+     */
+    public ByteArrayOutputStream exportIndicatorsDFIDFormat(List<IndicatorResponse> indicatorResponse){
+        try {
+            logger().info("Start exporting Indicators in DFID format");
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            XSSFWorkbook wk = new XSSFWorkbook(new ClassPathResource("RF_Template.xlsx").getInputStream());
+            XSSFSheet sheet  = wk.getSheetAt(0);
+            List<Level> levels = levelRepository.findAllByOrderByPriority();
+            List<Indicator> indicatorList = indicatorRepository.findAllById(indicatorResponse.stream()
+                    .mapToLong(IndicatorResponse::getId).boxed().collect(Collectors.toList()));
+            List<Indicator> impactIndicators = new ArrayList<>();
+            List<Indicator> outcomeIndicators = new ArrayList<>();
+            List<Indicator> outputIndicators = new ArrayList<>();
+
+            for (Indicator indicator : indicatorList) {
+                // Can't do switch because the values aren't known before runtime
+                if(levels.get(0).equals(indicator.getLevel())) {
+                    impactIndicators.add(indicator);
+                }else if(levels.get(1).equals(indicator.getLevel())) {
+                    outcomeIndicators.add(indicator);
+                }else {
+                    outputIndicators.add(indicator);
+                }
+            }
+
+            logger().info("Impact Indicators: {}\nOutcome Indicators: {}\nOutput Indicators: {}", impactIndicators, outcomeIndicators, outputIndicators);
+            int startRowNewIndicator = 1;
+            startRowNewIndicator = fillIndicatorsPerLevel(sheet, impactIndicators, startRowNewIndicator, IMPACT_NUM_TEMP_INDIC);
+            startRowNewIndicator = fillIndicatorsPerLevel(sheet, outcomeIndicators, startRowNewIndicator, OUTCOME_NUM_TEMP_INDIC);
+            fillIndicatorsPerLevel(sheet, outputIndicators, startRowNewIndicator, OUTPUT_NUM_TEMP_INDIC);
+            wk.write(output);
+            wk.close();
+            return output;
+        } catch (IOException e) {
+            logger().error("Failed to open template worksheet.", e);
+            throw new FailedToOpenWorksheetException();
+        }
+    }
+
+    /**
+     * Fill the level's template indicators with the values and add new rows if necessary.
+     * @param sheet The Template worksheet's sheet
+     * @param indicatorList List of Indicators to fill on the template
+     * @param startRowNewIndicator Index of the row where the template starts
+     * @param numberTemplateIndicators Number of Indicator's Template of this level
+     * @return Index of the row where the next template starts
+     */
+    private Integer fillIndicatorsPerLevel(XSSFSheet sheet, List<Indicator> indicatorList, Integer startRowNewIndicator,
+                                           Integer numberTemplateIndicators){
+        Integer initialRow = startRowNewIndicator;
+        int count = 0;
+        logger().info("Starting to fill Indicators. Start Row New Indicator {}, Number of template indicators of level: {}",
+                startRowNewIndicator, numberTemplateIndicators);
+        // Fill the available spaces
+        while(count < indicatorList.size() && count < numberTemplateIndicators) {
+            sheet.getRow(startRowNewIndicator + 1).getCell(2).setCellValue(indicatorList.get(count).getName());
+            sheet.getRow(startRowNewIndicator + 3).getCell(3).setCellValue(indicatorList.get(count).getSourceVerification());
+            startRowNewIndicator +=4;
+            count++;
+        }
+
+        // If needs new rows
+        if (indicatorList.size() > numberTemplateIndicators) {
+            logger().info("Adding new rows to worksheet to insert indicators. IndicatorList Size: {}", indicatorList.size());
+            for (int i = numberTemplateIndicators; i < indicatorList.size(); i++) {
+                if (numberTemplateIndicators == i && numberTemplateIndicators.equals(OUTCOME_NUM_TEMP_INDIC)) {
+                    logger().info("Searching for cells needing unmerging in the first column, numberTemplateIndicators: {}", numberTemplateIndicators);
+                    // Unmerge merged on the first column, so it can be merged later
+                    List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();
+                    for (int j = 0; j < mergedRegions.size(); j++) {
+                        // Check every first row of template indicators including the last row of the previous template
+                        if (mergedRegions.get(j).getLastColumn() == 0 && mergedRegions.get(j).getLastRow() == startRowNewIndicator - 1) {
+                            sheet.removeMergedRegion(j);
+                        }
+                    }
+                }
+                // Add new rows and copy the indicator template
+                sheet.shiftRows(startRowNewIndicator, sheet.getLastRowNum(), 4);
+                sheet.copyRows(startRowNewIndicator - 4, startRowNewIndicator, startRowNewIndicator, new CellCopyPolicy());
+
+                // Clear cell for future merge
+                sheet.getRow(startRowNewIndicator).getCell(0).setCellValue("");
+
+                // Set values
+                sheet.getRow(startRowNewIndicator + 1).getCell(2).setCellValue(indicatorList.get(i).getName());
+                sheet.getRow(startRowNewIndicator + 3).getCell(3).setCellValue(indicatorList.get(i).getSourceVerification());
+                startRowNewIndicator += 4;
+            }
+
+
+            // Merge first column
+            if(numberTemplateIndicators.equals(OUTPUT_NUM_TEMP_INDIC)) {
+                sheet.addMergedRegion(new CellRangeAddress(initialRow + numberTemplateIndicators * 4 - 1, startRowNewIndicator - 1, 0, 0));
+            } else {
+                sheet.addMergedRegion(new CellRangeAddress(initialRow + numberTemplateIndicators * 3, startRowNewIndicator - 1, 0, 0));
+            }
+            return startRowNewIndicator;
+        }
+
+        // Number of the row of the next level's template
+        return initialRow + numberTemplateIndicators * 4;
+    }
 }

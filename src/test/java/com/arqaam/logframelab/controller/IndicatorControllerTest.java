@@ -56,11 +56,11 @@ class IndicatorControllerTest extends BaseControllerTest {
             "ECHO,WHO", "FAO", "FAO,WHO", "WHO", "FANTA", "IPA", "WHO,FAO", "ACF",
             "Nutrition Cluster", "Freendom House", "CyberGreen", "ITU",
             "UN Sustainable Development Goals", "World Bank", "UNDP", "ILO", "IMF");
-    private static final List<String> mockSdgCodes = Arrays.asList("8.2", "7.1", "4.1", "1.a", "1.b");
-    private static final List<String> mockCrsCodes =
-            Arrays.asList("99810.0", "15160.0", "24010.0", "15190.0", "43010.0", "24050.0", "43030.0");
-    private static final List<Long> mockLevelsId =
-            Arrays.stream(mockLevels).map(Level::getId).collect(Collectors.toList());
+    private final static List<String> mockSdgCodes = Arrays.asList("8.2", "7.1", "4.1", "1.a", "1.b") ;
+    private final static List<String> mockCrsCodes = Arrays.asList("99810.0", "15160.0", "24010.0", "15190.0", "43010.0", "24050.0", "43030.0");
+    private final static List<Long> mockLevelsId = Arrays.stream(mockLevels).map(Level::getId).collect(Collectors.toList());
+    private final static List<String> mockSourceVerification = Arrays.asList("World Bank Data", "EU", "SDG Country Data",
+            "Project's M&E system", "UNDP Global Human Development Indicators");
 
     @MockBean
     private LevelRepository levelRepositoryMock;
@@ -215,6 +215,16 @@ class IndicatorControllerTest extends BaseControllerTest {
             System.out.println(currentText);
         }
         assertTrue(valid);
+    }
+
+    @Test
+    void downloadIndicators_DFIDFormat() {
+        List<IndicatorResponse> indicators = createIndicatorResponseList(3);
+        when(indicatorRepositoryMock.findAllById(any())).thenReturn(mockIndicatorList());
+        ResponseEntity<Resource> response = testRestTemplate.exchange("/indicator/download?format=dfid", HttpMethod.POST,
+                new HttpEntity<>(indicators), Resource.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
 
     }
 
@@ -360,3 +370,37 @@ class IndicatorControllerTest extends BaseControllerTest {
         return filters;
     }
 }
+//    private Integer validateTemplateLevel(XSSFSheet sheet, List<Indicator> indicators, Integer rowIndex, Integer numberTemplateIndicators){
+//        List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();
+//        Integer initialRow = rowIndex;
+//
+//        for (Indicator indicator : indicators) {
+//            assertEquals("", sheet.getRow(rowIndex + 1).getCell(3).getStringCellValue());
+//            assertEquals(indicator.getName(), sheet.getRow(rowIndex + 1).getCell(2).getStringCellValue());
+//            assertEquals(indicator.getSourceVerification(), sheet.getRow(rowIndex + 3).getCell(3).getStringCellValue());
+//            rowIndex += 4;
+//        }
+//
+//        int count = indicators.size();
+//        while(count<numberTemplateIndicators){
+//            assertEquals("", sheet.getRow(rowIndex+1).getCell(2).getStringCellValue());
+//            assertEquals("", sheet.getRow(rowIndex+3).getCell(3).getStringCellValue());
+//            rowIndex+=4;
+//            count++;
+//        }
+//
+//        // check merged cells in first column
+//        int finalRowIndex = rowIndex;
+//        if(indicators.size()>numberTemplateIndicators){
+//            if(numberTemplateIndicators.equals(IndicatorService.OUTPUT_NUM_TEMP_INDIC)){
+//                assertTrue(mergedRegions.stream().anyMatch(x -> x.getLastColumn() == 0 && x.getFirstRow() == initialRow + numberTemplateIndicators * 3 - 1
+//                        && x.getLastRow() == finalRowIndex - 1));
+//            }else {
+//                assertTrue(mergedRegions.stream().anyMatch(x -> x.getLastColumn() == 0 && x.getFirstRow() == initialRow + numberTemplateIndicators * 3
+//                        && x.getLastRow() == finalRowIndex - 1));
+//            }
+//        }
+//
+//        return rowIndex;
+//    }
+

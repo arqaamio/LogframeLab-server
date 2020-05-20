@@ -1,8 +1,8 @@
 package com.arqaam.logframelab.service;
 
 import com.arqaam.logframelab.configuration.security.jwt.JwtTokenProvider;
-import com.arqaam.logframelab.controller.dto.AuthenticateUserRequestDto;
-import com.arqaam.logframelab.controller.dto.UpdatePasswordRequestDto;
+import com.arqaam.logframelab.controller.dto.auth.AuthenticateUserRequestDto;
+import com.arqaam.logframelab.controller.dto.auth.UpdatePasswordRequestDto;
 import com.arqaam.logframelab.exception.PasswordResetException;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import org.apache.commons.lang3.NotImplementedException;

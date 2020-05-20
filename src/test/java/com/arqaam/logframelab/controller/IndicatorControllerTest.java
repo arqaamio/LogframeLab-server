@@ -1,8 +1,8 @@
 package com.arqaam.logframelab.controller;
 
-import com.arqaam.logframelab.controller.dto.AuthenticateUserRequestDto;
+import com.arqaam.logframelab.controller.dto.auth.AuthenticateUserRequestDto;
 import com.arqaam.logframelab.controller.dto.FiltersDto;
-import com.arqaam.logframelab.controller.dto.JwtAuthenticationTokenResponse;
+import com.arqaam.logframelab.controller.dto.auth.JwtAuthenticationTokenResponse;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
 import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.IndicatorResponse;

@@ -1,10 +1,12 @@
 package com.arqaam.logframelab.controller;
 
-import com.arqaam.logframelab.controller.dto.AuthenticateUserRequestDto;
-import com.arqaam.logframelab.controller.dto.JwtAuthenticationTokenResponse;
+import com.arqaam.logframelab.controller.dto.auth.AuthenticateUserRequestDto;
+import com.arqaam.logframelab.controller.dto.auth.JwtAuthenticationTokenResponse;
+import com.arqaam.logframelab.controller.dto.auth.UserAuthProvisioningRequestDto;
 import com.arqaam.logframelab.exception.UnauthorizedException;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import com.arqaam.logframelab.service.AuthService;
+import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -47,5 +49,16 @@ public class AuthController {
 
     String token = authService.generateToken(user);
     return ResponseEntity.ok(new JwtAuthenticationTokenResponse(token, tokenType, tokenDuration));
+  }
+
+  @PostMapping("logout")
+  public ResponseEntity<?> userLogout() {
+    throw new NotImplementedException("");
+  }
+  
+
+  @PostMapping("user")
+  public ResponseEntity<?> provisionUser(@RequestBody UserAuthProvisioningRequestDto authProvisioningRequest) {
+    throw new NotImplementedException("");
   }
 }

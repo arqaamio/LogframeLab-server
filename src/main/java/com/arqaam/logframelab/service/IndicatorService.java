@@ -50,11 +50,14 @@ public class IndicatorService implements Logging {
      */
     protected final static Integer IMPACT_NUM_TEMP_INDIC = 1, OUTCOME_NUM_TEMP_INDIC = 3, OUTPUT_NUM_TEMP_INDIC = 2;
 
-    @Autowired
     private IndicatorRepository indicatorRepository;
 
-    @Autowired
     private  LevelRepository levelRepository;
+
+    public IndicatorService(IndicatorRepository indicatorRepository, LevelRepository levelRepository) {
+      this.indicatorRepository = indicatorRepository;
+      this.levelRepository = levelRepository;
+    }
 
     /**
      * Extract Indicators from a Word file

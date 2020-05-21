@@ -1,9 +1,8 @@
 package com.arqaam.logframelab.controller;
 
+import com.arqaam.logframelab.controller.dto.auth.AuthenticateUserRequestDto;
+import com.arqaam.logframelab.controller.dto.auth.JwtAuthenticationTokenResponse;
 import com.arqaam.logframelab.model.Error;
-import org.junit.Rule;
-import org.junit.jupiter.migrationsupport.rules.EnableRuleMigrationSupport;
-import org.junit.rules.ErrorCollector;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -17,19 +16,32 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles(profiles = "integration")
-@EnableRuleMigrationSupport
 public class BaseControllerTest {
-    @Rule
-    public ErrorCollector collector = new ErrorCollector();
 
-    @Autowired
-    protected TestRestTemplate testRestTemplate;
+  private static final String SEC_ADMIN_USERNAME = "secadmin";
+  private static final String SEC_ADMIN_PASSWORD = "password";
 
-    Logger logger = Logger.getLogger(this.getClass().getName());
+  static String bearerToken = null;
 
-    void assertEqualsException(ResponseEntity<Error> response, HttpStatus httpStatus, Integer code, Class exception) {
-        assertEquals(httpStatus, response.getStatusCode());
-        assertEquals(code, response.getBody().getCode());
-        assertEquals(exception.getSimpleName(), response.getBody().getException());
-    }
+  @Autowired
+  protected TestRestTemplate testRestTemplate;
+
+  void assertEqualsException(
+      ResponseEntity<Error> response, HttpStatus httpStatus, Integer code, Class exception) {
+    assertEquals(httpStatus, response.getStatusCode());
+    assertEquals(code, response.getBody().getCode());
+    assertEquals(exception.getSimpleName(), response.getBody().getException());
+  }
+
+  String getAuthToken() {
+    ResponseEntity<JwtAuthenticationTokenResponse> tokenResponseEntity =
+        testRestTemplate.postForEntity(
+            "/auth/login",
+            new AuthenticateUserRequestDto(SEC_ADMIN_USERNAME, SEC_ADMIN_PASSWORD),
+            JwtAuthenticationTokenResponse.class);
+
+    JwtAuthenticationTokenResponse tokenResponse = tokenResponseEntity.getBody();
+    assert tokenResponse != null;
+    return tokenResponse.getToken();
+  }
 }

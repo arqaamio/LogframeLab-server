@@ -29,20 +29,20 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE IF NOT EXISTS `IND_INDICATOR` (
-                                               `ID` INT NOT NULL AUTO_INCREMENT,
-                                               `CRS_CODE` VARCHAR(255),
-                                               `DATA_SOURCE` VARCHAR(255),
-                                               `DESCRIPTION` VARCHAR(400),
-                                               `DISAGGREGATION` BOOLEAN,
-                                               `KEYWORDS` VARCHAR(350),
-                                               `NAME` VARCHAR(350),
-                                               `SDG_CODE` VARCHAR(255),
-                                               `SOURCE` VARCHAR(255),
-                                               `SOURCE_VERIFICATION` VARCHAR(255),
-                                               `THEMES` VARCHAR(255),
-                                               `LEVEL` INT,
-                                               PRIMARY KEY (`ID`),
-                                               KEY `LEVEL` (`LEVEL`)
+  `ID` INT NOT NULL AUTO_INCREMENT,
+  `CRS_CODE` VARCHAR(255),
+  `DATA_SOURCE` VARCHAR(255),
+  `DESCRIPTION` VARCHAR(400),
+  `DISAGGREGATION` BOOLEAN,
+  `KEYWORDS` VARCHAR(350),
+  `NAME` VARCHAR(350),
+  `SDG_CODE` VARCHAR(255),
+  `SOURCE` VARCHAR(255),
+  `SOURCE_VERIFICATION` VARCHAR(255),
+  `THEMES` VARCHAR(255),
+  `LEVEL` INT,
+  PRIMARY KEY (`ID`),
+  KEY `LEVEL` (`LEVEL`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
 
 --
@@ -1824,13 +1824,13 @@ INSERT INTO `IND_INDICATOR` (`ID`, `CRS_CODE`, `DATA_SOURCE`, `DESCRIPTION`, `DI
 --
 
 CREATE TABLE IF NOT EXISTS `IND_LEVEL_INDICATOR` (
-                                                     `ID` int NOT NULL AUTO_INCREMENT,
-                                                     `NAME` varchar(250) NOT NULL,
-                                                     `DESCRIPTION` varchar(250) DEFAULT NULL,
-                                                     `TEMPLATE_VAR` varchar(25) DEFAULT NULL,
-                                                     `COLOR` varchar(25) DEFAULT NULL,
-                                                     `PRIORITY` int NOT NULL,
-                                                     PRIMARY KEY (`ID`)
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `NAME` varchar(250) NOT NULL,
+  `DESCRIPTION` varchar(250) DEFAULT NULL,
+  `TEMPLATE_VAR` varchar(25) DEFAULT NULL,
+  `COLOR` varchar(25) DEFAULT NULL,
+  `PRIORITY` int NOT NULL,
+  PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
 
 --
@@ -1851,7 +1851,7 @@ INSERT INTO `IND_LEVEL_INDICATOR` (`ID`, `NAME`, `DESCRIPTION`, `TEMPLATE_VAR`, 
 -- Constraints for table `IND_INDICATOR`
 --
 ALTER TABLE `IND_INDICATOR`
-    ADD CONSTRAINT `IND_INDICATOR_ibfk_1` FOREIGN KEY (`LEVEL`) REFERENCES `IND_LEVEL_INDICATOR` (`ID`);
+  ADD CONSTRAINT `IND_INDICATOR_ibfk_1` FOREIGN KEY (`LEVEL`) REFERENCES `IND_LEVEL_INDICATOR` (`ID`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

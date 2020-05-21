@@ -8,6 +8,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.Optional;
 
 @Component
@@ -16,6 +17,7 @@ public class ContextRefreshEventListener {
   private static final String SEC_ADMIN_GROUP_NAME = "SEC_ADMIN";
   private static final String PASSWORD_TO_BE_CHANGED = "password";
   private static final String DEFAULT_SEC_ADMIN_USERNAME = "secadmin";
+  private static final String SYSTEM = "SYSTEM";
 
   private final UserService userService;
   private final GroupService groupService;
@@ -38,6 +40,7 @@ public class ContextRefreshEventListener {
               .username(DEFAULT_SEC_ADMIN_USERNAME)
               .password(passwordEncoder.encode(PASSWORD_TO_BE_CHANGED))
               .enabled(true)
+              .createdBy(SYSTEM)
               .build();
       secAdminUser.addGroup(groupService.findByGroupName(SEC_ADMIN_GROUP_NAME));
 

@@ -1,8 +1,6 @@
 package com.arqaam.logframelab.controller;
 
 import com.arqaam.logframelab.controller.dto.FiltersDto;
-import com.arqaam.logframelab.controller.dto.auth.AuthenticateUserRequestDto;
-import com.arqaam.logframelab.controller.dto.auth.JwtAuthenticationTokenResponse;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
 import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.IndicatorResponse;
@@ -106,18 +104,18 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
   private static final List<Long> mockLevelsId =
       Arrays.stream(mockLevels).map(Level::getId).collect(Collectors.toList());
 
-  private static final String SEC_ADMIN_USERNAME = "secadmin";
-  private static final String SEC_ADMIN_PASSWORD = "password";
-  @MockBean private LevelRepository levelRepository;
-  @MockBean private IndicatorRepository indicatorRepository;
-  private LevelRepository levelRepositoryMock;
-  private IndicatorRepository indicatorRepositoryMock;
+  @MockBean
+  private LevelRepository levelRepository;
 
-  @Autowired private IndicatorService indicatorService;  private static String bearerToken = null;
+  @MockBean
+  private IndicatorRepository indicatorRepository;
+
+  @Autowired
+  private IndicatorService indicatorService;
 
   @BeforeEach
   void setup() {
-    when(levelRepositoryMock.findAllByOrderByPriority()).thenReturn(Arrays.stream(mockLevels).sorted().collect(Collectors.toList()));
+    when(levelRepository.findAllByOrderByPriority()).thenReturn(Arrays.stream(mockLevels).sorted().collect(Collectors.toList()));
     when(indicatorRepository.findAll(any(Specification.class)))
         .thenReturn(
             mockIndicatorList().stream()
@@ -130,31 +128,20 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
                             && mockCrsCodes.contains(x.getCrsCode()))
                 .collect(Collectors.toList()));
 
-        when(indicatorRepositoryMock.findAll()).thenReturn(mockIndicatorList());
+        when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
 
     if (bearerToken == null) {
-      getAuthToken();
+      bearerToken = getAuthToken();
+
+
     }
   }
-
-  private void getAuthToken() {
-    ResponseEntity<JwtAuthenticationTokenResponse> tokenResponseEntity =
-        testRestTemplate.postForEntity(
-            "/auth/login",
-            new AuthenticateUserRequestDto(SEC_ADMIN_USERNAME, SEC_ADMIN_PASSWORD),
-            JwtAuthenticationTokenResponse.class);
-
-    JwtAuthenticationTokenResponse tokenResponse = tokenResponseEntity.getBody();
-    assert tokenResponse != null;
-    bearerToken = tokenResponse.getToken();
-  }
-
 
   @Test
   void handleFileUpload() {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-
+    headers.setBearerAuth(bearerToken);
     FiltersDto filters = getSampleFilter();
 
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
@@ -205,7 +192,7 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
             .level(mockLevels[0])
             .build());
 
-        when(indicatorRepositoryMock.findAll()).thenReturn(indicators);
+        when(indicatorRepository.findAll()).thenReturn(indicators);
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
     headers.setBearerAuth(bearerToken);
@@ -274,7 +261,7 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
             .keywords("agriculture")
             .build());
 
-        when(indicatorRepositoryMock.findAll()).thenReturn(indicators);
+        when(indicatorRepository.findAll()).thenReturn(indicators);
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
     headers.setBearerAuth(bearerToken);
@@ -310,11 +297,12 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
   @Test
   void downloadIndicators() throws Docx4JException, JAXBException, IOException {
     List<IndicatorResponse> indicators = createIndicatorResponseList(3);
-    HttpHeaders headers = new HttpHeaders();
-    headers.setBearerAuth(bearerToken);
     ResponseEntity<Resource> response =
         testRestTemplate.exchange(
-            "/indicator/download", HttpMethod.POST, new HttpEntity<>(indicators, headers), Resource.class);
+            "/indicator/download",
+            HttpMethod.POST,
+            new HttpEntity<>(indicators, getHeadersWithAuth()),
+            Resource.class);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
 
@@ -333,37 +321,38 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
           break;
         }
       }
-      System.out.println(currentText);
     }
     assertTrue(valid);
-    }
+  }
 
-    @Test
-    void downloadIndicators_DFIDFormat() {
-        List<IndicatorResponse> indicators = createIndicatorResponseList(3);
-        when(indicatorRepositoryMock.findAllById(any())).thenReturn(mockIndicatorList());
-        ResponseEntity<Resource> response = testRestTemplate.exchange("/indicator/download?format=dfid", HttpMethod.POST,
-                new HttpEntity<>(indicators), Resource.class);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
+  @Test
+  void downloadIndicators_DFIDFormat() {
+    List<IndicatorResponse> indicators = createIndicatorResponseList(3);
+    when(indicatorRepository.findAllById(any())).thenReturn(mockIndicatorList());
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(bearerToken);
+    ResponseEntity<Resource> response =
+        testRestTemplate.exchange(
+            "/indicator/download?format=dfid",
+            HttpMethod.POST,
+            new HttpEntity<>(indicators, headers),
+            Resource.class);
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
   }
 
   @Test
   void downloadIndicators_emptyIndicators() {
     List<IndicatorResponse> indicators = new ArrayList<>();
-    HttpHeaders headers = new HttpHeaders();
-    headers.setBearerAuth(bearerToken);
     ResponseEntity<Error> response =
         testRestTemplate.exchange(
-            "/indicator/download", HttpMethod.POST, new HttpEntity<>(indicators, headers), Error.class);
+            "/indicator/download", HttpMethod.POST, new HttpEntity<>(indicators, getHeadersWithAuth()), Error.class);
     assertEqualsException(response, HttpStatus.CONFLICT, 6, IllegalArgumentException.class);
   }
 
   @Test
   void getIndicators() {
     List<IndicatorResponse> expectedResult = getExpectedResult();
-    HttpHeaders headers = new HttpHeaders();
-    headers.setBearerAuth(bearerToken);
     ResponseEntity<List<IndicatorResponse>> response =
         testRestTemplate.exchange(
             "/indicator?themes="
@@ -377,12 +366,12 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
                 + "&crsCodes="
                 + String.join(",", mockCrsCodes),
             HttpMethod.GET,
-            new HttpEntity<>(headers),
+            new HttpEntity<>(getHeadersWithAuth()),
             new ParameterizedTypeReference<List<IndicatorResponse>>() {});
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(indicatorRepositoryMock).findAll(any(Specification.class));
-        verify(indicatorRepositoryMock, times(0)).findAll();
+        verify(indicatorRepository).findAll(any(Specification.class));
+        verify(indicatorRepository, times(0)).findAll();
     assertEqualsIndicator(
         Arrays.asList(
             expectedResult.get(3),
@@ -395,8 +384,6 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
   @Test
   void getIndicators_someFilters() {
     List<IndicatorResponse> expectedResult = getExpectedResult();
-    HttpHeaders headers = new HttpHeaders();
-    headers.setBearerAuth(bearerToken);
     ResponseEntity<List<IndicatorResponse>> response =
         testRestTemplate.exchange(
             "/indicator?themes="
@@ -406,12 +393,12 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
                 + "&sources="
                 + String.join(",", mockSources),
             HttpMethod.GET,
-            new HttpEntity<>(headers),
+            new HttpEntity<>(getHeadersWithAuth()),
             new ParameterizedTypeReference<List<IndicatorResponse>>() {});
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(indicatorRepositoryMock).findAll(any(Specification.class));
-        verify(indicatorRepositoryMock, times(0)).findAll();
+        verify(indicatorRepository).findAll(any(Specification.class));
+        verify(indicatorRepository, times(0)).findAll();
     assertEqualsIndicator(
         Arrays.asList(
             expectedResult.get(3),
@@ -425,24 +412,20 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
     void getIndicators_noFilters() {
         List<IndicatorResponse> expectedResult = mockIndicatorList().stream()
                 .map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList());
-      HttpHeaders headers = new HttpHeaders();
-      headers.setBearerAuth(bearerToken);
         ResponseEntity<List<IndicatorResponse>> response = testRestTemplate.exchange("/indicator", HttpMethod.GET,
-                new HttpEntity<>(headers), new ParameterizedTypeReference<List<IndicatorResponse>>() {});
+                new HttpEntity<>(getHeadersWithAuth()), new ParameterizedTypeReference<List<IndicatorResponse>>() {});
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(indicatorRepositoryMock, times(0)).findAll(any(Specification.class));
-        verify(indicatorRepositoryMock).findAll();
+        verify(indicatorRepository, times(0)).findAll(any(Specification.class));
+        verify(indicatorRepository).findAll();
     assertEqualsIndicator(expectedResult, response.getBody());
   }
 
   @Test
   void getFiltersTest() {
-    HttpHeaders headers = new HttpHeaders();
-    headers.setBearerAuth(bearerToken);
     ResponseEntity<FiltersDto> filters =
         testRestTemplate.exchange(
-            "/indicator/filters", HttpMethod.GET, new HttpEntity<>(headers), FiltersDto.class);
+            "/indicator/filters", HttpMethod.GET, new HttpEntity<>(getHeadersWithAuth()), FiltersDto.class);
 
     collector.checkThat(filters.getStatusCode(), is(HttpStatus.OK));
   }
@@ -566,23 +549,72 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
     }
   }
 
+  private FiltersDto getSampleFilter() {
+    FiltersDto filters = new FiltersDto();
+    filters
+        .getThemes()
+        .addAll(
+            Arrays.asList(
+                "Digitalisation",
+                "Education",
+                "Poverty",
+                "Nutrition",
+                "Agriculture",
+                "Health",
+                "WASH",
+                "Electricity",
+                "Private Sector",
+                "Infrastructure",
+                "Migration",
+                "Climate Change",
+                "Environment",
+                "Public Sector",
+                "Human Rights",
+                "Conflict",
+                "Food Security",
+                "Equality",
+                "Water and Sanitation"));
+    filters
+        .getCrsCode()
+        .addAll(
+            Arrays.asList("0.0", "16010.0", "24010.0", "15190.0", "99810.0", "15160.0", "15160.0"));
+    filters.getLevel().addAll(Arrays.asList(mockLevels));
+    filters
+        .getSource()
+        .addAll(
+            Arrays.asList(
+                "Capacity4Dev",
+                "EU",
+                "WFP",
+                "ECHO",
+                "ECHO,WFP",
+                "ECHO,WHO",
+                "FAO",
+                "FAO,WHO",
+                "WHO",
+                "FANTA",
+                "IPA",
+                "WHO,FAO",
+                "ACF",
+                "Nutrition Cluster",
+                "Freendom House",
+                "CyberGreen",
+                "ITU",
+                "UN Sustainable Development Goals",
+                "World Bank",
+                "UNDP",
+                "ILO",
+                "IMF"));
+    filters.getSdgCode().addAll(Arrays.asList("4.1", "7.1", "1.a", "8.2"));
+    return filters;
+  }
 
-      private FiltersDto getSampleFilter() {
-        FiltersDto filters = new FiltersDto();
-        filters.getThemes().addAll(Arrays.asList("Digitalisation", "Education", "Poverty",
-            "Nutrition", "Agriculture", "Health", "WASH", "Electricity", "Private Sector",
-            "Infrastructure", "Migration", "Climate Change", "Environment", "Public Sector",
-            "Human Rights", "Conflict", "Food Security", "Equality", "Water and Sanitation"));
-        filters.getCrsCode().addAll(Arrays.asList( "0.0", "16010.0", "24010.0", "15190.0",
-            "99810.0", "15160.0", "15160.0"));
-        filters.getLevel().addAll(Arrays.asList(mockLevels));
-        filters.getSource().addAll(Arrays.asList("Capacity4Dev", "EU", "WFP", "ECHO", "ECHO,WFP",
-            "ECHO,WHO", "FAO", "FAO,WHO", "WHO", "FANTA", "IPA", "WHO,FAO", "ACF",
-            "Nutrition Cluster", "Freendom House", "CyberGreen", "ITU",
-            "UN Sustainable Development Goals", "World Bank", "UNDP", "ILO", "IMF"));
-        filters.getSdgCode().addAll(Arrays.asList("4.1", "7.1", "1.a", "8.2"));
-        return filters;
-      }
+  private HttpHeaders getHeadersWithAuth() {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(bearerToken);
+
+    return headers;
+  }
 }
 //    private Integer validateTemplateLevel(XSSFSheet sheet, List<Indicator> indicators, Integer rowIndex, Integer numberTemplateIndicators){
 //        List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();

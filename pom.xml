@@ -34,6 +34,7 @@
         <swagger.version>2.9.2</swagger.version>
         <flyway.version>6.3.3</flyway.version>
         <testcontainer.version>1.14.1</testcontainer.version>
+        <mockito.junit.jupiter.version>3.3.3</mockito.junit.jupiter.version>
 
         <database.url>jdbc:mysql://127.0.0.1:3306</database.url>
         <database.user>user</database.user>
@@ -172,6 +173,11 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

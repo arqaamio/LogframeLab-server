@@ -1,7 +1,12 @@
 package com.arqaam.logframelab.model.persistence;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -19,6 +24,9 @@ import java.time.Instant;
 @MappedSuperclass
 @EqualsAndHashCode(callSuper = false)
 @EntityListeners(AuditingEntityListener.class)
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AuditableEntity<PK extends Serializable> implements Serializable {
 
   private transient PK id;
@@ -27,7 +35,7 @@ public class AuditableEntity<PK extends Serializable> implements Serializable {
   @Column(name = "CREATED_BY")
   private String createdBy;
 
-  @CreatedDate
+  @CreationTimestamp
   @Column(name = "CREATED_AT", nullable = false, updatable = false)
   private Instant createdAt;
 
@@ -35,7 +43,7 @@ public class AuditableEntity<PK extends Serializable> implements Serializable {
   @Column(name = "UPDATED_BY")
   private String updatedBy;
 
-  @LastModifiedDate
-  @Column(name = "UPDATED_AT", nullable = false)
+  @UpdateTimestamp
+  @Column(name = "UPDATED_AT")
   private Instant updatedAt;
 }

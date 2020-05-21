@@ -2,6 +2,7 @@ package com.arqaam.logframelab.model.persistence.auth;
 
 import com.arqaam.logframelab.model.persistence.AuditableEntity;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,7 +16,7 @@ import java.util.stream.Collectors;
 @Table(name = "USERS")
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class User extends AuditableEntity<String> implements UserDetails {
 
   @EqualsAndHashCode.Exclude
@@ -23,7 +24,9 @@ public class User extends AuditableEntity<String> implements UserDetails {
   @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
   private final Set<GroupMember> groupMembership = new HashSet<>();
 
-  @Id private String username;
+  @Id
+  @Column(name = "USERNAME")
+  private String username;
 
   @Column(name = "PASSWORD")
   private String password;

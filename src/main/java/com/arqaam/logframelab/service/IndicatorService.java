@@ -439,6 +439,16 @@ public class IndicatorService implements Logging {
     }
 
     /**
+     * Get indicator with id. If not found throws IndicatorNotFoundException
+     * @param id Id of the indicator
+     * @return Indicator
+     */
+    public Indicator getIndicator(Long id){
+        logger().info("Searching for indicator with id: {}", id);
+        return indicatorRepository.findById(id).orElseThrow(IndicatorNotFoundException::new);
+    }
+
+    /**
      * Converts Indicator to Indicator response
      * @param indicator Indicator to be converted
      * @return IndicatorResponse
@@ -569,6 +579,7 @@ public class IndicatorService implements Logging {
         while(count < indicatorList.size() && count < numberTemplateIndicators) {
             sheet.getRow(startRowNewIndicator + 1).getCell(2).setCellValue(indicatorList.get(count).getName());
             sheet.getRow(startRowNewIndicator + 3).getCell(3).setCellValue(indicatorList.get(count).getSourceVerification());
+            //                sheet.getRow(startRowNewIndicator + 1).getCell(3).setCellValue(indicatorList.get(i)() + "()");
             startRowNewIndicator +=4;
             count++;
         }
@@ -598,6 +609,7 @@ public class IndicatorService implements Logging {
                 // Set values
                 sheet.getRow(startRowNewIndicator + 1).getCell(2).setCellValue(indicatorList.get(i).getName());
                 sheet.getRow(startRowNewIndicator + 3).getCell(3).setCellValue(indicatorList.get(i).getSourceVerification());
+//                sheet.getRow(startRowNewIndicator + 1).getCell(3).setCellValue(indicatorList.get(i)() + "()");
                 startRowNewIndicator += 4;
             }
 

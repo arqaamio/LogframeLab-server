@@ -7,6 +7,8 @@ import org.junit.rules.ErrorCollector;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
@@ -14,6 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles(profiles = "integration")
@@ -27,7 +30,10 @@ public class BaseControllerTest {
 
     Logger logger = Logger.getLogger(this.getClass().getName());
 
+    protected final HttpEntity<HttpHeaders> defaultHttpEntity = new HttpEntity<>(new HttpHeaders());
+
     void assertEqualsException(ResponseEntity<Error> response, HttpStatus httpStatus, Integer code, Class exception) {
+        assertNotNull(response.getBody());
         assertEquals(httpStatus, response.getStatusCode());
         assertEquals(code, response.getBody().getCode());
         assertEquals(exception.getSimpleName(), response.getBody().getException());

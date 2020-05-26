@@ -15,7 +15,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 @DataJpaTest
 public class AuthTests implements BaseDatabaseTest {
@@ -28,11 +30,9 @@ public class AuthTests implements BaseDatabaseTest {
   private static final int SIZE_TWO = 2;
   private static final int SIZE_THREE = 3;
 
-  @Autowired
-  private GroupRepository groupRepository;
+  @Autowired private GroupRepository groupRepository;
 
-  @Autowired
-  private UserRepository userRepository;
+  @Autowired private UserRepository userRepository;
 
   @Test
   public void whenUserIsCreatedInGroup_ThenCheckMembership() {
@@ -47,10 +47,12 @@ public class AuthTests implements BaseDatabaseTest {
 
     Set<GroupMember> memberships = savedUser.getGroupMembership();
 
-    collector.checkThat(memberships, hasSize(SIZE_ONE));
-    collector.checkThat(
-        memberships.toArray(new GroupMember[] {})[FIRST_IN_LIST].getGroup(), equalTo(userGroup));
-    collector.checkThat(savedUser.getAuthorities(), hasSize(SIZE_THREE));
+    assertAll(
+        () -> assertThat(memberships, hasSize(SIZE_ONE)),
+        () ->
+            assertThat(
+                memberships.toArray(new GroupMember[] {})[FIRST_IN_LIST].getGroup(), is(userGroup)),
+        () -> assertThat(savedUser.getAuthorities(), hasSize(SIZE_THREE)));
   }
 
   @Test
@@ -59,13 +61,15 @@ public class AuthTests implements BaseDatabaseTest {
 
     Set<GroupMember> memberships = userInGroups.getGroupMembership();
 
-    collector.checkThat(memberships, hasSize(SIZE_TWO));
-    collector.checkThat(
-        memberships.stream()
-            .map(groupMember -> groupMember.getGroup().getId())
-            .collect(Collectors.toSet()),
-        containsInAnyOrder(ADMIN_GROUP_ID, SEC_ADMIN_GROUP_ID));
-    collector.checkThat(userInGroups.getAuthorities(), hasSize(SIZE_TWO));
+    assertAll(
+        () -> assertThat(memberships, hasSize(SIZE_TWO)),
+        () ->
+            assertThat(
+                memberships.stream()
+                    .map(groupMember -> groupMember.getGroup().getId())
+                    .collect(Collectors.toSet()),
+                containsInAnyOrder(ADMIN_GROUP_ID, SEC_ADMIN_GROUP_ID)),
+        () -> assertThat(userInGroups.getAuthorities(), hasSize(SIZE_TWO)));
   }
 
   @Test
@@ -82,10 +86,12 @@ public class AuthTests implements BaseDatabaseTest {
 
     Set<GroupMember> groupMembership = userWithSingleGroup.getGroupMembership();
 
-    collector.checkThat(groupMembership, hasSize(1));
-    collector.checkThat(
-        groupMembership.toArray(new GroupMember[] {})[FIRST_IN_LIST].getGroup().getId(),
-        is(ADMIN_GROUP_ID));
+    assertAll(
+        () -> assertThat(groupMembership, hasSize(1)),
+        () ->
+            assertThat(
+                groupMembership.toArray(new GroupMember[] {})[FIRST_IN_LIST].getGroup().getId(),
+                is(ADMIN_GROUP_ID)));
   }
 
   private User createUserInGroups() {

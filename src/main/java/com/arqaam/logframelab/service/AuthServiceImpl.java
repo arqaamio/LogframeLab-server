@@ -34,7 +34,12 @@ public class AuthServiceImpl implements AuthService {
 
   @Override
   public Optional<User> registerUser() {
+
     throw new NotImplementedException("Not yet implemented");
+  }
+
+  public void updateUserGroups() {
+
   }
 
   @Override

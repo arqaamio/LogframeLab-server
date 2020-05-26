@@ -2,6 +2,7 @@ package com.arqaam.logframelab.service;
 
 import com.arqaam.logframelab.controller.dto.auth.AuthenticateUserRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.UpdatePasswordRequestDto;
+import com.arqaam.logframelab.controller.dto.auth.UserAuthProvisioningRequestDto;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import org.springframework.security.core.Authentication;
 
@@ -18,4 +19,6 @@ public interface AuthService {
   Optional<User> updatePassword(User user, UpdatePasswordRequestDto updatePasswordRequest);
 
   String generateToken(User user);
+
+  void updateUserGroups(UserAuthProvisioningRequestDto authProvisioningRequest);
 }

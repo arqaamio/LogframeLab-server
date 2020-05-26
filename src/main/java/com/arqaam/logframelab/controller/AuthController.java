@@ -59,6 +59,7 @@ public class AuthController {
 
   @PostMapping("user")
   public ResponseEntity<?> provisionUser(@RequestBody UserAuthProvisioningRequestDto authProvisioningRequest) {
+    authProvisioningRequest.getUsername();
     throw new NotImplementedException("");
   }
 }

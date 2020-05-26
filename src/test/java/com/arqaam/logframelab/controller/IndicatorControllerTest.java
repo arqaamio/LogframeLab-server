@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -87,7 +88,6 @@ class IndicatorControllerTest extends BaseControllerTest {
     void handleFileUpload() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-
         FiltersDto filters = getSampleFilter();
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
@@ -95,23 +95,26 @@ class IndicatorControllerTest extends BaseControllerTest {
         body.add("filter", filters);
 
         ResponseEntity<List<IndicatorResponse>> response =
-                testRestTemplate.exchange(
-                        "/indicator/upload",
-                        HttpMethod.POST,
-                        new HttpEntity<>(body, headers),
-                        new ParameterizedTypeReference<List<IndicatorResponse>>() {
-    collector.checkThat(response.getStatusCode(), is(HttpStatus.OK));
+            testRestTemplate.exchange(
+                "/indicator/upload",
+                HttpMethod.POST,
+                new HttpEntity<>(body, headers),
+                new ParameterizedTypeReference<List<IndicatorResponse>>() {
+                });
+
+        assertThat(response.getStatusCode(), is(HttpStatus.OK));
+
         Objects.requireNonNull(response.getBody())
-                .forEach(
-                        resp -> {
-              collector.checkThat(filters.getThemes(), hasItem(resp.getThemes()));
-                            collector.checkThat(
-                  filters.getLevel().stream().map(Level::getName).collect(Collectors.toSet()),
-                  hasItem(resp.getLevel()));
-              collector.checkThat(filters.getSource(), hasItem(resp.getSource()));
-              collector.checkThat(filters.getCrsCode(), hasItem(resp.getCrsCode()));
-              collector.checkThat(filters.getSdgCode(), hasItem(resp.getSdgCode()));
-                        });
+            .forEach(resp -> {
+                assertAll(
+                    () -> assertThat(filters.getThemes(), hasItem(resp.getThemes())),
+                    () -> assertThat(
+                        filters.getLevel().stream().map(Level::getName).collect(Collectors.toSet()),
+                        hasItem(resp.getLevel())),
+                    () -> assertThat(filters.getSource(), hasItem(resp.getSource())),
+                    () -> assertThat(filters.getCrsCode(), hasItem(resp.getCrsCode())),
+                    () -> assertThat(filters.getSdgCode(), hasItem(resp.getSdgCode())));
+            });
     }
 
     @Test

@@ -1,13 +1,14 @@
 package com.arqaam.logframelab.controller;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertAll;
+
 import com.arqaam.logframelab.controller.dto.FiltersDto;
+import java.util.Objects;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
-import java.util.Objects;
-
-import static org.hamcrest.CoreMatchers.equalTo;
 
 public class IndicatorControllerIntegrationTest extends BaseControllerTest {
 
@@ -23,11 +24,12 @@ public class IndicatorControllerIntegrationTest extends BaseControllerTest {
         testRestTemplate.getForEntity("/indicator/filters", FiltersDto.class);
     FiltersDto filtersDto = Objects.requireNonNull(filters.getBody());
 
-    collector.checkThat(filters.getStatusCode(), equalTo(HttpStatus.OK));
-    collector.checkThat(filtersDto.getThemes().size(), equalTo(DATABASE_THEMES_SIZE));
-    collector.checkThat(filtersDto.getCrsCode().size(), equalTo(DATABASE_CRS_CODE_SIZE));
-    collector.checkThat(filtersDto.getSource().size(), equalTo(DATABASE_SOURCE_SIZE));
-    collector.checkThat(filtersDto.getSdgCode().size(), equalTo(DATABASE_SDG_CODE_SIZE));
-    collector.checkThat(filtersDto.getLevel().size(), equalTo(DATABASE_LEVEL_SIZE));
+    assertAll(
+        () -> assertThat(filters.getStatusCode(), is(HttpStatus.OK)),
+        () -> assertThat(filtersDto.getThemes().size(), is(DATABASE_THEMES_SIZE)),
+        () -> assertThat(filtersDto.getCrsCode().size(), is(DATABASE_CRS_CODE_SIZE)),
+        () -> assertThat(filtersDto.getSource().size(), is(DATABASE_SOURCE_SIZE)),
+        () -> assertThat(filtersDto.getSdgCode().size(), is(DATABASE_SDG_CODE_SIZE)),
+        () -> assertThat(filtersDto.getLevel().size(), is(DATABASE_LEVEL_SIZE)));
   }
 }

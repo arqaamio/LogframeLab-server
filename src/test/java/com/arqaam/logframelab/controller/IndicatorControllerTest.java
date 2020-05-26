@@ -114,6 +114,23 @@ class IndicatorControllerTest extends BaseControllerTest {
     }
 
     @Test
+    void handleFileUpload_doc() {
+        List<IndicatorResponse> expectedResult = getExpectedResult();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("filter", getSampleFilter());
+
+        body.add("file", new ClassPathResource("test_doc.doc"));
+        ResponseEntity<List<IndicatorResponse>> response = testRestTemplate.exchange("/indicator/upload", HttpMethod.POST,
+                new HttpEntity<>(body, headers), new ParameterizedTypeReference<List<IndicatorResponse>>() {});
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEqualsIndicator(expectedResult, response.getBody());
+    }
+
+
+    @Test
     void handleFileUpload_indicatorsWithSameId() {
         List<String> keywordsFoodList = new ArrayList<>();
         keywordsFoodList.add("agriculture");

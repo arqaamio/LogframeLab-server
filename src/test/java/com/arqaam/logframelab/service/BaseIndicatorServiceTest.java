@@ -71,7 +71,6 @@ public abstract class BaseIndicatorServiceTest {
             .collect(Collectors.toList()));
   }
 
-
   abstract List<Indicator> mockIndicatorList();
 
   Integer validateTemplateLevel(XSSFSheet sheet, List<Indicator> indicators, Integer rowIndex,

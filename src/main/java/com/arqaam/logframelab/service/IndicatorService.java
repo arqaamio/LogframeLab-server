@@ -44,122 +44,124 @@ import static java.util.Objects.isNull;
 @Service
 public class IndicatorService implements Logging {
 
+  /** Indicates the number of indicators template the level has by default */
+  protected static final Integer IMPACT_NUM_TEMP_INDIC = 1,
+      OUTCOME_NUM_TEMP_INDIC = 3,
+      OUTPUT_NUM_TEMP_INDIC = 2;
 
-    /**
-     * Indicates the number of indicators template the level has by default
-     */
-    protected final static Integer IMPACT_NUM_TEMP_INDIC = 1, OUTCOME_NUM_TEMP_INDIC = 3, OUTPUT_NUM_TEMP_INDIC = 2;
+  private final IndicatorRepository indicatorRepository;
 
-    @Autowired
-    private IndicatorRepository indicatorRepository;
+  private final LevelRepository levelRepository;
 
-    @Autowired
-    private  LevelRepository levelRepository;
+  public IndicatorService(IndicatorRepository indicatorRepository, LevelRepository levelRepository) {
+    this.indicatorRepository = indicatorRepository;
+    this.levelRepository = levelRepository;
+  }
 
-    /**
-     * Extract Indicators from a Word file
-     * @param file Word file
-     * @return List of Indicators
-     */
-    public List<IndicatorResponse> extractIndicatorsFromWordFile( MultipartFile file, FiltersDto filter) {
-        List<IndicatorResponse> result = new ArrayList<>();
-        List<Indicator> indicatorsList;
+  /**
+   * Extract Indicators from a Word file
+   *
+   * @param file Word file
+   * @param filter <code>FilterDto</code>
+   * @return List of Indicators
+   */
+  public List<IndicatorResponse> extractIndicatorsFromWordFile( MultipartFile file, FiltersDto filter) {
+    List<IndicatorResponse> result = new ArrayList<>();
+    List<Indicator> indicatorsList;
 
     if (filter != null && !filter.isEmpty()) {
       indicatorsList = indicatorsFromFilter(filter);
     } else {
       indicatorsList = indicatorRepository.findAll();
     }
-        List<String> wordstoScan = new ArrayList<>(); // current words
-        // get the maximum indicator length
-        int maxIndicatorLength = 1;
-        if (indicatorsList != null && !indicatorsList.isEmpty()) {
-            for (Indicator ind : indicatorsList) {
-                if (ind.getKeywordsList() != null) {
-                    for (String words : ind.getKeywordsList()) {
-                        int numberKeywords = words.split(" ").length;
-                        if (numberKeywords > maxIndicatorLength) {
-                            maxIndicatorLength = numberKeywords;
-                        }
-                    }
-                }
+    List<String> wordstoScan = new ArrayList<>(); // current words
+    // get the maximum indicator length
+    int maxIndicatorLength = 1;
+    if (indicatorsList != null && !indicatorsList.isEmpty()) {
+      for (Indicator ind : indicatorsList) {
+        if (ind.getKeywordsList() != null) {
+          for (String words : ind.getKeywordsList()) {
+            int numberKeywords = words.split(" ").length;
+            if (numberKeywords > maxIndicatorLength) {
+              maxIndicatorLength = numberKeywords;
             }
-            try {
-                Map<Long, Indicator> mapResult = new HashMap<>();
-                if(file.getOriginalFilename().matches("\\S+\\.docx$")) {
-                    WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(file.getInputStream());
-                    MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
-                    String textNodesXPath = "//w:t";
-                    List<Object> textNodes = mainDocumentPart.getJAXBNodesViaXPath(textNodesXPath, true);
-                    Pattern p = Pattern.compile("[a-z0-9]", Pattern.CASE_INSENSITIVE);
-                    StringBuffer currentWord = null;
-
-                    for (Object obj : textNodes) {
-                        Text text = ((JAXBElement<Text>) obj).getValue();
-                        char[] strArray = text.getValue().toLowerCase().toCharArray();
-                        for (char c : strArray) {
-                            // append current word to wordstoScan list
-                            if (currentWord == null && p.matcher(c + "").find()) {
-                                currentWord = new StringBuffer();
-                            } else if (currentWord != null && !p.matcher(c + "").find()) {
-                                wordstoScan.add(currentWord.toString());
-                                currentWord = null;
-                            }
-                            if (currentWord != null) {
-                                currentWord.append(c);
-                            }
-                            // clear wordstoScan list if exceed the max length of indicators
-                            if (wordstoScan.size() == maxIndicatorLength) {
-                                checkIndicators(wordstoScan, indicatorsList, mapResult);
-                                wordstoScan.remove(wordstoScan.size() - 1);
-                            }
-                        }
-                    }
-                } else {
-                    // Read .doc
-                    logger().info("Searching indicators in .doc file. maxIndicatorLength: {}", maxIndicatorLength);
-                    HWPFDocument doc = new HWPFDocument(file.getInputStream());
-                    Matcher matcher = Pattern.compile("\\w+").matcher(new WordExtractor(doc).getText());
-                    while(matcher.find()){
-                        wordstoScan.add(matcher.group());
-                        if (wordstoScan.size() == maxIndicatorLength) {
-                            checkIndicators(wordstoScan, indicatorsList, mapResult);
-                            wordstoScan.remove(wordstoScan.size() - 1);
-                        }
-                    }
-                    doc.close();
-                }
-                if(!mapResult.isEmpty()) {
-                    List<Level> levelsList = levelRepository.findAllByOrderByPriority();
-                    logger().info("Starting the sort of the indicators {}", mapResult);
-                    // Sort by Level and then by number of times a keyword was tricked
-                    result = mapResult.values().stream().sorted((o1, o2) -> {
-                        if (o1.getLevel().getId().equals(o2.getLevel().getId())){
-                            return o1.getNumTimes() > o2.getNumTimes() ? -1 :
-                                    (o1.getNumTimes().equals(o2.getNumTimes()) ? 0 : 1);
-                        }
-                        for (Level level : levelsList) {
-                            if(level.getPriority().equals(o1.getLevel().getPriority())) return -1;
-                            if(level.getPriority().equals(o2.getLevel().getPriority())) return 1;
-                        }
-                        return 1;
-                    }).map(this::convertIndicatorToIndicatorResponse).collect(Collectors.toList());
-                }
-            } catch (XPathBinderAssociationIsPartialException | JAXBException e) {
-                logger().error("Failed to process temporary word file", e);
-                throw new FailedToProcessWordFileException();
-            } catch (Docx4JException e){
-                logger().error("Failed to load/process the temporary word file. Name of the file: {}", file.getName(), e);
-                throw new WordFileLoadFailedException();
-            } catch (IOException e) {
-                logger().error("Failed to open word file. Name of the file: {}", file.getName(), e);
-                throw new FailedToOpenFileException();
-            }
+          }
         }
-        return result;
+      }
+      try {
+        Map<Long, Indicator> mapResult = new HashMap<>();
+        if(file.getOriginalFilename().matches("\\S+\\.docx$")) {
+          WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(file.getInputStream());
+          MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
+          String textNodesXPath = "//w:t";
+          List<Object> textNodes = mainDocumentPart.getJAXBNodesViaXPath(textNodesXPath, true);
+          Pattern p = Pattern.compile("[a-z0-9]", Pattern.CASE_INSENSITIVE);
+          StringBuffer currentWord = null;
+
+          for (Object obj : textNodes) {
+            Text text = ((JAXBElement<Text>) obj).getValue();
+            char[] strArray = text.getValue().toLowerCase().toCharArray();
+            for (char c : strArray) {
+              // append current word to wordstoScan list
+              if (currentWord == null && p.matcher(c + "").find()) {
+                currentWord = new StringBuffer();
+              } else if (currentWord != null && !p.matcher(c + "").find()) {
+                wordstoScan.add(currentWord.toString());
+                currentWord = null;
+              }
+              if (currentWord != null) {
+                currentWord.append(c);
+              }
+              // clear wordstoScan list if exceed the max length of indicators
+              if (wordstoScan.size() == maxIndicatorLength) {
+                checkIndicators(wordstoScan, indicatorsList, mapResult);
+                wordstoScan.remove(wordstoScan.size() - 1);
+              }
+            }
+          }
+        } else {
+          // Read .doc
+          logger().info("Searching indicators in .doc file. maxIndicatorLength: {}", maxIndicatorLength);
+          HWPFDocument doc = new HWPFDocument(file.getInputStream());
+          Matcher matcher = Pattern.compile("\\w+").matcher(new WordExtractor(doc).getText());
+          while(matcher.find()){
+            wordstoScan.add(matcher.group());
+            if (wordstoScan.size() == maxIndicatorLength) {
+              checkIndicators(wordstoScan, indicatorsList, mapResult);
+              wordstoScan.remove(wordstoScan.size() - 1);
+            }
+          }
+          doc.close();
+        }
+        if(!mapResult.isEmpty()) {
+          List<Level> levelsList = levelRepository.findAllByOrderByPriority();
+          logger().info("Starting the sort of the indicators {}", mapResult);
+          // Sort by Level and then by number of times a keyword was tricked
+          result = mapResult.values().stream().sorted((o1, o2) -> {
+            if (o1.getLevel().getId().equals(o2.getLevel().getId())){
+              return o1.getNumTimes() > o2.getNumTimes() ? -1 :
+                  (o1.getNumTimes().equals(o2.getNumTimes()) ? 0 : 1);
+            }
+            for (Level level : levelsList) {
+              if(level.getPriority().equals(o1.getLevel().getPriority())) return -1;
+              if(level.getPriority().equals(o2.getLevel().getPriority())) return 1;
+            }
+            return 1;
+          }).map(this::convertIndicatorToIndicatorResponse).collect(Collectors.toList());
+        }
+      } catch (XPathBinderAssociationIsPartialException | JAXBException e) {
+        logger().error("Failed to process temporary word file", e);
+        throw new FailedToProcessWordFileException();
+      } catch (Docx4JException e){
+        logger().error("Failed to load/process the temporary word file. Name of the file: {}", file.getName(), e);
+        throw new WordFileLoadFailedException();
+      } catch (IOException e) {
+        logger().error("Failed to open word file. Name of the file: {}", file.getName(), e);
+        throw new FailedToOpenFileException();
+      }
     }
-
-
+    return result;
+  }
 
   /**
      * Fills a list of indicators that contain certain words

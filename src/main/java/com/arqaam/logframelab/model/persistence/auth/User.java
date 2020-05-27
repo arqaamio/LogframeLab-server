@@ -1,15 +1,27 @@
 package com.arqaam.logframelab.model.persistence.auth;
 
 import com.arqaam.logframelab.model.persistence.AuditableEntity;
-import lombok.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
-import javax.persistence.*;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Data
 @Entity(name = "User")
@@ -49,8 +61,20 @@ public class User extends AuditableEntity<String> implements UserDetails {
 
       if (membership.getUser().equals(this) && membership.getGroup().equals(group)) {
         iterator.remove();
-        membership.setGroup(null);
         membership.setUser(null);
+        membership.setGroup(null);
+      }
+    }
+  }
+
+  public void removeAllGroups() {
+    for (Iterator<GroupMember> iterator = groupMembership.iterator(); iterator.hasNext(); ) {
+      GroupMember membership = iterator.next();
+
+      if (membership.getUser().equals(this)) {
+        iterator.remove();
+        membership.setUser(null);
+        membership.setGroup(null);
       }
     }
   }

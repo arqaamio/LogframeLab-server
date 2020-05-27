@@ -5,7 +5,8 @@ import com.arqaam.logframelab.controller.dto.auth.JwtAuthenticationTokenResponse
 import com.arqaam.logframelab.controller.dto.auth.UserAuthProvisioningRequestDto;
 import com.arqaam.logframelab.exception.UnauthorizedException;
 import com.arqaam.logframelab.model.persistence.auth.User;
-import com.arqaam.logframelab.service.AuthService;
+import com.arqaam.logframelab.service.auth.AuthService;
+import com.arqaam.logframelab.service.usermanager.UserManager;
 import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -26,14 +27,17 @@ public class AuthController {
 
   private final AuthService authService;
 
+  private final UserManager userManager;
+
   @Value("${jwt.header.prefix}")
   private String tokenType;
 
   @Value("${jwt.expiration}")
   private Long tokenDuration;
 
-  public AuthController(AuthService authService) {
+  public AuthController(AuthService authService, UserManager userManager) {
     this.authService = authService;
+    this.userManager = userManager;
   }
 
   @PostMapping(value = "login")
@@ -55,11 +59,12 @@ public class AuthController {
   public ResponseEntity<?> userLogout() {
     throw new NotImplementedException("");
   }
-  
+
 
   @PostMapping("user")
-  public ResponseEntity<?> provisionUser(@RequestBody UserAuthProvisioningRequestDto authProvisioningRequest) {
-    authProvisioningRequest.getUsername();
+  public ResponseEntity<?> provisionUser(
+      @RequestBody UserAuthProvisioningRequestDto authProvisioningRequest) {
+    userManager.provisionUser(authProvisioningRequest);
     throw new NotImplementedException("");
   }
 }

@@ -1,23 +1,24 @@
 package com.arqaam.logframelab.auth;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertAll;
+
 import com.arqaam.logframelab.model.persistence.auth.Group;
 import com.arqaam.logframelab.model.persistence.auth.GroupMember;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import com.arqaam.logframelab.repository.GroupRepository;
 import com.arqaam.logframelab.repository.UserRepository;
 import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertAll;
 
 @DataJpaTest
 public class AuthTests implements BaseDatabaseTest {
@@ -30,9 +31,11 @@ public class AuthTests implements BaseDatabaseTest {
   private static final int SIZE_TWO = 2;
   private static final int SIZE_THREE = 3;
 
-  @Autowired private GroupRepository groupRepository;
+  @Autowired
+  private GroupRepository groupRepository;
 
-  @Autowired private UserRepository userRepository;
+  @Autowired
+  private UserRepository userRepository;
 
   @Test
   public void whenUserIsCreatedInGroup_ThenCheckMembership() {
@@ -51,7 +54,7 @@ public class AuthTests implements BaseDatabaseTest {
         () -> assertThat(memberships, hasSize(SIZE_ONE)),
         () ->
             assertThat(
-                memberships.toArray(new GroupMember[] {})[FIRST_IN_LIST].getGroup(), is(userGroup)),
+                memberships.toArray(new GroupMember[]{})[FIRST_IN_LIST].getGroup(), is(userGroup)),
         () -> assertThat(savedUser.getAuthorities(), hasSize(SIZE_THREE)));
   }
 
@@ -90,13 +93,13 @@ public class AuthTests implements BaseDatabaseTest {
         () -> assertThat(groupMembership, hasSize(1)),
         () ->
             assertThat(
-                groupMembership.toArray(new GroupMember[] {})[FIRST_IN_LIST].getGroup().getId(),
+                groupMembership.toArray(new GroupMember[]{})[FIRST_IN_LIST].getGroup().getId(),
                 is(ADMIN_GROUP_ID)));
   }
 
   private User createUserInGroups() {
     User adminUser = User.builder().username("admin").password("admin").enabled(true).build();
-    List<Group> adminGroups =
+    Collection<Group> adminGroups =
         groupRepository.findAllById(Arrays.asList(ADMIN_GROUP_ID, SEC_ADMIN_GROUP_ID));
     adminUser.addGroups(adminGroups);
 

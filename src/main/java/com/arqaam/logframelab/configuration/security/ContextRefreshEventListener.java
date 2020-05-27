@@ -1,8 +1,8 @@
 package com.arqaam.logframelab.configuration.security;
 
 import com.arqaam.logframelab.model.persistence.auth.User;
-import com.arqaam.logframelab.service.GroupService;
-import com.arqaam.logframelab.service.UserService;
+import com.arqaam.logframelab.service.auth.GroupService;
+import com.arqaam.logframelab.service.auth.UserService;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.crypto.password.PasswordEncoder;

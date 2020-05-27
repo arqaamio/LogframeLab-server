@@ -1,4 +1,4 @@
-package com.arqaam.logframelab.service;
+package com.arqaam.logframelab.service.auth;
 
 import com.arqaam.logframelab.controller.dto.auth.AuthenticateUserRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.UpdatePasswordRequestDto;
@@ -10,8 +10,6 @@ import java.util.Optional;
 
 public interface AuthService {
 
-  Optional<User> registerUser();
-
   boolean userExists(String username);
 
   Optional<Authentication> authenticateUser(AuthenticateUserRequestDto loginRequest);
@@ -20,5 +18,5 @@ public interface AuthService {
 
   String generateToken(User user);
 
-  void updateUserGroups(UserAuthProvisioningRequestDto authProvisioningRequest);
+
 }

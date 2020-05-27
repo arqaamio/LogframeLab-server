@@ -1,4 +1,4 @@
-package com.arqaam.logframelab.service;
+package com.arqaam.logframelab.service.auth;
 
 import com.arqaam.logframelab.model.persistence.auth.Group;
 import com.arqaam.logframelab.repository.GroupRepository;

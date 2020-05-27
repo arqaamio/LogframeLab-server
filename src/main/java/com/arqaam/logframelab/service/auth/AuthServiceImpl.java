@@ -1,10 +1,11 @@
-package com.arqaam.logframelab.service;
+package com.arqaam.logframelab.service.auth;
 
 import com.arqaam.logframelab.configuration.security.jwt.JwtTokenProvider;
 import com.arqaam.logframelab.controller.dto.auth.AuthenticateUserRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.UpdatePasswordRequestDto;
 import com.arqaam.logframelab.exception.PasswordResetException;
 import com.arqaam.logframelab.model.persistence.auth.User;
+import java.util.Optional;
 import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -12,10 +13,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
-
 @Service
 public class AuthServiceImpl implements AuthService {
+
   private final AuthenticationManager authenticationManager;
   private final UserService userService;
   private final PasswordEncoder passwordEncoder;
@@ -30,16 +30,6 @@ public class AuthServiceImpl implements AuthService {
     this.userService = userService;
     this.passwordEncoder = passwordEncoder;
     this.tokenProvider = tokenProvider;
-  }
-
-  @Override
-  public Optional<User> registerUser() {
-
-    throw new NotImplementedException("Not yet implemented");
-  }
-
-  public void updateUserGroups() {
-
   }
 
   @Override

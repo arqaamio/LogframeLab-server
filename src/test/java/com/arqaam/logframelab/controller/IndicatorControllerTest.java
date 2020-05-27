@@ -32,6 +32,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.hasItem;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -86,7 +87,6 @@ class IndicatorControllerTest extends BaseControllerTest {
     void handleFileUpload() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-
         FiltersDto filters = getSampleFilter();
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
@@ -94,30 +94,23 @@ class IndicatorControllerTest extends BaseControllerTest {
         body.add("filter", filters);
 
         ResponseEntity<List<IndicatorResponse>> response =
-                testRestTemplate.exchange(
-                        "/indicator/upload",
-                        HttpMethod.POST,
-                        new HttpEntity<>(body, headers),
-                        new ParameterizedTypeReference<List<IndicatorResponse>>() {
-                        });
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+            testRestTemplate.exchange(
+                "/indicator/upload",
+                HttpMethod.POST,
+                new HttpEntity<>(body, headers),
+                new ParameterizedTypeReference<List<IndicatorResponse>>() {});
+        collector.checkThat(response.getStatusCode(), is(HttpStatus.OK));
         Objects.requireNonNull(response.getBody())
-                .forEach(
-                        resp -> {
-                            collector.checkThat(
-                                    (filters.getThemes().contains(resp.getThemes())), is(Boolean.TRUE));
-                            collector.checkThat(
-                                    filters.getLevel().stream()
-                                            .map(level -> level.getId().toString())
-                                            .collect(Collectors.toSet())
-                                            .contains(resp.getLevel()),
-                                    is(Boolean.TRUE));
-                            collector.checkThat(filters.getSource().contains(resp.getSource()), is(Boolean.TRUE));
-                            collector.checkThat(
-                                    filters.getCrsCode().contains(resp.getCrsCode()), is(Boolean.TRUE));
-                            collector.checkThat(
-                                    filters.getSdgCode().contains(resp.getCrsCode()), is(Boolean.TRUE));
-                        });
+            .forEach(
+                resp -> {
+                    collector.checkThat(filters.getThemes(), hasItem(resp.getThemes()));
+                    collector.checkThat(
+                        filters.getLevel().stream().map(Level::getName).collect(Collectors.toSet()),
+                        hasItem(resp.getLevel()));
+                    collector.checkThat(filters.getSource(), hasItem(resp.getSource()));
+                    collector.checkThat(filters.getCrsCode(), hasItem(resp.getCrsCode()));
+                    collector.checkThat(filters.getSdgCode(), hasItem(resp.getSdgCode()));
+                });
     }
 
     @Test
@@ -357,16 +350,61 @@ class IndicatorControllerTest extends BaseControllerTest {
 
     private FiltersDto getSampleFilter() {
         FiltersDto filters = new FiltersDto();
-        filters.getThemes().addAll(Arrays.asList("Digitalisation", "Education", "Poverty",
-                "Nutrition", "Agriculture", "Health", "WASH", "Electricity", "Private Sector",
-                "Infrastructure", "Migration", "Climate Change", "Environment", "Public Sector",
-                "Human Rights", "Conflict", "Food Security", "Equality", "Water and Sanitation"));
-        filters.getCrsCode().addAll(Arrays.asList("0.0", "16010.0"));
+        filters
+            .getThemes()
+            .addAll(
+                Arrays.asList(
+                    "Digitalisation",
+                    "Education",
+                    "Poverty",
+                    "Nutrition",
+                    "Agriculture",
+                    "Health",
+                    "WASH",
+                    "Electricity",
+                    "Private Sector",
+                    "Infrastructure",
+                    "Migration",
+                    "Climate Change",
+                    "Environment",
+                    "Public Sector",
+                    "Human Rights",
+                    "Conflict",
+                    "Food Security",
+                    "Equality",
+                    "Water and Sanitation"));
+        filters
+            .getCrsCode()
+            .addAll(
+                Arrays.asList("0.0", "16010.0", "24010.0", "15190.0", "99810.0", "15160.0", "15160.0"));
         filters.getLevel().addAll(Arrays.asList(mockLevels));
-        filters.getSource().addAll(Arrays.asList("Capacity4Dev", "EU", "WFP", "ECHO", "ECHO,WFP",
-                "ECHO,WHO", "FAO", "FAO,WHO", "WHO", "FANTA", "IPA", "WHO,FAO", "ACF",
-                "Nutrition Cluster", "Freendom House", "CyberGreen", "ITU",
-                "UN Sustainable Development Goals", "World Bank", "UNDP", "ILO", "IMF"));
+        filters
+            .getSource()
+            .addAll(
+                Arrays.asList(
+                    "Capacity4Dev",
+                    "EU",
+                    "WFP",
+                    "ECHO",
+                    "ECHO,WFP",
+                    "ECHO,WHO",
+                    "FAO",
+                    "FAO,WHO",
+                    "WHO",
+                    "FANTA",
+                    "IPA",
+                    "WHO,FAO",
+                    "ACF",
+                    "Nutrition Cluster",
+                    "Freendom House",
+                    "CyberGreen",
+                    "ITU",
+                    "UN Sustainable Development Goals",
+                    "World Bank",
+                    "UNDP",
+                    "ILO",
+                    "IMF"));
+        filters.getSdgCode().addAll(Arrays.asList("4.1", "7.1", "1.a", "8.2"));
         return filters;
     }
 }

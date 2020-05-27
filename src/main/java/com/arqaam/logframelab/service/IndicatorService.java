@@ -70,7 +70,7 @@ public class IndicatorService implements Logging {
     List<Indicator> indicatorsList;
 
     if (filter != null && !filter.isEmpty()) {
-      indicatorsList = indicatorRepository.findAll(specificationForIndicatorFromFilter(filter));
+      indicatorsList = indicatorsFromFilter(filter);
     } else {
       indicatorsList = indicatorRepository.findAll();
     }
@@ -461,53 +461,23 @@ public class IndicatorService implements Logging {
                 .build();
     }
 
-  private Specification<Indicator> specificationForIndicatorFromFilter(FiltersDto filter) {
-    return (root, criteriaQuery, criteriaBuilder) -> {
-      List<Predicate> predicates = new ArrayList<>();
-      if (filter.getThemes().size() > 0) {
-        predicates.add(
-            criteriaBuilder.and(criteriaBuilder.in(root.get("themes")).value(filter.getThemes())));
-      } else {
-        predicates.add(criteriaBuilder.like(root.get("themes"), "%"));
-      }
-
-      if (filter.getSource().size() > 0) {
-        predicates.add(
-            criteriaBuilder.and(criteriaBuilder.in(root.get("source")).value(filter.getSource())));
-      } else {
-        predicates.add(criteriaBuilder.like(root.get("source"), "%"));
-      }
-
-      if (filter.getLevel().size() > 0) {
-        predicates.add(
-            criteriaBuilder.and(
-                criteriaBuilder
-                    .in(root.get("level").get("id"))
-                    .value(
-                        filter.getLevel().stream()
-                            .map(Level::getId)
-                            .collect(Collectors.toList()))));
-      } else {
-        predicates.add(criteriaBuilder.like(root.get("level").get("id").as(String.class), "_"));
-      }
-
-      if (filter.getSdgCode().size() > 0) {
-        predicates.add(
-            criteriaBuilder.and(
-                criteriaBuilder.in(root.get("sdgCode")).value(filter.getSdgCode())));
-      } else {
-        predicates.add(criteriaBuilder.like(root.get("sdgCode"), "%"));
-      }
-
-      if (filter.getCrsCode().size() > 0) {
-        predicates.add(
-            criteriaBuilder.and(
-                criteriaBuilder.in(root.get("crsCode")).value(filter.getCrsCode())));
-      } else {
-        predicates.add(criteriaBuilder.like(root.get("crsCode"), "%"));
-      }
-      return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
-    };
+  private List<Indicator> indicatorsFromFilter(FiltersDto filter) {
+    return getIndicators(
+        filter.getThemes().size() > 0
+            ? Optional.of(new ArrayList<>(filter.getThemes()))
+            : Optional.empty(),
+        filter.getSource().size() > 0
+            ? Optional.of(new ArrayList<>(filter.getSource()))
+            : Optional.empty(),
+        filter.getLevel().size() > 0
+            ? Optional.of(filter.getLevel().stream().map(Level::getId).collect(Collectors.toList()))
+            : Optional.empty(),
+        filter.getSdgCode().size() > 0
+            ? Optional.of(new ArrayList<>(filter.getSdgCode()))
+            : Optional.empty(),
+        filter.getCrsCode().size() > 0
+            ? Optional.of(new ArrayList<>(filter.getSdgCode()))
+            : Optional.empty());
   }
     /**
      * Fills the DFID template with the indicators

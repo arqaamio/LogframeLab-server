@@ -1,13 +1,13 @@
 CREATE TABLE IF NOT EXISTS `USERS`
 (
-    USERNAME       VARCHAR(50)  NOT NULL PRIMARY KEY,
+    USERNAME       VARCHAR(50) NOT NULL PRIMARY KEY,
     PASSWORD       VARCHAR(150) NOT NULL,
-    ENABLED        BOOLEAN      NOT NULL,
+    ENABLED        BOOLEAN     NOT NULL,
     CREATED_BY     VARCHAR(50),
     CREATED_AT     TIMESTAMP,
     LAST_UPDATE_BY VARCHAR(50),
-    UPDATED_AT     TIMESTAMP    NULL,
-    UPDATED_BY     VARCHAR(50)  NULL
+    UPDATED_AT     TIMESTAMP   NULL,
+    UPDATED_BY     VARCHAR(50) NULL
 );
 
 CREATE TABLE IF NOT EXISTS `GROUPS`
@@ -49,19 +49,18 @@ CREATE TABLE IF NOT EXISTS `GROUP_MEMBERS`
 );
 
 INSERT INTO `GROUPS` (ID, GROUP_NAME)
-VALUES (1, 'ADMIN'),
+VALUES (1, 'SEC_ADMIN'),
        (2, 'APP_USER'),
-       (3, 'SEC_ADMIN'),
-       (4, 'INDICATOR_ADMIN');
+       (3, 'INDICATOR_ADMIN');
 
 INSERT INTO `GROUP_AUTHORITIES` (GROUP_ID, AUTHORITY)
 VALUES (1, 'CRUD_APP_USER'),
        (2, 'READ_APP_USER'),
        (2, 'READ_INDICATOR'),
        (2, 'READ_INDICATOR_LEVEL'),
-       (3, 'CRUD_ADMIN'),
-       (4, 'CRUD_INDICATOR'),
-       (4, 'CRUD_INDICATOR_LEVEL');
+       (1, 'CRUD_ADMIN'),
+       (3, 'CRUD_INDICATOR'),
+       (3, 'CRUD_INDICATOR_LEVEL');
 
 /*
  select g.id, g.group_name, ga.authority from groups g, group_members gm, group_authorities ga where gm.username = ? and g.id = ga.group_id and g.id = gm.group_id

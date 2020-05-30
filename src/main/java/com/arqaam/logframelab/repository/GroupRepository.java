@@ -9,6 +9,4 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface GroupRepository extends JpaRepository<Group, Integer> {
   Group findByName(String name);
-
-  Collection<Group> findAllById(Collection<Integer> ids);
 }

@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Date;
 
@@ -21,6 +20,15 @@ public class JwtTokenProvider {
 
   @Value("${jwt.expiration}")
   private Long jwtExpirationInMillis;
+
+  @Value("${jwt.header.prefix}")
+  private String tokenType;
+
+  @Value("${jwt.header}")
+  private String tokenHeader;
+
+  @Value("${jwt.header.prefix}")
+  private String tokenHeaderPrefix;
 
   public JwtTokenProvider() {
     secretKey = secretKey == null ? Keys.secretKeyFor(SignatureAlgorithm.HS512) : secretKey;
@@ -41,11 +49,9 @@ public class JwtTokenProvider {
   }
 
   public boolean isTokenValid(String jws) {
-    boolean isTokenVerified = false;
-
     try {
       Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(jws);
-      isTokenVerified = true;
+      return true;
     } catch (ExpiredJwtException ex) {
       throw new InvalidJwsTokenException(TOKEN_TYPE, jws, "Expired token");
     } catch (UnsupportedJwtException ex) {
@@ -56,12 +62,24 @@ public class JwtTokenProvider {
       throw new InvalidJwsTokenException(TOKEN_TYPE, jws, "Incorrect token signature");
     } catch (IllegalArgumentException ex) {
       throw new InvalidJwsTokenException(TOKEN_TYPE, jws, "Illegal token");
-    } finally {
-      return isTokenVerified;
+    } catch (Exception e) {
+      throw new InvalidJwsTokenException(TOKEN_TYPE, jws, e.getMessage());
     }
   }
 
   public Long getJwtExpirationInMillis() {
     return jwtExpirationInMillis;
+  }
+
+  public String getTokenType() {
+    return tokenType;
+  }
+
+  public String getTokenHeader() {
+    return tokenHeader;
+  }
+
+  public String getTokenHeaderPrefix() {
+    return tokenHeaderPrefix;
   }
 }

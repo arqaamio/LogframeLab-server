@@ -1,5 +1,7 @@
 package com.arqaam.logframelab.controller;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.arqaam.logframelab.controller.dto.auth.AuthenticateUserRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.JwtAuthenticationTokenResponse;
 import com.arqaam.logframelab.model.Error;
@@ -8,20 +10,19 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ActiveProfiles;
-
-import java.util.logging.Logger;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles(profiles = "integration")
+@DirtiesContext(classMode = ClassMode.BEFORE_CLASS)
 public class BaseControllerTest {
 
   private static final String SEC_ADMIN_USERNAME = "secadmin";
   private static final String SEC_ADMIN_PASSWORD = "password";
 
-  static String bearerToken = null;
+  protected String bearerToken;
 
   @Autowired
   protected TestRestTemplate testRestTemplate;
@@ -33,7 +34,7 @@ public class BaseControllerTest {
     assertEquals(exception.getSimpleName(), response.getBody().getException());
   }
 
-  String getAuthToken() {
+  protected void generateAuthToken() {
     ResponseEntity<JwtAuthenticationTokenResponse> tokenResponseEntity =
         testRestTemplate.postForEntity(
             "/auth/login",
@@ -42,6 +43,6 @@ public class BaseControllerTest {
 
     JwtAuthenticationTokenResponse tokenResponse = tokenResponseEntity.getBody();
     assert tokenResponse != null;
-    return tokenResponse.getToken();
+    bearerToken = tokenResponse.getToken();
   }
 }

@@ -32,8 +32,8 @@ public interface BaseDatabaseTest {
     @Override
     public void initialize(@NotNull ConfigurableApplicationContext applicationContext) {
       TestPropertyValues.of(
-              "spring.datasource.url=" + mySQLContainer.getJdbcUrl(),
-              "spring.flyway.url=" + mySQLContainer.getJdbcUrl())
+          "spring.datasource.url=" + mySQLContainer.getJdbcUrl(),
+          "spring.flyway.url=" + mySQLContainer.getJdbcUrl())
           .applyTo(applicationContext.getEnvironment());
     }
   }

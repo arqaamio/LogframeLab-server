@@ -23,13 +23,9 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 @DataJpaTest
 public class AuthTests implements BaseDatabaseTest {
 
-  private static final int USER_GROUP_ID = 2;
-  private static final int SIZE_ONE = 1;
   private static final int FIRST_IN_LIST = 0;
-  private static final int ADMIN_GROUP_ID = 1;
-  private static final int SEC_ADMIN_GROUP_ID = 3;
-  private static final int SIZE_TWO = 2;
-  private static final int SIZE_THREE = 3;
+  private static final int SEC_ADMIN_GROUP_ID = 1, INDICATOR_ADMIN_GROUP_ID = 3, APP_USER_GROUP_ID = 2;
+  private static final int SIZE_TWO = 2, SIZE_FOUR = 4, SIZE_THREE = 3, SIZE_ONE = 1;
 
   @Autowired
   private GroupRepository groupRepository;
@@ -42,8 +38,9 @@ public class AuthTests implements BaseDatabaseTest {
     User user = User.builder().username("user").password("password").enabled(true).build();
     Group userGroup =
         groupRepository
-            .findById(USER_GROUP_ID)
-            .orElseThrow(() -> new IllegalStateException("Group not found for " + USER_GROUP_ID));
+            .findById(APP_USER_GROUP_ID)
+            .orElseThrow(
+                () -> new IllegalStateException("Group not found for " + APP_USER_GROUP_ID));
     user.addGroup(userGroup);
 
     User savedUser = userRepository.save(user);
@@ -71,8 +68,8 @@ public class AuthTests implements BaseDatabaseTest {
                 memberships.stream()
                     .map(groupMember -> groupMember.getGroup().getId())
                     .collect(Collectors.toSet()),
-                containsInAnyOrder(ADMIN_GROUP_ID, SEC_ADMIN_GROUP_ID)),
-        () -> assertThat(userInGroups.getAuthorities(), hasSize(SIZE_TWO)));
+                containsInAnyOrder(INDICATOR_ADMIN_GROUP_ID, SEC_ADMIN_GROUP_ID)),
+        () -> assertThat(userInGroups.getAuthorities(), hasSize(SIZE_FOUR)));
   }
 
   @Test
@@ -90,17 +87,16 @@ public class AuthTests implements BaseDatabaseTest {
     Set<GroupMember> groupMembership = userWithSingleGroup.getGroupMembership();
 
     assertAll(
-        () -> assertThat(groupMembership, hasSize(1)),
-        () ->
-            assertThat(
-                groupMembership.toArray(new GroupMember[]{})[FIRST_IN_LIST].getGroup().getId(),
-                is(ADMIN_GROUP_ID)));
+        () -> assertThat(groupMembership, hasSize(SIZE_ONE)),
+        () -> assertThat(
+            groupMembership.toArray(new GroupMember[]{})[FIRST_IN_LIST].getGroup().getId(),
+            is(INDICATOR_ADMIN_GROUP_ID)));
   }
 
   private User createUserInGroups() {
     User adminUser = User.builder().username("admin").password("admin").enabled(true).build();
     Collection<Group> adminGroups =
-        groupRepository.findAllById(Arrays.asList(ADMIN_GROUP_ID, SEC_ADMIN_GROUP_ID));
+        groupRepository.findAllById(Arrays.asList(INDICATOR_ADMIN_GROUP_ID, SEC_ADMIN_GROUP_ID));
     adminUser.addGroups(adminGroups);
 
     return userRepository.save(adminUser);

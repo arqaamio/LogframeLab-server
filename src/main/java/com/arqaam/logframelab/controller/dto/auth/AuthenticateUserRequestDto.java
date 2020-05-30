@@ -1,5 +1,6 @@
 package com.arqaam.logframelab.controller.dto.auth;
 
+import javax.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,7 +10,9 @@ import lombok.Setter;
 @AllArgsConstructor
 public class AuthenticateUserRequestDto {
 
+  @NotBlank
   private String username;
 
+  @NotBlank
   private String password;
 }

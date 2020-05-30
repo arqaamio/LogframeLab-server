@@ -27,12 +27,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
   private final UserDetailsService userDetailsService;
 
-  @Value("${jwt.header}")
-  private String tokenRequestHeader;
-
-  @Value("${jwt.header.prefix}")
-  private String tokenRequestHeaderPrefix;
-
   public JwtAuthFilter(
       JwtTokenProvider jwtTokenProvider,
       @Qualifier("arqaamUserDetailsService") UserDetailsService userDetailsService) {
@@ -67,9 +61,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
   }
 
   private String getJwtFromRequest(HttpServletRequest request) {
-    String bearerToken = request.getHeader(tokenRequestHeader);
-    if (StringUtils.isNotBlank(bearerToken) && bearerToken.startsWith(tokenRequestHeaderPrefix)) {
-      return StringUtils.remove(bearerToken, tokenRequestHeaderPrefix);
+    String bearerToken = request.getHeader(jwtTokenProvider.getTokenHeader());
+    if (StringUtils.isNotBlank(bearerToken) && bearerToken.startsWith(jwtTokenProvider.getTokenHeaderPrefix())) {
+      return StringUtils.remove(bearerToken, jwtTokenProvider.getTokenHeaderPrefix());
     }
 
     return null;

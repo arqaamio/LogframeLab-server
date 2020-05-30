@@ -34,6 +34,7 @@ import javax.xml.bind.JAXBException;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.Text;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -52,7 +53,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-class IndicatorControllerTest extends BaseControllerTest implements BaseDatabaseTest {
+class IndicatorControllerTest extends BaseControllerTest  implements BaseDatabaseTest  {
 
   private static final Level[] mockLevels =
       new Level[]{
@@ -123,9 +124,7 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
 
     when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
 
-    if (bearerToken == null) {
-      bearerToken = getAuthToken();
-    }
+    generateAuthToken();
   }
 
   @Test

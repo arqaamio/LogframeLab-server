@@ -6,6 +6,6 @@ import java.util.Optional;
 
 public interface UserManager {
 
-  Optional<User> provisionUser(UserAuthProvisioningRequestDto authProvisioningRequest);
+  User provisionUser(UserAuthProvisioningRequestDto authProvisioningRequest);
 
 }

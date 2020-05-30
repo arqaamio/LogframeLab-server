@@ -1,19 +1,22 @@
 package com.arqaam.logframelab.controller;
 
-import com.arqaam.logframelab.controller.dto.FiltersDto;
-import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.http.*;
-
-import java.util.Objects;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
-public class IndicatorControllerIntegrationTest extends BaseControllerTest
-    implements BaseDatabaseTest {
+import com.arqaam.logframelab.controller.dto.FiltersDto;
+import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
+import java.util.Objects;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+public class IndicatorControllerIntegrationTest extends BaseControllerTest implements BaseDatabaseTest
+     {
 
   private static final int DATABASE_THEMES_SIZE = 42;
   private static final int DATABASE_CRS_CODE_SIZE = 76;
@@ -23,13 +26,11 @@ public class IndicatorControllerIntegrationTest extends BaseControllerTest
 
   @BeforeEach
   void setup() {
-    if (bearerToken == null) {
-      bearerToken = getAuthToken();
-    }
+    generateAuthToken();
   }
 
   @Test
-  public void whenFiltersRequested_ThenFiltersReturned() {
+  void whenFiltersRequested_ThenFiltersReturned() {
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(bearerToken);
 

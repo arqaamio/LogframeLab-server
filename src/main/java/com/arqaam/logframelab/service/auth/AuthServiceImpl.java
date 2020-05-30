@@ -73,4 +73,14 @@ public class AuthServiceImpl implements AuthService {
   public String generateToken(User user) {
     return tokenProvider.generateJwsToken(user);
   }
+
+  @Override
+  public Long getTokenExpiryInMillis() {
+    return tokenProvider.getJwtExpirationInMillis();
+  }
+
+  @Override
+  public String getTokenType() {
+    return tokenProvider.getTokenType();
+  }
 }

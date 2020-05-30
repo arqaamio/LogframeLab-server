@@ -26,7 +26,7 @@ public class UserManagerImpl implements UserManager {
   }
 
   @Override
-  public Optional<User> provisionUser(UserAuthProvisioningRequestDto authProvisioningRequest) {
+  public User provisionUser(UserAuthProvisioningRequestDto authProvisioningRequest) {
     Optional<User> optionalUser = userService.findByUsername(authProvisioningRequest.getUsername());
 
     User user;
@@ -42,6 +42,6 @@ public class UserManagerImpl implements UserManager {
 
     user.addGroups(groupRepository.findAllById(authProvisioningRequest.getGroupIds()));
 
-    return Optional.of(userService.save(user));
+    return userService.save(user);
   }
 }

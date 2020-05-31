@@ -8,8 +8,8 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
 import com.arqaam.logframelab.controller.BaseControllerTest;
-import com.arqaam.logframelab.controller.dto.auth.UserAuthProvisioningRequestDto;
-import com.arqaam.logframelab.controller.dto.auth.UserAuthProvisioningResponseDto;
+import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningRequestDto;
+import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningResponseDto;
 import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
 import java.util.Collection;
 import java.util.Collections;

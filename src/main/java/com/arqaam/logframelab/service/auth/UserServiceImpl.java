@@ -29,4 +29,8 @@ public class UserServiceImpl implements UserService {
   public Optional<User> findByUsername(String username) {
     return userRepository.findByUsername(username);
   }
+
+  public boolean userWithUsernameExists(String username) {
+    return userRepository.existsByUsername(username);
+  }
 }

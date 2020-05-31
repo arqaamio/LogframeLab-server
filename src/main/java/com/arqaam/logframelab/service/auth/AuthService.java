@@ -1,6 +1,6 @@
 package com.arqaam.logframelab.service.auth;
 
-import com.arqaam.logframelab.controller.dto.auth.AuthenticateUserRequestDto;
+import com.arqaam.logframelab.controller.dto.auth.login.AuthenticateUserRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.UpdatePasswordRequestDto;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import java.util.Optional;
@@ -10,13 +10,15 @@ public interface AuthService {
 
   boolean userExists(String username);
 
-  Optional<Authentication> authenticateUser(AuthenticateUserRequestDto loginRequest);
+  Optional<Authentication> authenticateUser(String username, String password);
 
-  Optional<User> updatePassword(User user, UpdatePasswordRequestDto updatePasswordRequest);
+  Optional<User> updatePassword(User user, String oldPassword, String newPassword);
 
   String generateToken(User user);
 
   Long getTokenExpiryInMillis();
 
   String getTokenType();
+
+  void logout(String username);
 }

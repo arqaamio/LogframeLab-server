@@ -1,4 +1,4 @@
-package com.arqaam.logframelab.controller.dto.auth;
+package com.arqaam.logframelab.controller.dto.auth.create;
 
 import java.util.Collection;
 import javax.validation.constraints.NotBlank;

@@ -2,8 +2,8 @@ package com.arqaam.logframelab.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.arqaam.logframelab.controller.dto.auth.AuthenticateUserRequestDto;
-import com.arqaam.logframelab.controller.dto.auth.JwtAuthenticationTokenResponse;
+import com.arqaam.logframelab.controller.dto.auth.login.AuthenticateUserRequestDto;
+import com.arqaam.logframelab.controller.dto.auth.login.JwtAuthenticationTokenResponse;
 import com.arqaam.logframelab.model.Error;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

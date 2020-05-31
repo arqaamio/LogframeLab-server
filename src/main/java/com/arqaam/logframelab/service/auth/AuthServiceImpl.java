@@ -1,15 +1,14 @@
 package com.arqaam.logframelab.service.auth;
 
 import com.arqaam.logframelab.configuration.security.jwt.JwtTokenProvider;
-import com.arqaam.logframelab.controller.dto.auth.AuthenticateUserRequestDto;
-import com.arqaam.logframelab.controller.dto.auth.UpdatePasswordRequestDto;
+import com.arqaam.logframelab.exception.LogoutUserException;
 import com.arqaam.logframelab.exception.PasswordResetException;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import java.util.Optional;
-import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -34,38 +33,37 @@ public class AuthServiceImpl implements AuthService {
 
   @Override
   public boolean userExists(String username) {
-    throw new NotImplementedException("Not yet implemented");
+    return userService.userWithUsernameExists(username);
   }
 
   @Override
-  public Optional<Authentication> authenticateUser(AuthenticateUserRequestDto loginRequest) {
+  public Optional<Authentication> authenticateUser(String username, String password) {
     Authentication authentication =
         authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(
-                loginRequest.getUsername(), loginRequest.getPassword()));
+            new UsernamePasswordAuthenticationToken(username, password));
     return Optional.ofNullable(authentication);
   }
 
   @Override
-  public Optional<User> updatePassword(User user, UpdatePasswordRequestDto updatePasswordRequest) {
+  public Optional<User> updatePassword(User user, String oldPassword, String newPassword) {
     User currentUser =
         userService
             .findByUsername(user.getUsername())
             .orElseThrow(() -> new PasswordResetException("Specified user not found."));
 
     if (!passwordEncoder.matches(
-        updatePasswordRequest.getOldPassword(), currentUser.getPassword())) {
+        oldPassword, currentUser.getPassword())) {
       throw new PasswordResetException(
           "Specified old password does not match the current password.");
     }
 
     if (passwordEncoder.matches(
-        updatePasswordRequest.getNewPassword(), currentUser.getPassword())) {
+        newPassword, currentUser.getPassword())) {
       throw new PasswordResetException(
           "Specified new password cannot be the same as current password.");
     }
 
-    currentUser.setPassword(passwordEncoder.encode(updatePasswordRequest.getNewPassword()));
+    currentUser.setPassword(passwordEncoder.encode(newPassword));
     return Optional.ofNullable(userService.save(currentUser));
   }
 
@@ -82,5 +80,15 @@ public class AuthServiceImpl implements AuthService {
   @Override
   public String getTokenType() {
     return tokenProvider.getTokenType();
+  }
+
+  @Override
+  public void logout(String username) {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (!authentication.getPrincipal().equals(username)) {
+      throw new LogoutUserException("Attempting to logout wrong user");
+    }
+
+    SecurityContextHolder.clearContext();
   }
 }

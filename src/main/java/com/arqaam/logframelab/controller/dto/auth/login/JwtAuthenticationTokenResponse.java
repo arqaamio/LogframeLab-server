@@ -1,4 +1,4 @@
-package com.arqaam.logframelab.controller.dto.auth;
+package com.arqaam.logframelab.controller.dto.auth.login;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

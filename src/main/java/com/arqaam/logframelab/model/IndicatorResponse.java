@@ -14,7 +14,6 @@ public class IndicatorResponse {
     private String color;
     private String name;
     private String description;
-    private String var;
     private String themes;
     private String source;
     private Boolean disaggregation;
@@ -22,4 +21,7 @@ public class IndicatorResponse {
     private String sdgCode;
     @EqualsAndHashCode.Exclude
     private int numTimes;
+
+    private String date;
+    private String value;
 }

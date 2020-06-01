@@ -146,9 +146,9 @@ class IndicatorControllerTest extends BaseControllerTest {
         keywordsList.add(keywordsFoodList.get(0));
         List<IndicatorResponse> expectedResult = getExpectedResult();
         expectedResult.add(IndicatorResponse.builder().id(6L).level(mockLevels[2].getName()).color(mockLevels[2].getColor())
-                .name("Name 6").description("Description").var(mockLevels[2].getTemplateVar()).build());
+                .name("Name 6").description("Description").build());
         expectedResult.add(IndicatorResponse.builder().id(5L).level(mockLevels[2].getName()).color(mockLevels[2].getColor())
-                .name("Name 3").description("Description").var(mockLevels[2].getTemplateVar()).build());
+                .name("Name 3").description("Description").build());
         List<Indicator> indicators = mockIndicatorList();
         // This showcases how keywords property is irrelevant, only keywordList is taken into consideration
         indicators.add(Indicator.builder().id(6L).name("Name 6").description("Description").level(mockLevels[2]).keywordsList(keywordsList).build());
@@ -212,7 +212,7 @@ class IndicatorControllerTest extends BaseControllerTest {
 
     @Test
     void downloadIndicators_DFIDFormat() {
-        List<IndicatorResponse> indicators = createIndicatorResponseList(3);
+        List<IndicatorResponse> indicators = createIndicatorResponseList(4);
         when(indicatorRepositoryMock.findAllById(any())).thenReturn(mockIndicatorList());
         ResponseEntity<Resource> response = testRestTemplate.exchange("/indicator/download?format=dfid", HttpMethod.POST,
                 new HttpEntity<>(indicators), Resource.class);
@@ -333,7 +333,6 @@ class IndicatorControllerTest extends BaseControllerTest {
                     .description("Description")
                     .disaggregation(level > 1) // Reusing random values
                     .name("Indicator Label " + i)
-                    .var(mockLevels[level].getTemplateVar())
                     .build());
         }
         return list;

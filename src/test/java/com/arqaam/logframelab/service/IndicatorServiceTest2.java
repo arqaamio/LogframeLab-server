@@ -1,5 +1,6 @@
 package com.arqaam.logframelab.service;
 
+import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -7,9 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -21,6 +20,26 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class IndicatorServiceTest2 extends BaseIndicatorServiceTest {
+
+  @Test
+  void exportIndicatorsInWordFile_withValuesAndDates() {
+    List<IndicatorResponse> responses = getExpectedResult();
+    responses.get(0).setValue("100");
+    responses.get(0).setDate("2001");
+    responses.get(1).setValue("100");
+    responses.get(1).setDate("2002");
+    responses.get(2).setValue("100");
+    responses.get(2).setDate("2003");
+    responses.get(3).setValue("100");
+    responses.get(3).setDate("2004");
+    ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsInWordFile(responses);
+
+    try(OutputStream fileOutputStream = new FileOutputStream("thefilename.docx")) {
+      outputStream.writeTo(fileOutputStream);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
 
   @Test
   void exportIndicatorsDFIDFormat() throws IOException {
@@ -46,11 +65,11 @@ public class IndicatorServiceTest2 extends BaseIndicatorServiceTest {
   void exportIndicatorsDFIDFormat_noImpactIndicators_newRowsOutcome() throws IOException {
     List<Indicator> mockIndicators = mockIndicatorList().stream().filter(x -> !x.getLevel().equals(mockLevels[3])).collect(Collectors.toList());
     mockIndicators.add(new Indicator(100L,"Extra indicator 1", "","", mockLevels[1], "",
-        "", false, "", "", mockSourceVerification.get(0), "", null, 0));
+        "", false, "", "", mockSourceVerification.get(0), "", null, "", "", 0));
     mockIndicators.add(new Indicator(100L,"Extra indicator 2", "","", mockLevels[1], "",
-        "", false, "", "", mockSourceVerification.get(1), "", null, 0));
+        "", false, "", "", mockSourceVerification.get(1), "", null, "", "", 0));
     mockIndicators.add(new Indicator(100L,"Extra indicator 3", "","", mockLevels[1], "",
-        "", false, "", "", mockSourceVerification.get(2), "", null, 0));
+        "", false, "", "", mockSourceVerification.get(2), "", null, "", "", 0));
     when(indicatorRepository.findAllById(any())).thenReturn(mockIndicators);
 
     ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsDFIDFormat(mockIndicators.stream()
@@ -72,11 +91,11 @@ public class IndicatorServiceTest2 extends BaseIndicatorServiceTest {
   void exportIndicatorsDFIDFormat_noOutcomeIndicators_newRowsOutput() throws IOException {
     List<Indicator> mockIndicators = mockIndicatorList().stream().filter(x -> !x.getLevel().equals(mockLevels[1])).collect(Collectors.toList());
     mockIndicators.add(new Indicator(100L,"Extra indicator 1", "","", mockLevels[0], "",
-        "", false, "", "", mockSourceVerification.get(0), "", null, 0));
+        "", false, "", "", mockSourceVerification.get(0), "", null, "", "", 0));
     mockIndicators.add(new Indicator(100L,"Extra indicator 2", "","", mockLevels[0], "",
-        "", false, "", "", mockSourceVerification.get(1), "", null, 0));
+        "", false, "", "", mockSourceVerification.get(1), "", null, "", "", 0));
     mockIndicators.add(new Indicator(100L,"Extra indicator 3", "","", mockLevels[0], "",
-        "", false, "", "", mockSourceVerification.get(2), "", null, 0));
+        "", false, "", "", mockSourceVerification.get(2), "", null, "", "", 0));
     when(indicatorRepository.findAllById(any())).thenReturn(mockIndicators);
 
     ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsDFIDFormat(mockIndicators.stream()
@@ -98,11 +117,11 @@ public class IndicatorServiceTest2 extends BaseIndicatorServiceTest {
   void exportIndicatorsDFIDFormat_noOutputIndicators_newRowsImpact() throws IOException {
     List<Indicator> mockIndicators = mockIndicatorList().stream().filter(x -> !x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
     mockIndicators.add(new Indicator(100L,"Extra indicator 1", "","", mockLevels[3], "",
-        "", false, "", "", mockSourceVerification.get(0), "", null, 0));
+        "", false, "", "", mockSourceVerification.get(0), "", null, "", "", 0));
     mockIndicators.add(new Indicator(100L,"Extra indicator 2", "","", mockLevels[3], "",
-        "", false, "", "", mockSourceVerification.get(1), "", null, 0));
+        "", false, "", "", mockSourceVerification.get(1), "", null, "", "", 0));
     mockIndicators.add(new Indicator(100L,"Extra indicator 3", "","", mockLevels[3], "",
-        "", false, "", "", mockSourceVerification.get(2), "", null, 0));
+        "", false, "", "", mockSourceVerification.get(2), "", null, "", "", 0));
     when(indicatorRepository.findAllById(any())).thenReturn(mockIndicators);
 
     ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsDFIDFormat(mockIndicators.stream()
@@ -190,6 +209,7 @@ public class IndicatorServiceTest2 extends BaseIndicatorServiceTest {
         .description("Technical Note, EURF 2.01").keywords("government").level(mockLevels[3]).keywordsList(keywordsGovList).build());
     list.add(Indicator.builder().id(73L).name("Number of government policies developed or revised with civil society organisation participation through EU support")
         .description("Public Sector").keywords("government policies, policy").level(mockLevels[1]).keywordsList(keywordsGovPolicyList)
+        .dataSource("https://data.worldbank.org/indicator/EG.CFT.ACCS.ZS?view=chart")
         .sourceVerification(mockSourceVerification.get(3)).build());
 
     return list;

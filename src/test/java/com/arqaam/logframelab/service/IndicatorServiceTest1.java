@@ -27,9 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -139,51 +137,6 @@ public class IndicatorServiceTest1 extends BaseIndicatorServiceTest {
     }
 
     @Test
-    void parseVarWithValue_withMatchingText() {
-        String text = "var";
-        List<IndicatorResponse> indicators = createListIndicatorResponse();
-        Text textNode = new Text();
-        textNode.setParent(new R());
-        indicatorService.parseVarWithValue(textNode, text, indicators);
-        R result = (R) textNode.getParent();
-        assertEquals(5*indicators.size(), result.getContent().size());
-        for (int i = 0; i < indicators.size()*5; i+=5) {
-            assertEquals(indicators.get(i/5).getName(), ((Text)result.getContent().get(i)).getValue());
-            assertTrue(result.getContent().get(i+1) instanceof Br);
-            assertTrue(result.getContent().get(i+2) instanceof Br);
-            assertTrue(result.getContent().get(i+3) instanceof Br);
-            assertTrue(result.getContent().get(i+4) instanceof Br);
-        }
-    }
-
-    @Test
-    void parseVarWithValue_withoutMatchingText() {
-        String text = "text without matching";
-        List<IndicatorResponse> indicators = createListIndicatorResponse();
-        Text textNode = new Text();
-        textNode.setParent(new R());
-        indicatorService.parseVarWithValue(textNode, text, indicators);
-        R result = (R) textNode.getParent();
-        assertEquals(0, result.getContent().size());
-    }
-
-    @Test
-    void parseVarWithValue_withoutIndicatorResponse() {
-        String text = "var";
-        Text textNode = new Text();
-        textNode.setParent(new R());
-        indicatorService.parseVarWithValue(textNode, text, null);
-        R result = (R) textNode.getParent();
-        assertEquals(0, result.getContent().size());
-
-        Text textNode2 = new Text();
-        textNode2.setParent(new R());
-        R result2 = (R) textNode2.getParent();
-        indicatorService.parseVarWithValue(textNode2, text, Collections.emptyList());
-        assertEquals(0, result2.getContent().size());
-    }
-
-    @Test
     void importIndicators() {
         //TODO this test
 //        indicatorService.importIndicators(new ClassPathResource("Indicator.xlsx").getPath());
@@ -268,7 +221,7 @@ public class IndicatorServiceTest1 extends BaseIndicatorServiceTest {
         List<IndicatorResponse> list = new ArrayList<>();
         for (int i = 1; i < 6; i++) {
             list.add(IndicatorResponse.builder().id(i).level("IMPACT").color("color").name("Label "+i)
-                .description("Description").var("var").build());
+                .description("Description").value("100").date(String.valueOf(2000+i)).build());
         }
         return list;
     }

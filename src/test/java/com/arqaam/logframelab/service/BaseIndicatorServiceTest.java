@@ -61,7 +61,7 @@ public abstract class BaseIndicatorServiceTest {
     lenient().when(levelRepository.findAllByOrderByPriority()).thenReturn(Arrays.stream(mockLevels).sorted().collect(Collectors.toList()));
     lenient().when(indicatorRepository.save(any(Indicator.class))).thenAnswer(i -> i.getArguments()[0]);
     lenient().when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
-
+    lenient().when(indicatorRepository.findAllById(any())).thenReturn(mockIndicatorList());
     lenient().when(indicatorRepository.findAll(any(Specification.class))).
         thenReturn(mockIndicatorList().stream()
             .filter(x -> mockThemes.contains(x.getThemes()) && mockLevelsId.contains(x.getLevel().getId()) && mockSources.contains(x.getSource())

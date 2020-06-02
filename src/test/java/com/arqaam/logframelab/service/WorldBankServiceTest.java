@@ -78,38 +78,28 @@ class WorldBankServiceTest {
 
     @Test
     void retrieveIndicatorValues_indicatorMissingDataSource() {
-        assertThrows(InvalidDataSourceException.class, () -> {
-            worldBankService.getIndicatorValues(Indicator.builder().build(), "NZL", Collections.emptyList());
-        });
+        assertThrows(InvalidDataSourceException.class, () -> worldBankService.getIndicatorValues(Indicator.builder().build(), "NZL", Collections.emptyList()));
     }
 
     @Test
     void retrieveIndicatorValues_indicatorDataSourceDoesntMatch() {
-        assertThrows(InvalidDataSourceException.class, () -> {
-            worldBankService.getIndicatorValues(Indicator.builder().dataSource("https://randomwebsite.com").build(), "NZL", Collections.emptyList());
-        });
+        assertThrows(InvalidDataSourceException.class, () -> worldBankService.getIndicatorValues(Indicator.builder().dataSource("https://randomwebsite.com").build(), "NZL", Collections.emptyList()));
     }
 
     @Test
     void retrieveIndicatorValues_indicatorDataSourceDEmpty() {
-        assertThrows(InvalidDataSourceException.class, () -> {
-            worldBankService.getIndicatorValues(Indicator.builder().dataSource("").build(), "NZL", Collections.emptyList());
-        });
+        assertThrows(InvalidDataSourceException.class, () -> worldBankService.getIndicatorValues(Indicator.builder().dataSource("").build(), "NZL", Collections.emptyList()));
     }
 
     @Test
     void retrieveIndicatorValues_wrongCountryId() {
-        assertThrows(WorldBankAPIRequestFailedException.class, () -> {
-            worldBankService.getIndicatorValues(Indicator.builder().dataSource("https://data.worldbank.org/indicator/EG.CFT.ACCS.ZS?view=chart").build(),
-                    "AAAAA", Collections.emptyList());
-        });
+        assertThrows(WorldBankAPIRequestFailedException.class, () -> worldBankService.getIndicatorValues(Indicator.builder().dataSource("https://data.worldbank.org/indicator/EG.CFT.ACCS.ZS?view=chart").build(),
+                "AAAAA", Collections.emptyList()));
     }
 
     @Test
     void retrieveIndicatorValues_wrongIndicatorId() {
-        assertThrows(WorldBankAPIRequestFailedException.class, () -> {
-            worldBankService.getIndicatorValues(Indicator.builder().dataSource("https://data.worldbank.org/indicator/BB.BB.B?view=chart").build(),
-                    "NZL", Collections.emptyList());
-        });
+        assertThrows(WorldBankAPIRequestFailedException.class, () -> worldBankService.getIndicatorValues(Indicator.builder().dataSource("https://data.worldbank.org/indicator/BB.BB.B?view=chart").build(),
+                "NZL", Collections.emptyList()));
     }
 }

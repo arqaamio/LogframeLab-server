@@ -2,6 +2,7 @@ package com.arqaam.logframelab.service.auth;
 
 import com.arqaam.logframelab.model.persistence.auth.User;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UserService {
@@ -12,5 +13,7 @@ public interface UserService {
 
   Optional<User> findByUsername(String username);
 
-  public boolean userWithUsernameExists(String username);
+  boolean userWithUsernameExists(String username);
+
+  List<User> getAllUsers();
 }

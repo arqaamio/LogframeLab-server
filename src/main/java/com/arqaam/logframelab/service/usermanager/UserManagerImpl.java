@@ -1,11 +1,15 @@
 package com.arqaam.logframelab.service.usermanager;
 
+import com.arqaam.logframelab.controller.dto.auth.UserDto;
 import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningRequestDto;
 import com.arqaam.logframelab.exception.UserProvisioningException;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import com.arqaam.logframelab.repository.GroupRepository;
 import com.arqaam.logframelab.service.auth.UserService;
+import com.arqaam.logframelab.service.usermanager.mapper.UserMapper;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,13 +20,16 @@ public class UserManagerImpl implements UserManager {
   private final UserService userService;
   private final GroupRepository groupRepository;
   private final PasswordEncoder passwordEncoder;
+  private final UserMapper userMapper;
 
   public UserManagerImpl(UserService userService,
       GroupRepository groupRepository,
-      PasswordEncoder passwordEncoder) {
+      PasswordEncoder passwordEncoder,
+      UserMapper userMapper) {
     this.userService = userService;
     this.groupRepository = groupRepository;
     this.passwordEncoder = passwordEncoder;
+    this.userMapper = userMapper;
   }
 
   @Override
@@ -43,5 +50,11 @@ public class UserManagerImpl implements UserManager {
     user.addGroups(groupRepository.findAllById(authProvisioningRequest.getGroupIds()));
 
     return userService.save(user);
+  }
+
+  @Override
+  public List<UserDto> getUsers() {
+    return userService.getAllUsers().stream().map(userMapper::userToDto)
+        .collect(Collectors.toList());
   }
 }

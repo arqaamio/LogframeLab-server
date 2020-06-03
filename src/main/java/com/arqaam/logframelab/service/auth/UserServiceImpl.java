@@ -2,6 +2,7 @@ package com.arqaam.logframelab.service.auth;
 
 import com.arqaam.logframelab.model.persistence.auth.User;
 import com.arqaam.logframelab.repository.UserRepository;
+import java.util.List;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -32,5 +33,10 @@ public class UserServiceImpl implements UserService {
 
   public boolean userWithUsernameExists(String username) {
     return userRepository.existsByUsername(username);
+  }
+
+  @Override
+  public List<User> getAllUsers() {
+    return userRepository.getAllUsersWithTheirGroups();
   }
 }

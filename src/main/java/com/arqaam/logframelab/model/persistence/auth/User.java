@@ -31,20 +31,18 @@ import org.springframework.security.core.userdetails.UserDetails;
 @SuperBuilder
 public class User extends AuditableEntity<String> implements UserDetails {
 
+  @Id
+  @Column(name = "USERNAME")
+  private String username;
+  @Column(name = "PASSWORD")
+  private String password;
+  @Column(name = "ENABLED")
+  private boolean enabled;
+
   @EqualsAndHashCode.Exclude
   @ToString.Exclude
   @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
   private final Set<GroupMember> groupMembership = new HashSet<>();
-
-  @Id
-  @Column(name = "USERNAME")
-  private String username;
-
-  @Column(name = "PASSWORD")
-  private String password;
-
-  @Column(name = "ENABLED")
-  private boolean enabled;
 
   public void addGroup(Group group) {
     GroupMember groupMember = new GroupMember(this, group);

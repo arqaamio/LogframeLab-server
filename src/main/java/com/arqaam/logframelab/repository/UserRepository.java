@@ -13,7 +13,7 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, String> {
 
   @Query(value = "from User u join u.groupMembership m join m.group g where g.name = :groupName")
-  Optional<User> findUserByGroupName(@Param("groupName") String groupName);
+  List<User> findFirstUserByGroupName(@Param("groupName") String groupName);
 
   Optional<User> findByUsername(String username);
 
@@ -22,6 +22,6 @@ public interface UserRepository extends JpaRepository<User, String> {
 
   boolean existsByUsername(String username);
 
-  @Query(value = "from User u join u.groupMembership m join m.group")
+  @Query(value = "from User u join u.groupMembership m join m.group order by u.username")
   List<User> getAllUsersWithTheirGroups();
 }

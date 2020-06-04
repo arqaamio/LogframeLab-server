@@ -17,8 +17,8 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public Optional<User> getFirstUserByGroupName(String groupName) {
-    return userRepository.findUserByGroupName(groupName);
+  public List<User> getFirstUserByGroupName(String groupName) {
+    return userRepository.findFirstUserByGroupName(groupName);
   }
 
   @Override

@@ -7,7 +7,11 @@ import com.arqaam.logframelab.model.persistence.auth.User;
 import com.arqaam.logframelab.repository.GroupRepository;
 import com.arqaam.logframelab.service.auth.UserService;
 import com.arqaam.logframelab.service.usermanager.mapper.UserMapper;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -20,16 +24,13 @@ public class UserManagerImpl implements UserManager {
   private final UserService userService;
   private final GroupRepository groupRepository;
   private final PasswordEncoder passwordEncoder;
-  private final UserMapper userMapper;
 
   public UserManagerImpl(UserService userService,
       GroupRepository groupRepository,
-      PasswordEncoder passwordEncoder,
-      UserMapper userMapper) {
+      PasswordEncoder passwordEncoder) {
     this.userService = userService;
     this.groupRepository = groupRepository;
     this.passwordEncoder = passwordEncoder;
-    this.userMapper = userMapper;
   }
 
   @Override
@@ -54,7 +55,21 @@ public class UserManagerImpl implements UserManager {
 
   @Override
   public List<UserDto> getUsers() {
-    return userService.getAllUsers().stream().map(userMapper::userToDto)
-        .collect(Collectors.toList());
+    //TODO use an optimised query that returns only username and group names
+    Map<String, List<String>> userToGroups = new HashMap<>();
+    userService.getAllUsers().forEach(user -> {
+      if (!userToGroups.containsKey(user.getUsername())) {
+        userToGroups.put(user.getUsername(),
+            user.getGroupMembership().stream().map(m -> m.getGroup().getName())
+                .collect(Collectors.toList()));
+      }
+    });
+
+    List<UserDto> userDto = new ArrayList<>();
+    userToGroups.forEach((username, groups) -> userDto
+        .add(UserDto.builder().username(username).groups(groups).build()));
+    userDto.sort(Comparator.comparing(UserDto::getUsername));
+
+    return userDto;
   }
 }

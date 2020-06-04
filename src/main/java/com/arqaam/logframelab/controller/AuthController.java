@@ -1,5 +1,6 @@
 package com.arqaam.logframelab.controller;
 
+import com.arqaam.logframelab.controller.dto.auth.GroupDto;
 import com.arqaam.logframelab.controller.dto.auth.UserDto;
 import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningResponseDto;
@@ -10,8 +11,10 @@ import com.arqaam.logframelab.controller.dto.auth.logout.LogoutUserResponseDto;
 import com.arqaam.logframelab.exception.UnauthorizedException;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import com.arqaam.logframelab.service.auth.AuthService;
+import com.arqaam.logframelab.service.auth.GroupService;
 import com.arqaam.logframelab.service.usermanager.UserManager;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.validation.Valid;
 import org.apache.commons.lang3.NotImplementedException;
@@ -37,10 +40,12 @@ public class AuthController {
 
   private final AuthService authService;
   private final UserManager userManager;
+  private final GroupService groupService;
 
-  public AuthController(AuthService authService, UserManager userManager) {
+  public AuthController(AuthService authService, UserManager userManager, GroupService groupService) {
     this.authService = authService;
     this.userManager = userManager;
+    this.groupService = groupService;
   }
 
   @PostMapping(value = "login")
@@ -88,5 +93,11 @@ public class AuthController {
   @PreAuthorize("hasAnyAuthority('CRUD_ADMIN', 'CRUD_APP_USER')")
   public ResponseEntity<List<UserDto>> getUsers() {
     return ResponseEntity.ok(userManager.getUsers());
+  }
+
+  @GetMapping("groups")
+  @PreAuthorize("hasAnyAuthority('CRUD_ADMIN', 'CRUD_APP_USER')")
+  public ResponseEntity<Set<GroupDto>> getGroups() {
+    return ResponseEntity.ok(groupService.getAllGroups());
   }
 }

@@ -1,7 +1,5 @@
 package com.arqaam.logframelab.service.auth;
 
-import com.arqaam.logframelab.controller.dto.auth.login.AuthenticateUserRequestDto;
-import com.arqaam.logframelab.controller.dto.auth.UpdatePasswordRequestDto;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import java.util.Optional;
 import org.springframework.security.core.Authentication;

@@ -7,7 +7,7 @@ import java.util.Optional;
 
 public interface UserService {
 
-  Optional<User> getFirstUserByGroupName(String groupName);
+  List<User> getFirstUserByGroupName(String groupName);
 
   User save(User user);
 

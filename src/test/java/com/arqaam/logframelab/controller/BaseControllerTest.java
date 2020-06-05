@@ -27,8 +27,8 @@ public class BaseControllerTest {
   @Autowired
   protected TestRestTemplate testRestTemplate;
 
-  void assertEqualsException(
-      ResponseEntity<Error> response, HttpStatus httpStatus, Integer code, Class exception) {
+  void assertEqualsException(ResponseEntity<Error> response, HttpStatus httpStatus, Integer code,
+      Class exception) {
     assertEquals(httpStatus, response.getStatusCode());
     assertEquals(code, response.getBody().getCode());
     assertEquals(exception.getSimpleName(), response.getBody().getException());

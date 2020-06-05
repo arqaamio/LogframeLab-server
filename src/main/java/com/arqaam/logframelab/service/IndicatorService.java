@@ -9,6 +9,8 @@ import com.arqaam.logframelab.model.projection.IndicatorFilters;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
 import com.arqaam.logframelab.util.Logging;
+import org.apache.poi.hwpf.HWPFDocument;
+import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -32,6 +34,7 @@ import javax.xml.bind.JAXBException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -40,34 +43,33 @@ import static java.util.Objects.isNull;
 @Service
 public class IndicatorService implements Logging {
 
+  /** Indicates the number of indicators template the level has by default */
+  protected static final Integer IMPACT_NUM_TEMP_INDIC = 1,
+      OUTCOME_NUM_TEMP_INDIC = 3,
+      OUTPUT_NUM_TEMP_INDIC = 2;
 
-    /**
-     * Indicates the number of indicators template the level has by default
-     */
-    protected final static Integer IMPACT_NUM_TEMP_INDIC = 1, OUTCOME_NUM_TEMP_INDIC = 3, OUTPUT_NUM_TEMP_INDIC = 2;
+  private final IndicatorRepository indicatorRepository;
 
-    private IndicatorRepository indicatorRepository;
+  private final LevelRepository levelRepository;
 
-    private  LevelRepository levelRepository;
-
-    public IndicatorService(IndicatorRepository indicatorRepository, LevelRepository levelRepository) {
-      this.indicatorRepository = indicatorRepository;
-      this.levelRepository = levelRepository;
-    }
+  public IndicatorService(IndicatorRepository indicatorRepository, LevelRepository levelRepository) {
+    this.indicatorRepository = indicatorRepository;
+    this.levelRepository = levelRepository;
+  }
 
   /**
    * Extract Indicators from a Word file
    *
    * @param file Word file
+   * @param filter <code>FilterDto</code>
    * @return List of Indicators
    */
-  public List<IndicatorResponse> extractIndicatorsFromWordFile(
-      MultipartFile file, FiltersDto filter) {
+  public List<IndicatorResponse> extractIndicatorsFromWordFile( MultipartFile file, FiltersDto filter) {
     List<IndicatorResponse> result = new ArrayList<>();
     List<Indicator> indicatorsList;
 
     if (filter != null && !filter.isEmpty()) {
-      indicatorsList = indicatorRepository.findAll(specificationForIndicatorFromFilter(filter));
+      indicatorsList = indicatorsFromFilter(filter);
     } else {
       indicatorsList = indicatorRepository.findAll();
     }
@@ -86,65 +88,71 @@ public class IndicatorService implements Logging {
         }
       }
       try {
-        WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(file.getInputStream());
-        MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
-        String textNodesXPath = "//w:t";
-        List<Object> textNodes = mainDocumentPart.getJAXBNodesViaXPath(textNodesXPath, true);
-        Pattern p = Pattern.compile("[a-z0-9]", Pattern.CASE_INSENSITIVE);
-        StringBuffer currentWord = null;
         Map<Long, Indicator> mapResult = new HashMap<>();
-        for (Object obj : textNodes) {
-          Text text = ((JAXBElement<Text>) obj).getValue();
-          char[] strArray = text.getValue().toLowerCase().toCharArray();
-          for (char c : strArray) {
-            // append current word to wordstoScan list
-            if (currentWord == null && p.matcher(c + "").find()) {
-              currentWord = new StringBuffer();
-            } else if (currentWord != null && !p.matcher(c + "").find()) {
-              wordstoScan.add(currentWord.toString());
-              currentWord = null;
+        if(file.getOriginalFilename().matches("\\S+\\.docx$")) {
+          WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(file.getInputStream());
+          MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
+          String textNodesXPath = "//w:t";
+          List<Object> textNodes = mainDocumentPart.getJAXBNodesViaXPath(textNodesXPath, true);
+          Pattern p = Pattern.compile("[a-z0-9]", Pattern.CASE_INSENSITIVE);
+          StringBuffer currentWord = null;
+
+          for (Object obj : textNodes) {
+            Text text = ((JAXBElement<Text>) obj).getValue();
+            char[] strArray = text.getValue().toLowerCase().toCharArray();
+            for (char c : strArray) {
+              // append current word to wordstoScan list
+              if (currentWord == null && p.matcher(c + "").find()) {
+                currentWord = new StringBuffer();
+              } else if (currentWord != null && !p.matcher(c + "").find()) {
+                wordstoScan.add(currentWord.toString());
+                currentWord = null;
+              }
+              if (currentWord != null) {
+                currentWord.append(c);
+              }
+              // clear wordstoScan list if exceed the max length of indicators
+              if (wordstoScan.size() == maxIndicatorLength) {
+                checkIndicators(wordstoScan, indicatorsList, mapResult);
+                wordstoScan.remove(wordstoScan.size() - 1);
+              }
             }
-            if (currentWord != null) {
-              currentWord.append(c);
-            }
-            // clear wordstoScan list if exceed the max length of indicators
+          }
+        } else {
+          // Read .doc
+          logger().info("Searching indicators in .doc file. maxIndicatorLength: {}", maxIndicatorLength);
+          HWPFDocument doc = new HWPFDocument(file.getInputStream());
+          Matcher matcher = Pattern.compile("\\w+").matcher(new WordExtractor(doc).getText());
+          while(matcher.find()){
+            wordstoScan.add(matcher.group());
             if (wordstoScan.size() == maxIndicatorLength) {
               checkIndicators(wordstoScan, indicatorsList, mapResult);
               wordstoScan.remove(wordstoScan.size() - 1);
             }
           }
+          doc.close();
         }
-        if (!mapResult.isEmpty()) {
+        if(!mapResult.isEmpty()) {
           List<Level> levelsList = levelRepository.findAllByOrderByPriority();
           logger().info("Starting the sort of the indicators {}", mapResult);
           // Sort by Level and then by number of times a keyword was tricked
-          result =
-              mapResult.values().stream()
-                  .sorted(
-                      (o1, o2) -> {
-                        if (o1.getLevel().getId().equals(o2.getLevel().getId())) {
-                          return o1.getNumTimes() > o2.getNumTimes()
-                              ? -1
-                              : (o1.getNumTimes().equals(o2.getNumTimes()) ? 0 : 1);
-                        }
-                        for (Level level : levelsList) {
-                          if (level.getPriority().equals(o1.getLevel().getPriority())) return -1;
-                          if (level.getPriority().equals(o2.getLevel().getPriority())) return 1;
-                        }
-                        return 1;
-                      })
-                  .map(this::convertIndicatorToIndicatorResponse)
-                  .collect(Collectors.toList());
+          result = mapResult.values().stream().sorted((o1, o2) -> {
+            if (o1.getLevel().getId().equals(o2.getLevel().getId())){
+              return o1.getNumTimes() > o2.getNumTimes() ? -1 :
+                  (o1.getNumTimes().equals(o2.getNumTimes()) ? 0 : 1);
+            }
+            for (Level level : levelsList) {
+              if(level.getPriority().equals(o1.getLevel().getPriority())) return -1;
+              if(level.getPriority().equals(o2.getLevel().getPriority())) return 1;
+            }
+            return 1;
+          }).map(this::convertIndicatorToIndicatorResponse).collect(Collectors.toList());
         }
       } catch (XPathBinderAssociationIsPartialException | JAXBException e) {
         logger().error("Failed to process temporary word file", e);
         throw new FailedToProcessWordFileException();
-      } catch (Docx4JException e) {
-        logger()
-            .error(
-                "Failed to load/process the temporary word file. Name of the file: {}",
-                file.getName(),
-                e);
+      } catch (Docx4JException e){
+        logger().error("Failed to load/process the temporary word file. Name of the file: {}", file.getName(), e);
         throw new WordFileLoadFailedException();
       } catch (IOException e) {
         logger().error("Failed to open word file. Name of the file: {}", file.getName(), e);
@@ -453,53 +461,23 @@ public class IndicatorService implements Logging {
                 .build();
     }
 
-  private Specification<Indicator> specificationForIndicatorFromFilter(FiltersDto filter) {
-    return (root, criteriaQuery, criteriaBuilder) -> {
-      List<Predicate> predicates = new ArrayList<>();
-      if (filter.getThemes().size() > 0) {
-        predicates.add(
-            criteriaBuilder.and(criteriaBuilder.in(root.get("themes")).value(filter.getThemes())));
-      } else {
-        predicates.add(criteriaBuilder.like(root.get("themes"), "%"));
-      }
-
-      if (filter.getSource().size() > 0) {
-        predicates.add(
-            criteriaBuilder.and(criteriaBuilder.in(root.get("source")).value(filter.getSource())));
-      } else {
-        predicates.add(criteriaBuilder.like(root.get("source"), "%"));
-      }
-
-      if (filter.getLevel().size() > 0) {
-        predicates.add(
-            criteriaBuilder.and(
-                criteriaBuilder
-                    .in(root.get("level").get("id"))
-                    .value(
-                        filter.getLevel().stream()
-                            .map(Level::getId)
-                            .collect(Collectors.toList()))));
-      } else {
-        predicates.add(criteriaBuilder.like(root.get("level").get("id").as(String.class), "_"));
-      }
-
-      if (filter.getSdgCode().size() > 0) {
-        predicates.add(
-            criteriaBuilder.and(
-                criteriaBuilder.in(root.get("sdgCode")).value(filter.getSdgCode())));
-      } else {
-        predicates.add(criteriaBuilder.like(root.get("sdgCode"), "%"));
-      }
-
-      if (filter.getCrsCode().size() > 0) {
-        predicates.add(
-            criteriaBuilder.and(
-                criteriaBuilder.in(root.get("crsCode")).value(filter.getCrsCode())));
-      } else {
-        predicates.add(criteriaBuilder.like(root.get("crsCode"), "%"));
-      }
-      return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
-    };
+  private List<Indicator> indicatorsFromFilter(FiltersDto filter) {
+    return getIndicators(
+        filter.getThemes().size() > 0
+            ? Optional.of(new ArrayList<>(filter.getThemes()))
+            : Optional.empty(),
+        filter.getSource().size() > 0
+            ? Optional.of(new ArrayList<>(filter.getSource()))
+            : Optional.empty(),
+        filter.getLevel().size() > 0
+            ? Optional.of(filter.getLevel().stream().map(Level::getId).collect(Collectors.toList()))
+            : Optional.empty(),
+        filter.getSdgCode().size() > 0
+            ? Optional.of(new ArrayList<>(filter.getSdgCode()))
+            : Optional.empty(),
+        filter.getCrsCode().size() > 0
+            ? Optional.of(new ArrayList<>(filter.getSdgCode()))
+            : Optional.empty());
   }
     /**
      * Fills the DFID template with the indicators

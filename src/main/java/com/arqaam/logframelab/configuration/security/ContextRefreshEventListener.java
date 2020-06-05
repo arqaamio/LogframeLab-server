@@ -32,9 +32,9 @@ public class ContextRefreshEventListener {
 
   @EventListener
   public void initSecurityAdminUser(ContextRefreshedEvent event) {
-    List<User> userByGroupName = userService.getFirstUserByGroupName(SEC_ADMIN_GROUP_NAME);
+    List<User> usersByGroupName = userService.getFirstUserByGroupName(SEC_ADMIN_GROUP_NAME);
 
-    if (!userByGroupName.isEmpty()) {
+    if (usersByGroupName.isEmpty()) {
       User secAdminUser =
           User.builder()
               .username(DEFAULT_SEC_ADMIN_USERNAME)

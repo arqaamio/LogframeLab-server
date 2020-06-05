@@ -21,12 +21,12 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-public class UserManagerTests  extends BaseControllerTest  implements BaseDatabaseTest  {
+public class UserManagerTests extends BaseControllerTest implements BaseDatabaseTest  {
 
   private static final String APP_USER_USERNAME = "user";
   private static final String APP_USER_PASSWORD = "Password";
   private static final Collection<Integer> APP_USER_GROUP_ID = Collections.singleton(2);
-  private static final String AUTH_USER_URL = "/auth/user";
+  private static final String AUTH_USER_URL = "/auth/users";
   private static final int APP_USER_GROUP_SIZE = 1;
   private static final String APP_USER_GROUP_NAME = "APP_USER";
 

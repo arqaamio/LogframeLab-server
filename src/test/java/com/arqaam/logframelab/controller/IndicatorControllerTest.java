@@ -441,26 +441,11 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
     FiltersDto filters = new FiltersDto();
     filters
         .getThemes()
-        .addAll(
-            Arrays.asList(
-                "Digitalisation",
-                "Education",
-                "Poverty",
-                "Nutrition",
-                "Agriculture",
-                "Health",
-                "WASH", "Electricity",
-                "Private Sector",
-                "Infrastructure",
-                "Migration",
-                "Climate Change",
-                "Environment",
-                "Public Sector",
-                "Human Rights",
-                "Conflict",
-                "Food Security",
-                "Equality",
-                "Water and Sanitation"));
+        .addAll(Arrays
+            .asList("Digitalisation", "Education", "Poverty", "Nutrition", "Agriculture", "Health",
+                "WASH", "Electricity", "Private Sector", "Infrastructure", "Migration",
+                "Climate Change", "Environment", "Public Sector", "Human Rights", "Conflict",
+                "Food Security", "Equality", "Water and Sanitation"));
     filters
         .getCrsCode()
         .addAll(
@@ -468,30 +453,11 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
     filters.getLevel().addAll(Arrays.asList(mockLevels));
     filters
         .getSource()
-        .addAll(
-            Arrays.asList(
-                "Capacity4Dev",
-                "EU",
-                "WFP",
-                "ECHO",
-                "ECHO,WFP",
-                "ECHO,WHO",
-                "FAO",
-                "FAO,WHO",
-                "WHO",
-                "FANTA",
-                "IPA",
-                "WHO,FAO",
-                "ACF",
-                "Nutrition Cluster",
-                "Freendom House",
-                "CyberGreen",
-                "ITU",
-                "UN Sustainable Development Goals",
-                "World Bank",
-                "UNDP",
-                "ILO",
-                "IMF"));
+        .addAll(Arrays
+            .asList("Capacity4Dev", "EU", "WFP", "ECHO", "ECHO,WFP", "ECHO,WHO", "FAO", "FAO,WHO",
+                "WHO", "FANTA", "IPA", "WHO,FAO", "ACF", "Nutrition Cluster", "Freendom House",
+                "CyberGreen", "ITU", "UN Sustainable Development Goals", "World Bank", "UNDP",
+                "ILO", "IMF"));
     filters.getSdgCode().addAll(Arrays.asList("4.1", "7.1", "1.a", "8.2"));
     return filters;
   }

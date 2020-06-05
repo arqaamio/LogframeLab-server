@@ -6,7 +6,6 @@ import com.arqaam.logframelab.exception.UserProvisioningException;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import com.arqaam.logframelab.repository.GroupRepository;
 import com.arqaam.logframelab.service.auth.UserService;
-import com.arqaam.logframelab.service.usermanager.mapper.UserMapper;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;

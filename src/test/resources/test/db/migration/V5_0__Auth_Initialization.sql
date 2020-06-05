@@ -61,7 +61,3 @@ VALUES (1, 'CRUD_APP_USER'),
        (1, 'CRUD_ADMIN'),
        (3, 'CRUD_INDICATOR'),
        (3, 'CRUD_INDICATOR_LEVEL');
-
-/*
- select g.id, g.group_name, ga.authority from groups g, group_members gm, group_authorities ga where gm.username = ? and g.id = ga.group_id and g.id = gm.group_id
- */

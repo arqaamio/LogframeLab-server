@@ -15,8 +15,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-public class IndicatorControllerIntegrationTest extends BaseControllerTest implements BaseDatabaseTest
-     {
+public class IndicatorControllerIntegrationTest extends BaseControllerTest implements
+    BaseDatabaseTest {
 
   private static final int DATABASE_THEMES_SIZE = 42;
   private static final int DATABASE_CRS_CODE_SIZE = 76;

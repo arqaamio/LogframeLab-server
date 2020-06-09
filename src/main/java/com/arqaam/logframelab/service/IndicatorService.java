@@ -255,57 +255,61 @@ public class IndicatorService implements Logging {
      * @param file Worksheet file
      */
      public List<Indicator> importIndicators(MultipartFile file) {
-        List<Level> levels = levelRepository.findAll();
-        Map<String, Level> levelMap = new HashMap<>();
-        for (Level lvl : levels){
-            levelMap.put(lvl.getName(), lvl);
+       return indicatorRepository.saveAll(extractIndicatorFromFile(file));
+    }
+
+    public List<Indicator> extractIndicatorFromFile(MultipartFile file) {
+      List<Level> levels = levelRepository.findAll();
+      Map<String, Level> levelMap = new HashMap<>();
+      for (Level lvl : levels){
+        levelMap.put(lvl.getName(), lvl);
+      }
+
+      logger().info("Importing indicators from xlsx, name {}", file.getName());
+      try {
+        List<Indicator> indicatorList = new ArrayList<>();
+        Iterator<Row> iterator = new XSSFWorkbook(file.getInputStream()).getSheetAt(0).iterator();
+        // skip the headers row
+        if (iterator.hasNext()) {
+          iterator.next();
         }
-       
-        logger().info("Importing indicators from xlsx, name {}", file.getName());
-        try {
-            List<Indicator> indicatorList = new ArrayList<>();
-            Iterator<Row> iterator = new XSSFWorkbook(file.getInputStream()).getSheetAt(0).iterator();
-            // skip the headers row
-            if (iterator.hasNext()) {
-                iterator.next();
-            }
-            int count=-1;
-            while (iterator.hasNext()) {
-                logger().info(" ");
-                Row currentRow = iterator.next();
+        int count=-1;
+        while (iterator.hasNext()) {
+          logger().info(" ");
+          Row currentRow = iterator.next();
 
-                // key words
-                String[] keys = currentRow.getCell(2).getStringCellValue().toLowerCase().split(",");
-                for (int i = 0; i < keys.length; i++) {
-                    keys[i] = keys[i].trim().replaceAll("\\s+", " ");
-                }
-                Level level = levelMap.get(currentRow.getCell(0).getStringCellValue().toUpperCase());
-                if (!isNull(level)) {
-                    Cell crsCodeCell = currentRow.getCell(7, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                    Indicator indicator = Indicator.builder()
-                            .level(level)
-                            .themes(currentRow.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .keywords(String.join(",", keys))
-                            .name(currentRow.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .description(currentRow.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .source(currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .disaggregation(currentRow.getCell(6, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().equalsIgnoreCase("yes"))
-                            .crsCode(crsCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(crsCodeCell.getNumericCellValue()) : crsCodeCell.getStringCellValue())
-                            .sdgCode(currentRow.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .sourceVerification(currentRow.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .dataSource(currentRow.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .build();
-                    logger().info("Line {}, Saving this indicator {}", count, indicator);
-                    indicatorList.add(indicatorRepository.save(indicator));
-                    count++;
-                }
-            }
-            return indicatorList;
+          // key words
+          String[] keys = currentRow.getCell(2).getStringCellValue().toLowerCase().split(",");
+          for (int i = 0; i < keys.length; i++) {
+            keys[i] = keys[i].trim().replaceAll("\\s+", " ");
+          }
+          Level level = levelMap.get(currentRow.getCell(0).getStringCellValue().toUpperCase());
+          if (!isNull(level)) {
+            Cell crsCodeCell = currentRow.getCell(7, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+            Indicator indicator = Indicator.builder()
+                .level(level)
+                .themes(currentRow.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .keywords(String.join(",", keys))
+                .name(currentRow.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .description(currentRow.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .source(currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .disaggregation(currentRow.getCell(6, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().equalsIgnoreCase("yes"))
+                .crsCode(crsCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(crsCodeCell.getNumericCellValue()) : crsCodeCell.getStringCellValue())
+                .sdgCode(currentRow.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .sourceVerification(currentRow.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .dataSource(currentRow.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .build();
+            logger().info("Line {}, Saving this indicator {}", count, indicator);
+            indicatorList.add(indicator);
+            count++;
+          }
+        }
+        return indicatorList;
 
-        } catch (IOException e) {
-            logger().error("Failed to open worksheet.", e);
-            throw new FailedToOpenWorksheetException();
-        }/* catch (InvalidFormatException e) {
+      } catch (IOException e) {
+        logger().error("Failed to open worksheet.", e);
+        throw new FailedToOpenWorksheetException();
+      }/* catch (InvalidFormatException e) {
             logger().error("Failed to interpret worksheet. It must be in a wrong format.", e);
             throw new WorksheetInWrongFormatException();
         }*/

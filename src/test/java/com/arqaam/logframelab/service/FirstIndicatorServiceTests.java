@@ -40,7 +40,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
 @ExtendWith(MockitoExtension.class)
-public class IndicatorServiceTest1 extends BaseIndicatorServiceTest {
+public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
 
   @Test
   void extractIndicatorsFromWordFile() throws IOException {

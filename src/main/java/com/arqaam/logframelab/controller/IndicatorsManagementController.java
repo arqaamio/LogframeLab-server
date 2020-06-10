@@ -35,7 +35,7 @@ public class IndicatorsManagementController {
   }
 
   @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<?> getIndicators(@Valid IndicatorsRequestDto indicatorsRequest) {
+  public ResponseEntity<Page<Indicator>> getIndicators(@Valid IndicatorsRequestDto indicatorsRequest) {
     Page<Indicator> indicators = indicatorsManagementService.getIndicators(indicatorsRequest);
     return ResponseEntity.ok(indicators);
   }

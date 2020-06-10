@@ -10,7 +10,6 @@ import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
 import com.arqaam.logframelab.repository.TempIndicatorRepository;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -90,7 +89,8 @@ public class IndicatorsManagementServiceImpl implements IndicatorsManagementServ
 
   @Override
   public void processTempIndicatorsApproval(TempIndicatorApprovalRequestDto approvalRequest) {
-    List<Approval> listOfApproved = approvalRequest.getApprovals().stream().filter(Approval::getIsApproved)
+    List<Approval> listOfApproved = approvalRequest.getApprovals().stream()
+        .filter(Approval::getIsApproved)
         .collect(Collectors.toList());
 
     if (listOfApproved.size() > 0) {
@@ -108,7 +108,7 @@ public class IndicatorsManagementServiceImpl implements IndicatorsManagementServ
         .filter(approval -> !approval.getIsApproved()).collect(Collectors.toList());
 
     if (listOfUnapproved.size() > 0) {
-      tempIndicatorRepository.deleteAllById(listOfUnapproved.stream().map(Approval::getId).collect(Collectors.toList()));
+      tempIndicatorRepository.deleteByIdIn(listOfUnapproved.stream().map(Approval::getId).collect(Collectors.toList()));
     }
   }
 

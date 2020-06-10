@@ -8,5 +8,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface TempIndicatorRepository extends JpaRepository<TempIndicator, Long> {
 
-  void deleteAllById(Collection<Long> ids);
+  void deleteByIdIn(Collection<Long> id);
 }

@@ -84,7 +84,12 @@ git push --set-upstream origin feature/<feature_name>
 
 ## Running Integration Tests
 In order to run the integration tests that require the actual beans to be used in Dependency Injection locally, do the following:
-* Manually create the __*integration_tests*__ database with __root__ user and password __root__. These credentials align with the docker config.
-* Run the usual *mvn test* command. This will pick up the configuration specifics from the __application-integration.properties__ file.  
+* ~~Manually create the __*integration_tests*__ database with __root__ user and password __root__. These credentials align with the docker config.~~
+* Make sure docker is running. 
+* Run the usual *mvn test* command. 
+* At runtime, [Testcontainers](https://www.testcontainers.org/test_framework_integration/junit_5/)
+ will deploy a MySQL instance as specified in the `BaseDatabaseTest` interface. Secondly, `BaseDatabaseTest.Initializer` will inject
+ the deployed MySQL url into the __application-integration.properties__ file where needed.
+* The tests will proceed as usual. 
 
 [![License: CC BY-NC-SA 4.0](https://licensebuttons.net/l/by-nc-sa/4.0/80x15.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/)

@@ -5,12 +5,14 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
 import com.arqaam.logframelab.controller.dto.FiltersDto;
+import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
 import java.util.Objects;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-public class IndicatorControllerIntegrationTest extends BaseControllerTest {
+public class IndicatorControllerIntegrationTest extends BaseControllerTest implements
+    BaseDatabaseTest {
 
   private static final int DATABASE_THEMES_SIZE = 42;
   private static final int DATABASE_CRS_CODE_SIZE = 76;

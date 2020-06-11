@@ -24,7 +24,7 @@ public interface BaseDatabaseTest {
           .withDatabaseName("integration_tests")
           .withUsername("root")
           .withPassword("")
-          .withPrivilegedMode(true);
+          .withPrivilegedMode(false);
 
   @TestPropertySource(locations = "classpath:application-integration.properties")
   class Initializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {

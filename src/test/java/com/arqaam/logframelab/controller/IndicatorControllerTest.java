@@ -20,6 +20,7 @@ import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.Level;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
+import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
 import com.arqaam.logframelab.service.IndicatorService;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -51,7 +52,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-class IndicatorControllerTest extends BaseControllerTest {
+class IndicatorControllerTest extends BaseControllerTest implements BaseDatabaseTest {
 
   private static final Level[] mockLevels =
       new Level[]{

@@ -12,6 +12,7 @@ import com.arqaam.logframelab.util.Logging;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Row.MissingCellPolicy;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -277,7 +278,11 @@ public class IndicatorService implements Logging {
         while (iterator.hasNext()) {
           logger().info(" ");
           Row currentRow = iterator.next();
-
+          try {
+            currentRow.getCell(2).getStringCellValue();
+          } catch (NullPointerException ex) {
+            continue;
+          }
           // key words
           String[] keys = currentRow.getCell(2).getStringCellValue().toLowerCase().split(",");
           for (int i = 0; i < keys.length; i++) {
@@ -286,6 +291,7 @@ public class IndicatorService implements Logging {
           Level level = levelMap.get(currentRow.getCell(0).getStringCellValue().toUpperCase());
           if (!isNull(level)) {
             Cell crsCodeCell = currentRow.getCell(7, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+            Cell sdgCodeCell = currentRow.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
             Indicator indicator = Indicator.builder()
                 .level(level)
                 .themes(currentRow.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
@@ -295,7 +301,7 @@ public class IndicatorService implements Logging {
                 .source(currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
                 .disaggregation(currentRow.getCell(6, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().equalsIgnoreCase("yes"))
                 .crsCode(crsCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(crsCodeCell.getNumericCellValue()) : crsCodeCell.getStringCellValue())
-                .sdgCode(currentRow.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .sdgCode(sdgCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(sdgCodeCell.getNumericCellValue()) : sdgCodeCell.getStringCellValue())
                 .sourceVerification(currentRow.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
                 .dataSource(currentRow.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
                 .build();

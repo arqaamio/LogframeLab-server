@@ -4,8 +4,10 @@ import com.arqaam.logframelab.controller.dto.IndicatorRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto;
 import com.arqaam.logframelab.controller.dto.TempIndicatorApprovalRequestDto;
 import com.arqaam.logframelab.model.persistence.Indicator;
+import com.arqaam.logframelab.model.persistence.TempIndicator;
 import com.arqaam.logframelab.service.IndicatorsManagementService;
 import io.swagger.annotations.Api;
+import java.util.Optional;
 import javax.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
@@ -25,7 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 @CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("indicators")
-@Api(tags = "Indicator")
+@Api(tags = "Indicators")
 public class IndicatorsManagementController {
 
   private final IndicatorsManagementService indicatorsManagementService;
@@ -35,22 +37,35 @@ public class IndicatorsManagementController {
   }
 
   @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<Page<Indicator>> getIndicators(@Valid IndicatorsRequestDto indicatorsRequest) {
-    Page<Indicator> indicators = indicatorsManagementService.getIndicators(indicatorsRequest);
-    return ResponseEntity.ok(indicators);
+  public ResponseEntity<Page<Indicator>> getIndicators(
+      @Valid IndicatorsRequestDto indicatorsRequest) {
+    return ResponseEntity.ok(indicatorsManagementService.getIndicators(indicatorsRequest));
+  }
+
+  @GetMapping(value = "{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<Indicator> getIndicator(@PathVariable(value = "id") Long id) {
+    Optional<Indicator> indicator = indicatorsManagementService.getIndicator(id);
+    return indicator.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
   }
 
   @PutMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<?> updateIndicator(@RequestBody IndicatorRequestDto request) {
-    return ResponseEntity.ok(indicatorsManagementService.saveIndicator(request));
+    if (indicatorsManagementService.indicatorExists(request.getId())) {
+      return ResponseEntity.ok(indicatorsManagementService.saveIndicator(request));
+    } else {
+      return ResponseEntity.notFound().build();
+    }
   }
 
   @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<?> createIndicator(@RequestBody IndicatorRequestDto request) {
+    if (request.getId() != null) {
+      return ResponseEntity.badRequest().build();
+    }
     return ResponseEntity.ok(indicatorsManagementService.saveIndicator(request));
   }
 
-  @DeleteMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+  @DeleteMapping(value = "{id}")
   public ResponseEntity<?> deleteIndicator(@PathVariable(value = "id") Long id) {
     indicatorsManagementService.deleteIndicator(id);
     return ResponseEntity.ok().build();
@@ -63,13 +78,14 @@ public class IndicatorsManagementController {
   }
 
   @GetMapping(value = "approvals", produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<?> getTempIndicatorsForApproval(IndicatorsRequestDto indicatorsRequest) {
+  public ResponseEntity<Page<TempIndicator>> getTempIndicatorsForApproval(
+      IndicatorsRequestDto indicatorsRequest) {
     return ResponseEntity
         .ok(indicatorsManagementService.getIndicatorsForApproval(indicatorsRequest));
   }
 
   @PostMapping(value = "approvals", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<?> approvalStatusUpdate(TempIndicatorApprovalRequestDto approvalRequest) {
+  public ResponseEntity<?> approvalStatusUpdate(@RequestBody TempIndicatorApprovalRequestDto approvalRequest) {
     indicatorsManagementService.processTempIndicatorsApproval(approvalRequest);
     return ResponseEntity.ok().build();
   }

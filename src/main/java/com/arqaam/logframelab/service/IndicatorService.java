@@ -274,9 +274,7 @@ public class IndicatorService implements Logging {
         if (iterator.hasNext()) {
           iterator.next();
         }
-        int count=-1;
         while (iterator.hasNext()) {
-          logger().info(" ");
           Row currentRow = iterator.next();
           try {
             currentRow.getCell(2).getStringCellValue();
@@ -305,9 +303,11 @@ public class IndicatorService implements Logging {
                 .sourceVerification(currentRow.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
                 .dataSource(currentRow.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
                 .build();
-            logger().info("Line {}, Saving this indicator {}", count, indicator);
             indicatorList.add(indicator);
-            count++;
+            /*
+             * Logging per row with a large-enough file caused an error in tests:
+             * https://stackoverflow.com/a/52033799/2211446
+             */
           }
         }
         return indicatorList;

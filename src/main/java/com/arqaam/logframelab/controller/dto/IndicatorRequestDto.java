@@ -1,19 +1,22 @@
 package com.arqaam.logframelab.controller.dto;
 
-import lombok.Value;
+import lombok.Builder;
+import lombok.Data;
 
-@Value
+@Data
+@Builder
 public class IndicatorRequestDto {
-  long id;
-  String crsCode;
-  String dataSource;
-  String description;
-  Boolean disaggregation;
-  String keywords;
-  String name;
-  String sdgCode;
-  String source;
-  String sourceVerification;
-  String themes;
-  Long levelId;
+
+  private Long id;
+  private String crsCode;
+  private String dataSource;
+  private String description;
+  private Boolean disaggregation;
+  private String keywords;
+  private String name;
+  private String sdgCode;
+  private String source;
+  private String sourceVerification;
+  private String themes;
+  private Long levelId;
 }

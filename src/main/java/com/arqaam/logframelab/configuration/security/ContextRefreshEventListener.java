@@ -31,7 +31,7 @@ public class ContextRefreshEventListener {
     this.passwordEncoder = passwordEncoder;
   }
 
-  //@EventListener
+  @EventListener
   public void initSecurityAdminUser(ContextRefreshedEvent event) {
     List<User> usersByGroupName = userService.getFirstUserByGroupName(SEC_ADMIN_GROUP_NAME);
 

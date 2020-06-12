@@ -23,7 +23,6 @@ import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.wml.ObjectFactory;
 import org.docx4j.wml.R;
 import org.docx4j.wml.Text;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;

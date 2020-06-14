@@ -12,6 +12,9 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import com.arqaam.logframelab.controller.dto.IndicatorRequestDto;
 import com.arqaam.logframelab.controller.dto.TempIndicatorApprovalRequestDto;
 import com.arqaam.logframelab.controller.dto.TempIndicatorApprovalRequestDto.Approval;
+import com.arqaam.logframelab.controller.dto.auth.UserDto;
+import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningRequestDto;
+import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningResponseDto;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.TempIndicator;
 import com.arqaam.logframelab.repository.TempIndicatorRepository;
@@ -21,10 +24,12 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.stream.Collectors;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -45,17 +50,44 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class IndicatorsManagementControllerTest extends BaseControllerTest implements
     BaseDatabaseTest {
 
-  private final static int DEFAULT_PAGE_SIZE = 10;
-  private final static int DEFAULT_PAGE = 1;
+  public static final int INDICATOR_ADMIN_GROUP_ID = 3;
+  public static final String INDICATOR_USERNAME = "indicator";
+  public static final String INDICATOR_PASSWORD = "indicator";
+  public static final String AUTH_USERS_URI = "/auth/users/";
+  final static int DEFAULT_PAGE_SIZE = 10;
+  final static int DEFAULT_PAGE = 1;
   private final static int DEFAULT_PAGE_INDEX = DEFAULT_PAGE - 1;
   private static final String INDICATORS_URI = "/indicators/";
   private static final String APPROVALS_URI = INDICATORS_URI + "approvals";
-
   @Autowired
   private IndicatorMapper indicatorMapper;
-
   @Autowired
   private TempIndicatorRepository tempIndicatorRepository;
+
+  private String indicatorsManagerToken;
+
+  @BeforeEach
+  void generateIndicatorManagerToken() {
+    super.generateAuthToken();
+
+    ResponseEntity<UserDto> userResponse = testRestTemplate
+        .exchange(AUTH_USERS_URI + INDICATOR_USERNAME, HttpMethod.GET,
+            new HttpEntity<>(super.headersWithAuth()),
+            new ParameterizedTypeReference<UserDto>() {
+            });
+
+    if (userResponse.getStatusCode().is4xxClientError()) {
+      UserAuthProvisioningRequestDto authProvisioningRequest =
+          new UserAuthProvisioningRequestDto(INDICATOR_USERNAME, INDICATOR_PASSWORD,
+              Collections.singletonList(INDICATOR_ADMIN_GROUP_ID));
+
+      testRestTemplate.exchange(AUTH_USERS_URI, HttpMethod.POST,
+          new HttpEntity<>(authProvisioningRequest, super.headersWithAuth()),
+          UserAuthProvisioningResponseDto.class);
+    }
+
+    indicatorsManagerToken = token(INDICATOR_USERNAME, INDICATOR_PASSWORD);
+  }
 
   @Test
   void whenIndicatorsByPageRequested_thenVerifyResult() {
@@ -84,7 +116,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest imple
     indicator.setDisaggregation(!disaggregationBeforeUpdate);
 
     HttpEntity<IndicatorRequestDto> httpEntity = new HttpEntity<>(
-        indicatorMapper.indicatorToIndicatorRequestDto(indicator));
+        indicatorMapper.indicatorToIndicatorRequestDto(indicator), headersWithAuth());
 
     ResponseEntity<Indicator> updatedIndicatorResponse = testRestTemplate
         .exchange(INDICATORS_URI, HttpMethod.PUT, httpEntity, Indicator.class);
@@ -115,7 +147,8 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest imple
         .build();
 
     ResponseEntity<Indicator> indicator = testRestTemplate
-        .exchange(INDICATORS_URI, HttpMethod.POST, new HttpEntity<>(request), Indicator.class);
+        .exchange(INDICATORS_URI, HttpMethod.POST, new HttpEntity<>(request, headersWithAuth()),
+            Indicator.class);
 
     assertAll(
         () -> assertThat(indicator.getStatusCode(), is(HttpStatus.OK)),
@@ -131,11 +164,13 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest imple
     Indicator indicator = Objects.requireNonNull(indicatorsPerPageResponse.getBody()).getContent()
         .get(new Random().nextInt(DEFAULT_PAGE_SIZE));
 
+    HttpEntity<Object> httpEntity = new HttpEntity<>(headersWithAuth());
+
     ResponseEntity<Void> deleteResponse = testRestTemplate
-        .exchange(INDICATORS_URI + indicator.getId(), HttpMethod.DELETE, null, Void.class);
+        .exchange(INDICATORS_URI + indicator.getId(), HttpMethod.DELETE, httpEntity, Void.class);
 
     ResponseEntity<Indicator> getResponse = testRestTemplate
-        .exchange(INDICATORS_URI + indicator.getId(), HttpMethod.GET, null, Indicator.class);
+        .exchange(INDICATORS_URI + indicator.getId(), HttpMethod.GET, httpEntity, Indicator.class);
 
     assertAll(
         () -> assertThat(deleteResponse.getStatusCode(), is(HttpStatus.OK)),
@@ -176,7 +211,8 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest imple
     TempIndicatorApprovalRequestDto approvalRequest =
         new TempIndicatorApprovalRequestDto(approvals);
     ResponseEntity<Void> approvalResponse = testRestTemplate
-        .exchange(APPROVALS_URI, HttpMethod.POST, new HttpEntity<>(approvalRequest), Void.class);
+        .exchange(APPROVALS_URI, HttpMethod.POST,
+            new HttpEntity<>(approvalRequest, headersWithAuth()), Void.class);
 
     ;
 
@@ -193,7 +229,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest imple
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("file", new ClassPathResource("Clusters.xlsx"));
 
-    HttpHeaders headers = new HttpHeaders();
+    HttpHeaders headers = headersWithAuth();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
     return testRestTemplate
@@ -202,9 +238,21 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest imple
   }
 
   private ResponseEntity<ResponsePage<Indicator>> getPageOfIndicators() {
-    return testRestTemplate.exchange(uriForDefaultPage(INDICATORS_URI), HttpMethod.GET, null,
+
+    return testRestTemplate.exchange(uriForDefaultPage(INDICATORS_URI), HttpMethod.GET,
+        new HttpEntity<>(headersWithAuth()),
         new ParameterizedTypeReference<ResponsePage<Indicator>>() {
         });
+  }
+
+  private ResponseEntity<ResponsePage<TempIndicator>> getTempIndicatorsForApproval() {
+    uploadIndicatorsForApproval();
+
+    return testRestTemplate
+        .exchange(uriForDefaultPage(APPROVALS_URI), HttpMethod.GET,
+            new HttpEntity<>(headersWithAuth()),
+            new ParameterizedTypeReference<ResponsePage<TempIndicator>>() {
+            });
   }
 
   private String uriForDefaultPage(String uri) {
@@ -212,13 +260,12 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest imple
         .queryParam("pageSize", DEFAULT_PAGE_SIZE).toUriString();
   }
 
-  private ResponseEntity<ResponsePage<TempIndicator>> getTempIndicatorsForApproval() {
-    uploadIndicatorsForApproval();
-
-    return testRestTemplate
-        .exchange(uriForDefaultPage(APPROVALS_URI), HttpMethod.GET, null,
-            new ParameterizedTypeReference<ResponsePage<TempIndicator>>() {
-            });
+  protected HttpHeaders headersWithAuth() {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(indicatorsManagerToken);
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.set("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+    return headers;
   }
 }
 

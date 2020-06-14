@@ -7,7 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
 import java.util.Objects;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -20,10 +24,19 @@ public class IndicatorControllerIntegrationTest extends BaseControllerTest imple
   private static final int DATABASE_SDG_CODE_SIZE = 168;
   private static final int DATABASE_LEVEL_SIZE = 3;
 
+  @BeforeEach
+  void setup() {
+    generateAuthToken();
+  }
+
   @Test
-  public void whenFiltersRequested_ThenFiltersReturned() {
+  void whenFiltersRequested_ThenFiltersReturned() {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(bearerToken);
+
     ResponseEntity<FiltersDto> filters =
-        testRestTemplate.getForEntity("/indicator/filters", FiltersDto.class);
+        testRestTemplate.exchange(
+            "/indicator/filters", HttpMethod.GET, new HttpEntity<>(headers), FiltersDto.class);
     FiltersDto filtersDto = Objects.requireNonNull(filters.getBody());
 
     assertAll(

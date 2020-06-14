@@ -16,8 +16,11 @@ import java.util.ArrayList;
 @Configuration
 public class GlobalConfiguration {
 
-    @Autowired
-    private SwaggerProperties swaggerProperties;
+    private final SwaggerProperties swaggerProperties;
+
+    public GlobalConfiguration(SwaggerProperties swaggerProperties) {
+        this.swaggerProperties = swaggerProperties;
+    }
 
     @Bean
     public Docket api() {

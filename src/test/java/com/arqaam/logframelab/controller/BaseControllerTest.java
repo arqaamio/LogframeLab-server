@@ -26,7 +26,7 @@ public class BaseControllerTest {
 
   protected String bearerToken;
 
-  protected final HttpEntity defaultHttpEntity = new HttpEntity(new HttpHeaders());
+  protected HttpEntity defaultHttpEntity;
 
   @Autowired
   protected TestRestTemplate testRestTemplate;
@@ -48,5 +48,8 @@ public class BaseControllerTest {
     JwtAuthenticationTokenResponse tokenResponse = tokenResponseEntity.getBody();
     assert tokenResponse != null;
     bearerToken = tokenResponse.getToken();
+    HttpHeaders httpHeaders = new HttpHeaders();
+    httpHeaders.setBearerAuth(bearerToken);
+    defaultHttpEntity = new HttpEntity<>(httpHeaders);
   }
 }

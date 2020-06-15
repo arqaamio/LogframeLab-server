@@ -17,6 +17,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,7 +28,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@CrossOrigin(origins = "*")
+@CrossOrigin("*")
 @RestController
 @RequestMapping("indicator")
 @Api(tags = "Indicator")
@@ -35,7 +36,6 @@ public class IndicatorController implements Logging {
 
     private static final String WORD_FILE_EXTENSION = ".docx";
     private static final String WORKSHEET_FILE_EXTENSION = ".xlsx";
-
 
     private static final String WORKSHEET_DEFAULT_FORMAT = "xlsx";
     private static final String WORD_FORMAT = "word";
@@ -51,11 +51,11 @@ public class IndicatorController implements Logging {
             @ApiResponse(code = 409, message = "Wrong file extension", response = Error.class),
             @ApiResponse(code = 500, message = "Failed to upload the file", response = Error.class)
     })
-    public ResponseEntity<List<IndicatorResponse>> handleFileUpload(@RequestPart("file") MultipartFile file, @RequestPart("filter") FiltersDto filter) {
+    public ResponseEntity<List<IndicatorResponse>> handleFileUpload(@RequestPart("file") MultipartFile file , @RequestPart("filter") FiltersDto filter) {
         logger().info("Extract Indicators from Word File. File Name: {}", file.getOriginalFilename());
         if(!file.getOriginalFilename().matches("\\S+(\\.docx$|\\.doc$)")){
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
-            throw new WrongFileExtensionException();
+           throw new WrongFileExtensionException();
         }
         return  ResponseEntity.ok().body(indicatorService.extractIndicatorsFromWordFile(file, filter));
     }

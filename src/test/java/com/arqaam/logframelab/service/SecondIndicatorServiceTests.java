@@ -23,7 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class IndicatorServiceTest2 extends BaseIndicatorServiceTest {
+public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
 
   @Test
   void exportIndicatorsDFIDFormat() throws IOException {

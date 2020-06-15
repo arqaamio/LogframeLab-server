@@ -19,6 +19,7 @@ import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.Level;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
+import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
 import com.arqaam.logframelab.service.IndicatorService;
 
 import java.util.ArrayList;
@@ -44,7 +45,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-class IndicatorControllerTest extends BaseControllerTest {
+class IndicatorControllerTest extends BaseControllerTest implements BaseDatabaseTest {
 
   private static final Level[] mockLevels =
       new Level[]{
@@ -96,12 +97,15 @@ class IndicatorControllerTest extends BaseControllerTest {
             .collect(Collectors.toList()));
 
     when(indicatorRepositoryMock.findAll()).thenReturn(mockIndicatorList());
+
+    generateAuthToken();
   }
 
   @Test
   void handleFileUpload() {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+    headers.setBearerAuth(bearerToken);
     FiltersDto filters = getSampleFilter();
 
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
@@ -146,6 +150,7 @@ class IndicatorControllerTest extends BaseControllerTest {
     when(indicatorRepositoryMock.findAll()).thenReturn(indicators);
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+    headers.setBearerAuth(bearerToken);
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("file", new ClassPathResource("test_doc.docx"));
     body.add("filter", EMPTY_FILTER);
@@ -187,6 +192,7 @@ class IndicatorControllerTest extends BaseControllerTest {
     when(indicatorRepositoryMock.findAll()).thenReturn(indicators);
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+    headers.setBearerAuth(bearerToken);
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("file", new ClassPathResource("test_doc.docx"));
     body.add("filter", EMPTY_FILTER);
@@ -204,6 +210,7 @@ class IndicatorControllerTest extends BaseControllerTest {
   void handleFileUpload_wrongFileFormat() {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+    headers.setBearerAuth(bearerToken);
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("file", new ClassPathResource("application.properties"));
     body.add("filter", getSampleFilter());
@@ -228,7 +235,7 @@ class IndicatorControllerTest extends BaseControllerTest {
     when(indicatorRepositoryMock.findAllById(any())).thenReturn(mockIndicatorList());
     ResponseEntity<Resource> response = testRestTemplate
         .exchange("/indicator/download?format=dfid", HttpMethod.POST,
-            new HttpEntity<>(indicators), Resource.class);
+            new HttpEntity<>(indicators, headersWithAuth()), Resource.class);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
   }
@@ -238,24 +245,25 @@ class IndicatorControllerTest extends BaseControllerTest {
     List<IndicatorResponse> indicators = new ArrayList<>();
     ResponseEntity<Error> response =
         testRestTemplate.exchange(
-            "/indicator/download", HttpMethod.POST, new HttpEntity<>(indicators), Error.class);
+            "/indicator/download", HttpMethod.POST, new HttpEntity<>(indicators, headersWithAuth()), Error.class);
     assertEqualsException(response, HttpStatus.CONFLICT, 6, IllegalArgumentException.class);
   }
 
   @Test
-    void handleFileUpload_doc() {
-        List<IndicatorResponse> expectedResult = getExpectedResult();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("filter", getSampleFilter());
+  void handleFileUpload_doc() {
+    List<IndicatorResponse> expectedResult = getExpectedResult();
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+    headers.setBearerAuth(bearerToken);
+    MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+    body.add("filter", getSampleFilter());
 
-        body.add("file", new ClassPathResource("test_doc.doc"));
-        ResponseEntity<List<IndicatorResponse>> response = testRestTemplate.exchange("/indicator/upload", HttpMethod.POST,
-                new HttpEntity<>(body, headers), new ParameterizedTypeReference<List<IndicatorResponse>>() {});
+    body.add("file", new ClassPathResource("test_doc.doc"));
+    ResponseEntity<List<IndicatorResponse>> response = testRestTemplate.exchange("/indicator/upload", HttpMethod.POST,
+        new HttpEntity<>(body, headers), new ParameterizedTypeReference<List<IndicatorResponse>>() {});
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEqualsIndicator(expectedResult, response.getBody());
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertEqualsIndicator(expectedResult, response.getBody());
   }
 
   @Test
@@ -267,7 +275,7 @@ class IndicatorControllerTest extends BaseControllerTest {
                 + "&sources=" + String.join(",", mockSources) +
                 "&sdgCodes=" + String.join(",", mockSdgCodes) + "&crsCodes=" + String
                 .join(",", mockCrsCodes), HttpMethod.GET,
-            new HttpEntity<>(null), new ParameterizedTypeReference<List<IndicatorResponse>>() {
+            new HttpEntity<>(headersWithAuth()), new ParameterizedTypeReference<List<IndicatorResponse>>() {
             });
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -285,7 +293,7 @@ class IndicatorControllerTest extends BaseControllerTest {
         .exchange("/indicator?themes=" + String.join(",", mockThemes) +
                 "&levels=" + mockLevelsId.stream().map(String::valueOf).collect(Collectors.joining(","))
                 + "&sources=" + String.join(",", mockSources),
-            HttpMethod.GET, new HttpEntity<>(null),
+            HttpMethod.GET, new HttpEntity<>(headersWithAuth()),
             new ParameterizedTypeReference<List<IndicatorResponse>>() {
             });
 
@@ -303,7 +311,7 @@ class IndicatorControllerTest extends BaseControllerTest {
         .map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList());
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
         .exchange("/indicator", HttpMethod.GET,
-            new HttpEntity<>(null), new ParameterizedTypeReference<List<IndicatorResponse>>() {
+            new HttpEntity<>(headersWithAuth()), new ParameterizedTypeReference<List<IndicatorResponse>>() {
             });
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -381,27 +389,11 @@ class IndicatorControllerTest extends BaseControllerTest {
     FiltersDto filters = new FiltersDto();
     filters
         .getThemes()
-        .addAll(
-            Arrays.asList(
-                "Digitalisation",
-                "Education",
-                "Poverty",
-                "Nutrition",
-                "Agriculture",
-                "Health",
-                "WASH",
-                "Electricity",
-                "Private Sector",
-                "Infrastructure",
-                "Migration",
-                "Climate Change",
-                "Environment",
-                "Public Sector",
-                "Human Rights",
-                "Conflict",
-                "Food Security",
-                "Equality",
-                "Water and Sanitation"));
+        .addAll(Arrays
+            .asList("Digitalisation", "Education", "Poverty", "Nutrition", "Agriculture", "Health",
+                "WASH", "Electricity", "Private Sector", "Infrastructure", "Migration",
+                "Climate Change", "Environment", "Public Sector", "Human Rights", "Conflict",
+                "Food Security", "Equality", "Water and Sanitation"));
     filters
         .getCrsCode()
         .addAll(
@@ -409,32 +401,20 @@ class IndicatorControllerTest extends BaseControllerTest {
     filters.getLevel().addAll(Arrays.asList(mockLevels));
     filters
         .getSource()
-        .addAll(
-            Arrays.asList(
-                "Capacity4Dev",
-                "EU",
-                "WFP",
-                "ECHO",
-                "ECHO,WFP",
-                "ECHO,WHO",
-                "FAO",
-                "FAO,WHO",
-                "WHO",
-                "FANTA",
-                "IPA",
-                "WHO,FAO",
-                "ACF",
-                "Nutrition Cluster",
-                "Freendom House",
-                "CyberGreen",
-                "ITU",
-                "UN Sustainable Development Goals",
-                "World Bank",
-                "UNDP",
-                "ILO",
-                "IMF"));
+        .addAll(Arrays
+            .asList("Capacity4Dev", "EU", "WFP", "ECHO", "ECHO,WFP", "ECHO,WHO", "FAO", "FAO,WHO",
+                "WHO", "FANTA", "IPA", "WHO,FAO", "ACF", "Nutrition Cluster", "Freendom House",
+                "CyberGreen", "ITU", "UN Sustainable Development Goals", "World Bank", "UNDP",
+                "ILO", "IMF"));
     filters.getSdgCode().addAll(Arrays.asList("4.1", "7.1", "1.a", "8.2"));
     return filters;
+  }
+
+  private HttpHeaders headersWithAuth() {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(bearerToken);
+
+    return headers;
   }
 }
 //    private Integer validateTemplateLevel(XSSFSheet sheet, List<Indicator> indicators, Integer rowIndex, Integer numberTemplateIndicators){

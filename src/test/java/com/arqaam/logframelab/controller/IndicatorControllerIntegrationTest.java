@@ -5,26 +5,32 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.arqaam.logframelab.controller.dto.FiltersDto;
+import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
-import com.arqaam.logframelab.model.IndicatorResponse;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.Resource;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-public class IndicatorControllerIntegrationTest extends BaseControllerTest {
+public class IndicatorControllerIntegrationTest extends BaseControllerTest implements
+    BaseDatabaseTest {
 
   private static final int DATABASE_THEMES_SIZE = 42;
   private static final int DATABASE_CRS_CODE_SIZE = 76;
   private static final int DATABASE_SOURCE_SIZE = 26;
   private static final int DATABASE_SDG_CODE_SIZE = 168;
   private static final int DATABASE_LEVEL_SIZE = 3;
+
+  @BeforeEach
+  void setup() {
+    generateAuthToken();
+  }
 
   @Test
   void downloadIndicators() {
@@ -37,9 +43,13 @@ public class IndicatorControllerIntegrationTest extends BaseControllerTest {
   }
 
   @Test
-  public void whenFiltersRequested_ThenFiltersReturned() {
+  void whenFiltersRequested_ThenFiltersReturned() {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(bearerToken);
+
     ResponseEntity<FiltersDto> filters =
-        testRestTemplate.getForEntity("/indicator/filters", FiltersDto.class);
+        testRestTemplate.exchange(
+            "/indicator/filters", HttpMethod.GET, new HttpEntity<>(headers), FiltersDto.class);
     FiltersDto filtersDto = Objects.requireNonNull(filters.getBody());
 
     assertAll(

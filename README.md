@@ -26,7 +26,7 @@ docker-compose up -d
 mvn flyway:clean flyway:migrate -Dflyway.configFiles=flywayConfig.properties
 ```
 
-## 7- Run logframelab spring boot application (profiles:dev,  port:8082)
+## 7- Run logframelab spring boot application (profiles:dev,  port:8080)
 ```sh
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
@@ -35,7 +35,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 phpmyadmin: http://127.0.0.1:8080/
 
 ## Swagger
-You can find the API documentation at http://127.0.0.1:8082/swagger-ui.html
+You can find the API documentation at http://127.0.0.1:8080/swagger-ui.html
 
 # How to contribute
 

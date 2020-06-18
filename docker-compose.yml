@@ -10,7 +10,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/arqaam?autoReconnect=true&useSSL=false
     ports:
-      - 8082:8082
+      - 8080:8080
     depends_on:
       - db
       - phpmyadmin
@@ -44,4 +44,4 @@ services:
       - PMA_USER=root
       - PMA_PASSWORD=root
     ports:
-      - 8080:80
+      - 8082:80

@@ -8,20 +8,20 @@ import com.arqaam.logframelab.model.persistence.Level;
 import com.arqaam.logframelab.model.projection.IndicatorFilters;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
+import com.arqaam.logframelab.util.DocManipulationUtil;
 import com.arqaam.logframelab.util.Logging;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.docx4j.jaxb.Context;
+import org.apache.poi.xwpf.usermodel.*;
 import org.docx4j.jaxb.XPathBinderAssociationIsPartialException;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
-import org.docx4j.wml.ObjectFactory;
-import org.docx4j.wml.R;
 import org.docx4j.wml.Text;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.domain.Specification;
@@ -43,6 +43,7 @@ import static java.util.Objects.isNull;
 @Service
 public class IndicatorService implements Logging {
 
+  private static final int DEFAULT_FONT_SIZE = 10;
   /** Indicates the number of indicators template the level has by default */
   protected static final Integer IMPACT_NUM_TEMP_INDIC = 1,
       OUTCOME_NUM_TEMP_INDIC = 3,
@@ -51,6 +52,7 @@ public class IndicatorService implements Logging {
   private final IndicatorRepository indicatorRepository;
 
   private final LevelRepository levelRepository;
+
 
   public IndicatorService(IndicatorRepository indicatorRepository, LevelRepository levelRepository) {
     this.indicatorRepository = indicatorRepository;
@@ -192,30 +194,48 @@ public class IndicatorService implements Logging {
     }
 
     /**
-     * Creates Word File that contains indicators
-     * @param indicatorResponses Indicators to be put on the word file
-     * @return Word File
+     * Export Indicators in a word template (.docx) file
+     * @param indicatorResponses List of indicator responses to fill the template
+     * @return Word template filled with the indicators
      */
     public ByteArrayOutputStream exportIndicatorsInWordFile(List<IndicatorResponse> indicatorResponses) {
-
         try {
+            logger().info("Starting to export the indicators to the word template. IndicatorResponses: {}", indicatorResponses);
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(new ClassPathResource("indicatorsExportTemplate.docx").getInputStream());
-            MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
-            String textNodesXPath = "//w:t";
-            List<Object> textNodes = mainDocumentPart.getJAXBNodesViaXPath(textNodesXPath, true);
-            for(Object obj : textNodes) {
-                Text text = ((JAXBElement<Text>) obj).getValue();
-                String value = text.getValue();
-                if (value != null && value.contains("{var}")) {
-                    parseVarWithValue(text, value, indicatorResponses);
+            List<Level> levels = levelRepository.findAllByOrderByPriority();
+            List<Indicator> indicatorList = indicatorRepository.findAllById(indicatorResponses.stream()
+                    .mapToLong(IndicatorResponse::getId).boxed().collect(Collectors.toList()));
+
+            List<Indicator> impactIndicators = new ArrayList<>();
+            List<Indicator> outcomeIndicators = new ArrayList<>();
+            List<Indicator> outputIndicators = new ArrayList<>();
+            List<Indicator> otherOutcomeIndicators = new ArrayList<>();
+            for (int i = 0; i < indicatorList.size(); i++) {
+                Indicator indicator = indicatorList.get(i);
+                if(!StringUtils.isEmpty(indicatorResponses.get(i).getValue()))
+                    indicator.setValue(indicatorResponses.get(i).getValue());
+                if(!StringUtils.isEmpty(indicatorResponses.get(i).getDate()))
+                    indicator.setDate(indicatorResponses.get(i).getDate());
+                // Can't do switch because the values aren't known before runtime
+                if (levels.get(0).equals(indicator.getLevel())) {
+                    impactIndicators.add(indicator);
+                } else if (levels.get(1).equals(indicator.getLevel())) {
+                    outcomeIndicators.add(indicator);
+                } else {
+                    outputIndicators.add(indicator);
                 }
             }
-            wordMLPackage.save(outputStream);
+            XWPFDocument document = new XWPFDocument(new ClassPathResource("indicatorsExportTemplate.docx").getInputStream());
+            XWPFTable table = document.getTableArray(0);
+            Integer rowIndex = 1;
+            rowIndex = fillWordTableByLevel(impactIndicators, table, rowIndex, true);
+            rowIndex = fillWordTableByLevel(outcomeIndicators, table, rowIndex, false);
+            rowIndex = fillWordTableByLevel(otherOutcomeIndicators, table, rowIndex, false);
+            fillWordTableByLevel(outputIndicators, table, rowIndex, false);
+
+            document.write(outputStream);
+            document.close();
             return outputStream;
-        } catch (Docx4JException | JAXBException e) {
-            logger().error("Failed to process word template", e);
-            throw new FailedToProcessWordFileException();
         } catch (IOException e) {
             logger().error("Template was not Found", e);
             throw new TemplateNotFoundException();
@@ -223,29 +243,42 @@ public class IndicatorService implements Logging {
     }
 
     /**
-     * Parse Nodes with indicators' label when the text param contains the indicators' var attribute
-     *
-     * @param textNode   Node that will have elements parsed into
-     * @param text       Text to be found in the indicators' var
-     * @param indicators Indicators that have the label to be parsed
+     * Fill the template's level with the indicators
+     * @param indicatorList Indicators with which the table will filled
+     * @param table         Table to filled
+     * @param rowIndex      Index of the first row to be filled/where the level starts
+     * @param fillBaseline  If the column of baseline should be filled with value and date of the indicator
+     * @return The index of next row after the level's template
      */
-    protected void parseVarWithValue(Text textNode, String text, List<IndicatorResponse> indicators) {
-        textNode.setValue("");
-        ObjectFactory factory = Context.getWmlObjectFactory();
-        R runParent = (R) textNode.getParent();
-        logger().info("Parsing Var with Value with text:{}, indicators: {}", text, indicators);
-        if (indicators != null && !indicators.isEmpty())
-            for (IndicatorResponse indicator : indicators) {
-                if (text.contains(indicator.getVar())) {
-                    Text TextIndicator = factory.createText();
-                    TextIndicator.setValue(indicator.getName());
-                    runParent.getContent().add(TextIndicator);
-                    runParent.getContent().add(factory.createBr());
-                    runParent.getContent().add(factory.createBr());
-                    runParent.getContent().add(factory.createBr());
-                    runParent.getContent().add(factory.createBr());
+    private Integer fillWordTableByLevel(List<Indicator> indicatorList, XWPFTable table, Integer rowIndex, Boolean fillBaseline){
+        boolean filledTemplateIndicators = false;
+        Integer initialRow = rowIndex;
+        logger().info("Starting to fill the table with the indicators information. RowIndex: {}, fillBaseline: {}", rowIndex, fillBaseline);
+        if(indicatorList.size() > 0) {
+            for (Indicator indicator : indicatorList) {
+                // First fill the template then add new rows
+                if (filledTemplateIndicators) DocManipulationUtil.insertTableRow(table, rowIndex);
+                else filledTemplateIndicators = true;
+
+                // Set values
+                DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(2), indicator.getName(), DEFAULT_FONT_SIZE);
+                DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(6), Optional.ofNullable(indicator.getSourceVerification()).orElse(""), DEFAULT_FONT_SIZE);
+
+                if (fillBaseline && !isNull(indicator.getValue()) && !isNull(indicator.getDate())) {
+                    DocManipulationUtil.setHyperLinkOnCell(table.getRow(rowIndex).getCell(3), indicator.getValue() + " (" +
+                            indicator.getDate() + ")", indicator.getDataSource(), DEFAULT_FONT_SIZE);
                 }
+                rowIndex++;
             }
+            // Merge column of level, result and assumption
+            DocManipulationUtil.mergeCellsByColumn(table, initialRow, rowIndex - 1, 0);
+            DocManipulationUtil.mergeCellsByColumn(table, initialRow, rowIndex - 1, 1);
+            DocManipulationUtil.mergeCellsByColumn(table, initialRow, rowIndex - 1, 7);
+        } else {
+            // Add template row
+            rowIndex++;
+        }
+        return rowIndex;
     }
 
     /**
@@ -439,6 +472,16 @@ public class IndicatorService implements Logging {
     }
 
     /**
+     * Get indicator with id. If not found throws IndicatorNotFoundException
+     * @param id Id of the indicator
+     * @return Indicator
+     */
+    public Indicator getIndicator(Long id){
+        logger().info("Searching for indicator with id: {}", id);
+        return indicatorRepository.findById(id).orElseThrow(IndicatorNotFoundException::new);
+    }
+
+    /**
      * Converts Indicator to Indicator response
      * @param indicator Indicator to be converted
      * @return IndicatorResponse
@@ -450,13 +493,14 @@ public class IndicatorService implements Logging {
                 .color(indicator.getLevel().getColor())
                 .name(indicator.getName())
                 .description(indicator.getDescription())
-                .var(indicator.getLevel().getTemplateVar())
                 .themes(indicator.getThemes())
                 .disaggregation(indicator.getDisaggregation())
                 .crsCode(indicator.getCrsCode())
                 .sdgCode(indicator.getSdgCode())
                 .source(indicator.getSource())
                 .numTimes(indicator.getNumTimes())
+                .value(indicator.getValue())
+                .date(indicator.getDate())
                 .build();
     }
 
@@ -496,22 +540,28 @@ public class IndicatorService implements Logging {
             List<Indicator> outcomeIndicators = new ArrayList<>();
             List<Indicator> outputIndicators = new ArrayList<>();
 
-            for (Indicator indicator : indicatorList) {
+            for (int i = 0; i < indicatorList.size(); i++) {
+                Indicator indicator = indicatorList.get(i);
+                if(!StringUtils.isEmpty(indicatorResponse.get(i).getValue()))
+                    indicator.setValue(indicatorResponse.get(i).getValue());
+                if(!StringUtils.isEmpty(indicatorResponse.get(i).getDate()))
+                    indicator.setDate(indicatorResponse.get(i).getDate());
+
                 // Can't do switch because the values aren't known before runtime
-                if(levels.get(0).equals(indicator.getLevel())) {
+                if (levels.get(0).equals(indicator.getLevel())) {
                     impactIndicators.add(indicator);
-                }else if(levels.get(1).equals(indicator.getLevel())) {
+                } else if (levels.get(1).equals(indicator.getLevel())) {
                     outcomeIndicators.add(indicator);
-                }else {
+                } else {
                     outputIndicators.add(indicator);
                 }
             }
 
             logger().info("Impact Indicators: {}\nOutcome Indicators: {}\nOutput Indicators: {}", impactIndicators, outcomeIndicators, outputIndicators);
             int startRowNewIndicator = 1;
-            startRowNewIndicator = fillIndicatorsPerLevel(sheet, impactIndicators, startRowNewIndicator, IMPACT_NUM_TEMP_INDIC);
-            startRowNewIndicator = fillIndicatorsPerLevel(sheet, outcomeIndicators, startRowNewIndicator, OUTCOME_NUM_TEMP_INDIC);
-            fillIndicatorsPerLevel(sheet, outputIndicators, startRowNewIndicator, OUTPUT_NUM_TEMP_INDIC);
+            startRowNewIndicator = fillIndicatorsPerLevel(sheet, impactIndicators, startRowNewIndicator, IMPACT_NUM_TEMP_INDIC, true);
+            startRowNewIndicator = fillIndicatorsPerLevel(sheet, outcomeIndicators, startRowNewIndicator, OUTCOME_NUM_TEMP_INDIC, false);
+            fillIndicatorsPerLevel(sheet, outputIndicators, startRowNewIndicator, OUTPUT_NUM_TEMP_INDIC, false);
             wk.write(output);
             wk.close();
             return output;
@@ -527,10 +577,11 @@ public class IndicatorService implements Logging {
      * @param indicatorList List of Indicators to fill on the template
      * @param startRowNewIndicator Index of the row where the template starts
      * @param numberTemplateIndicators Number of Indicator's Template of this level
+     * @param fillBaseline             If the cell of the baseline should be filled with indicator's value and date
      * @return Index of the row where the next template starts
      */
     private Integer fillIndicatorsPerLevel(XSSFSheet sheet, List<Indicator> indicatorList, Integer startRowNewIndicator,
-                                           Integer numberTemplateIndicators){
+                                           Integer numberTemplateIndicators, Boolean fillBaseline){
         Integer initialRow = startRowNewIndicator;
         int count = 0;
         logger().info("Starting to fill Indicators. Start Row New Indicator {}, Number of template indicators of level: {}",
@@ -539,7 +590,10 @@ public class IndicatorService implements Logging {
         while(count < indicatorList.size() && count < numberTemplateIndicators) {
             sheet.getRow(startRowNewIndicator + 1).getCell(2).setCellValue(indicatorList.get(count).getName());
             sheet.getRow(startRowNewIndicator + 3).getCell(3).setCellValue(indicatorList.get(count).getSourceVerification());
-            startRowNewIndicator +=4;
+            if(fillBaseline && !isNull(indicatorList.get(count).getValue()) && !isNull(indicatorList.get(count).getDate()))
+                sheet.getRow(startRowNewIndicator + 1).getCell(3).setCellValue(indicatorList.get(count).getValue() +
+                    " (" + indicatorList.get(count).getDate() + ")");
+            startRowNewIndicator += 4;
             count++;
         }
 
@@ -568,12 +622,16 @@ public class IndicatorService implements Logging {
                 // Set values
                 sheet.getRow(startRowNewIndicator + 1).getCell(2).setCellValue(indicatorList.get(i).getName());
                 sheet.getRow(startRowNewIndicator + 3).getCell(3).setCellValue(indicatorList.get(i).getSourceVerification());
+                if(fillBaseline && !isNull(indicatorList.get(i).getValue()) && !isNull(indicatorList.get(i).getDate()))
+                    sheet.getRow(startRowNewIndicator + 1).getCell(3).setCellValue(indicatorList.get(i).getValue() +
+                            " (" + indicatorList.get(i).getDate() + ")");
+                else
+                    sheet.getRow(startRowNewIndicator+1).getCell(3).setCellValue("");
                 startRowNewIndicator += 4;
             }
 
-
             // Merge first column
-            if(numberTemplateIndicators.equals(OUTPUT_NUM_TEMP_INDIC)) {
+            if (numberTemplateIndicators.equals(OUTPUT_NUM_TEMP_INDIC)) {
                 sheet.addMergedRegion(new CellRangeAddress(initialRow + numberTemplateIndicators * 4 - 1, startRowNewIndicator - 1, 0, 0));
             } else {
                 sheet.addMergedRegion(new CellRangeAddress(initialRow + numberTemplateIndicators * 3, startRowNewIndicator - 1, 0, 0));

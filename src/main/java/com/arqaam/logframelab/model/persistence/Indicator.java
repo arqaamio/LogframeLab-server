@@ -60,6 +60,12 @@ public class Indicator {
     private List<String> keywordsList;
 
     @Transient
+    private String date;
+
+    @Transient
+    private String value;
+
+    @Transient
     @Builder.Default
     private Integer numTimes = 1;
 

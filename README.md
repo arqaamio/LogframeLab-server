@@ -21,12 +21,7 @@ cd LogframeLab-server
 docker-compose up -d
 ```
 
-## 6- Run database flyway migrate 
-```sh
-mvn flyway:clean flyway:migrate -Dflyway.configFiles=flywayConfig.properties
-```
-
-## 7- Run logframelab spring boot application (profiles:dev,  port:8080)
+## 6- Run logframelab spring boot application (profiles:dev,  port:8080)
 ```sh
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```

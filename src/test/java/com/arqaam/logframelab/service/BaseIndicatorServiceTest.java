@@ -1,7 +1,5 @@
 package com.arqaam.logframelab.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 
@@ -14,8 +12,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
+
+import com.arqaam.logframelab.util.DocManipulationUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -50,6 +48,9 @@ public abstract class BaseIndicatorServiceTest {
   IndicatorRepository indicatorRepository;
   @Mock
   LevelRepository levelRepository;
+  @Mock
+  DocManipulationUtil docManipulationUtil;
+
   @InjectMocks
   IndicatorService indicatorService;
 
@@ -62,7 +63,7 @@ public abstract class BaseIndicatorServiceTest {
     lenient().when(indicatorRepository.save(any(Indicator.class)))
         .thenAnswer(i -> i.getArguments()[0]);
     lenient().when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
-
+    lenient().when(indicatorRepository.findAllById(any())).thenReturn(mockIndicatorList());
     lenient().when(indicatorRepository.findAll(any(Specification.class))).
         thenReturn(mockIndicatorList().stream()
             .filter(x -> mockThemes.contains(x.getThemes()) && mockLevelsId
@@ -73,51 +74,17 @@ public abstract class BaseIndicatorServiceTest {
 
   abstract List<Indicator> mockIndicatorList();
 
-  Integer validateTemplateLevel(XSSFSheet sheet, List<Indicator> indicators, Integer rowIndex,
-      Integer numberTemplateIndicators) {
-    List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();
-    Integer initialRow = rowIndex;
-
-    for (Indicator indicator : indicators) {
-      assertEquals("", sheet.getRow(rowIndex + 1).getCell(3).getStringCellValue());
-      assertEquals(indicator.getName(), sheet.getRow(rowIndex + 1).getCell(2).getStringCellValue());
-      assertEquals(indicator.getSourceVerification(),
-          sheet.getRow(rowIndex + 3).getCell(3).getStringCellValue());
-      rowIndex += 4;
-    }
-
-    int count = indicators.size();
-    while (count < numberTemplateIndicators) {
-      assertEquals("", sheet.getRow(rowIndex + 1).getCell(2).getStringCellValue());
-      assertEquals("", sheet.getRow(rowIndex + 3).getCell(3).getStringCellValue());
-      rowIndex += 4;
-      count++;
-    }
-
-    // check merged cells in first column
-    int finalRowIndex = rowIndex;
-    if (indicators.size() > numberTemplateIndicators) {
-      if (numberTemplateIndicators.equals(IndicatorService.OUTPUT_NUM_TEMP_INDIC)) {
-        assertTrue(mergedRegions.stream().anyMatch(x -> x.getLastColumn() == 0
-            && x.getFirstRow() == initialRow + numberTemplateIndicators * 4 - 1
-            && x.getLastRow() == finalRowIndex - 1));
-      } else {
-        assertTrue(mergedRegions.stream().anyMatch(x -> x.getLastColumn() == 0
-            && x.getFirstRow() == initialRow + numberTemplateIndicators * 3
-            && x.getLastRow() == finalRowIndex - 1));
-      }
-    }
-
-    return rowIndex;
-  }
-
-  List<IndicatorResponse> getExpectedResult() {
+  List<IndicatorResponse> getExpectedResult(Boolean sorted) {
     List<Indicator> indicators = mockIndicatorList();
     List<IndicatorResponse> indicatorResponses = new ArrayList<>();
-    indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(2)));
-    indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(1)));
-    indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(3)));
-    indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(0)));
+    if(sorted) {
+      return indicators.stream().map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList());
+    }else {
+      indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(2)));
+      indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(1)));
+      indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(3)));
+      indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(0)));
+    }
     return indicatorResponses;
   }
 }

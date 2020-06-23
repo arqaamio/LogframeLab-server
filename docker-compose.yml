@@ -4,8 +4,8 @@ services:
 
   # Spring-Boot application
   app:
-    container_name: app-logframelab
-    image: app-logframelab-image
+    container_name: logframelab-server
+    image: logframelab-server-image
     build: ./
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/arqaam?autoReconnect=true&useSSL=false

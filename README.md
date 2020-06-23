@@ -18,7 +18,7 @@ cd LogframeLab-server
 
 ## 5- Run mysql and phpMyAdmin
 ```sh
-docker-compose up -d
+docker-compose up --build -d db phpmyadmin
 ```
 
 ## 6- Run logframelab spring boot application (profiles:dev,  port:8080)

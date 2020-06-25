@@ -258,7 +258,7 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("filter", getSampleFilter());
 
-    body.add("file", new ClassPathResource("test_doc.doc"));
+    body.add("file", new ClassPathResource("test doc.doc"));
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate.exchange("/indicator/upload", HttpMethod.POST,
         new HttpEntity<>(body, headers), new ParameterizedTypeReference<List<IndicatorResponse>>() {});
 

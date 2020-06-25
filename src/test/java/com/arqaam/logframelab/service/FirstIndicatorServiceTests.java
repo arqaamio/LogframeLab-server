@@ -43,9 +43,9 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
   void extractIndicatorsFromWordFile_doc() throws IOException {
     when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
     List<IndicatorResponse> expectedResult = getExpectedResult(false);
-    MultipartFile file = new MockMultipartFile("test_doc.doc", "test_doc.doc",
+    MultipartFile file = new MockMultipartFile("test doc.doc", "test doc.doc",
         ContentType.APPLICATION_OCTET_STREAM.toString(),
-        new ClassPathResource("test_doc.doc").getInputStream());
+        new ClassPathResource("test doc.doc").getInputStream());
     List<IndicatorResponse> result = indicatorService.extractIndicatorsFromWordFile(file, null);
     assertNotNull(result);
     assertFalse(result.isEmpty());

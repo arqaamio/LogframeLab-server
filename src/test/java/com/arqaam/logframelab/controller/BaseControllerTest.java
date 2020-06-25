@@ -22,7 +22,7 @@ import org.springframework.test.context.ActiveProfiles;
 public class BaseControllerTest {
 
   private static final String SEC_ADMIN_USERNAME = "secadmin";
-  private static final String SEC_ADMIN_PASSWORD = "password";
+  private static final String SEC_ADMIN_PASSWORD = "Passw0rdArqaam1234@";
 
   protected String bearerToken;
 

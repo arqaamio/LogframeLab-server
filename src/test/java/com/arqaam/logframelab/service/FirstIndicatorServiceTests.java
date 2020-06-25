@@ -1,36 +1,20 @@
 package com.arqaam.logframelab.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static java.util.Objects.isNull;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+
+import java.io.*;
+import java.util.*;
 import java.util.stream.Collectors;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
+
 import org.apache.http.entity.ContentType;
-import org.docx4j.openpackaging.exceptions.Docx4JException;
-import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
-import org.docx4j.wml.Br;
-import org.docx4j.wml.R;
-import org.docx4j.wml.Text;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -45,7 +29,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
   @Test
   void extractIndicatorsFromWordFile() throws IOException {
     when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
-    List<IndicatorResponse> expectedResult = getExpectedResult();
+    List<IndicatorResponse> expectedResult = getExpectedResult(false);
     MultipartFile file = new MockMultipartFile("test_doc.docx", "test_doc.docx",
         ContentType.APPLICATION_OCTET_STREAM.toString(),
         new ClassPathResource("test_doc.docx").getInputStream());
@@ -58,7 +42,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
   @Test
   void extractIndicatorsFromWordFile_doc() throws IOException {
     when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
-    List<IndicatorResponse> expectedResult = getExpectedResult();
+    List<IndicatorResponse> expectedResult = getExpectedResult(false);
     MultipartFile file = new MockMultipartFile("test doc.doc", "test doc.doc",
         ContentType.APPLICATION_OCTET_STREAM.toString(),
         new ClassPathResource("test doc.doc").getInputStream());
@@ -124,74 +108,55 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
   }
 
   @Test
-  void exportIndicatorsInWordFile() throws Docx4JException, JAXBException {
-    List<IndicatorResponse> indicators = createListIndicatorResponse();
-    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicators);
+  void exportIndicatorsInWordFile() throws IOException {
+    List<Indicator> indicatorList = mockIndicatorList();
+    List<Indicator> impactIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[3])).collect(Collectors.toList());
+    List<Indicator> outcomeIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[1])).collect(Collectors.toList());
+    List<Indicator> outputIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
+
+    List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(indicatorList);
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse);
+
     assertNotNull(result);
-
-    WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage
-        .load(new ByteArrayInputStream(result.toByteArray()));
-    List<Object> textNodes = wordMLPackage.getMainDocumentPart()
-        .getJAXBNodesViaXPath("//w:t", true);
-    boolean valid = false;
-    int c = 0;
-    for (Object obj : textNodes) {
-      String currentText = ((Text) ((JAXBElement) obj).getValue()).getValue();
-      if (currentText.equals(indicators.get(c).getName())) {
-        c++;
-        if (c == indicators.size()) {
-          valid = true;
-          break;
-        }
-      }
-//            System.out.println(currentText);
-    }
-    assertTrue(valid);
+    XWPFDocument resultDoc = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
+    assertEquals(2, resultDoc.getTables().size());
+    XWPFTable table = resultDoc.getTableArray(0);
+    Integer rowIndex = 1;
+    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, rowIndex);
+    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, rowIndex);
+    rowIndex = validateWordTemplateLevel(table, Collections.emptyList(), indicatorResponse, rowIndex);
+    validateWordTemplateLevel(table, outputIndicators, indicatorResponse, rowIndex);
+    resultDoc.close();
   }
 
   @Test
-  void parseVarWithValue_withMatchingText() {
-    String text = "var";
-    List<IndicatorResponse> indicators = createListIndicatorResponse();
-    Text textNode = new Text();
-    textNode.setParent(new R());
-    indicatorService.parseVarWithValue(textNode, text, indicators);
-    R result = (R) textNode.getParent();
-    assertEquals(5 * indicators.size(), result.getContent().size());
-    for (int i = 0; i < indicators.size() * 5; i += 5) {
-      assertEquals(indicators.get(i / 5).getName(), ((Text) result.getContent().get(i)).getValue());
-      assertTrue(result.getContent().get(i + 1) instanceof Br);
-      assertTrue(result.getContent().get(i + 2) instanceof Br);
-      assertTrue(result.getContent().get(i + 3) instanceof Br);
-      assertTrue(result.getContent().get(i + 4) instanceof Br);
-    }
-  }
+  void exportIndicatorsInWordFile_withoutValuesAndDate() throws IOException {
+    List<Indicator> indicatorList = mockIndicatorList().stream().peek(x -> {x.setValue(null); x.setDate(null);}).collect(Collectors.toList());
+    lenient().when(indicatorRepository.findAllById(any())).thenReturn(indicatorList);
 
-  @Test
-  void parseVarWithValue_withoutMatchingText() {
-    String text = "text without matching";
-    List<IndicatorResponse> indicators = createListIndicatorResponse();
-    Text textNode = new Text();
-    textNode.setParent(new R());
-    indicatorService.parseVarWithValue(textNode, text, indicators);
-    R result = (R) textNode.getParent();
-    assertEquals(0, result.getContent().size());
-  }
+    List<Indicator> impactIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[3])).collect(Collectors.toList());
+    List<Indicator> outcomeIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[1])).collect(Collectors.toList());
+    List<Indicator> outputIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
 
-  @Test
-  void parseVarWithValue_withoutIndicatorResponse() {
-    String text = "var";
-    Text textNode = new Text();
-    textNode.setParent(new R());
-    indicatorService.parseVarWithValue(textNode, text, null);
-    R result = (R) textNode.getParent();
-    assertEquals(0, result.getContent().size());
+    List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(indicatorList);
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse);
 
-    Text textNode2 = new Text();
-    textNode2.setParent(new R());
-    R result2 = (R) textNode2.getParent();
-    indicatorService.parseVarWithValue(textNode2, text, Collections.emptyList());
-    assertEquals(0, result2.getContent().size());
+    assertNotNull(result);
+    XWPFDocument resultDoc = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
+    assertEquals(2, resultDoc.getTables().size());
+    XWPFTable table = resultDoc.getTableArray(0);
+    Integer rowIndex = 1;
+    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, rowIndex);
+    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, rowIndex);
+    rowIndex = validateWordTemplateLevel(table, Collections.emptyList(), indicatorResponse, rowIndex);
+    validateWordTemplateLevel(table, outputIndicators, indicatorResponse, rowIndex);
+    resultDoc.close();
   }
 
   @Test
@@ -210,7 +175,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
 
     when(indicatorRepository.findAllById(any())).thenReturn(expectedResult);
     ByteArrayOutputStream outputStream = indicatorService
-        .exportIndicatorsInWorksheet(createListIndicatorResponse());
+        .exportIndicatorsInWorksheet(createListIndicatorResponse(null));
 //        MultipartFile multipartFile = new MockMultipartFile("indicators_export.xlsx", outputStream.toByteArray());
 //        List<Indicator> result = indicatorService.importIndicators(multipartFile);
 //
@@ -260,34 +225,65 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         .description("Digitalisation").level(mockLevels[0]).keywords("policy")
         .keywordsList(keywordsPolicyList)
         .source(mockSources.get(0)).themes(mockThemes.get(0)).sdgCode(mockSdgCodes.get(0))
+        .dataSource("https://data.worldbank.org/indicator/NY.ADJ.DKAP.GN.ZS?view=chart")
+        .date("2000")
+        .value("100")
         .crsCode(mockCrsCodes.get(0)).build());
     list.add(Indicator.builder().id(73L).name(
         "Number of government policies developed or revised with civil society organisation participation through EU support")
         .description("Public Sector").level(mockLevels[1]).keywords("government policies, policy")
         .keywordsList(keywordsGovPolicyList)
         .source(mockSources.get(1)).themes(mockThemes.get(1)).sdgCode(mockSdgCodes.get(1))
+        .dataSource("https://data.worldbank.org/indicator/SE.PRM.TENR.FE?view=chart")
+        .date("2001")
+        .value("100")
         .crsCode(mockCrsCodes.get(1)).build());
     list.add(Indicator.builder().id(5L).name("Revenue, excluding grants (% of GDP)")
         .description("Public Sector").level(mockLevels[3]).keywords("government")
         .keywordsList(keywordsGovList)
         .source(mockSources.get(2)).themes(mockThemes.get(2)).sdgCode(mockSdgCodes.get(2))
+        .dataSource("https://data.worldbank.org/indicator/EG.ELC.ACCS.UR.ZS?view=chart")
+        .date("1980")
+        .value("50")
         .crsCode(mockCrsCodes.get(2)).build());
     list.add(
         Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
             .description("Food & Agriculture").level(mockLevels[1]).keywords(keyword)
             .keywordsList(keywordsFoodList)
             .source(mockSources.get(3)).themes(mockThemes.get(3)).sdgCode(mockSdgCodes.get(3))
+            .dataSource("https://data.worldbank.org/indicator/EG.CFT.ACCS.ZS?view=chart")
+            .date("2001")
+            .value("100")
             .crsCode(mockCrsCodes.get(3)).build());
 
     return list;
   }
 
 
-  private List<IndicatorResponse> createListIndicatorResponse() {
+  private List<IndicatorResponse> createListIndicatorResponse(List<Indicator> indicators) {
     List<IndicatorResponse> list = new ArrayList<>();
-    for (int i = 1; i < 6; i++) {
-      list.add(IndicatorResponse.builder().id(i).level("IMPACT").color("color").name("Label " + i)
-          .description("Description").var("var").build());
+    if(Optional.ofNullable(indicators).isPresent() && !indicators.isEmpty()) {
+      for (Indicator indicator : indicators) {
+        list.add(IndicatorResponse.builder()
+                .name(indicator.getName())
+                .id(indicator.getId())
+                .color(indicator.getLevel().getColor())
+                .description(indicator.getDescription())
+                .level(indicator.getLevel().getName())
+                .sdgCode(indicator.getSdgCode())
+                .crsCode(indicator.getCrsCode())
+                .source(indicator.getSource())
+                .themes(indicator.getThemes())
+                .disaggregation(indicator.getDisaggregation())
+                .date(indicator.getDate())
+                .value(indicator.getValue())
+                .build());
+      }
+    } else {
+      for (int i = 1; i < 6; i++) {
+        list.add(IndicatorResponse.builder().id(i).level("IMPACT").color("color").name("Label " + i)
+                .description("Description").build());
+      }
     }
     return list;
   }
@@ -339,5 +335,41 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     verify(indicatorRepository, times(0)).findAll(any(Specification.class));
     verify(indicatorRepository).findAll();
     assertEquals(expectedResult, result);
+  }
+
+  Integer validateWordTemplateLevel(XWPFTable table, List<Indicator> indicators, List<IndicatorResponse> indicatorResponses, Integer rowIndex){
+    if(indicators.size() > 0){
+      // if its impact
+      String assumptionsValue = indicators.get(0).getLevel().equals(mockLevels[3]) ? "\tNot applicable" : "";
+      for (int i = 0; i < indicators.size(); i++) {
+        XWPFTableRow row = table.getRow(i+rowIndex);
+        assertEquals(8, row.getTableCells().size());
+        assertEquals("", row.getCell(1).getTextRecursively());
+        assertEquals(indicators.get(i).getName(), row.getCell(2).getTextRecursively());
+        int finalI = i;
+        indicatorResponses.stream().filter(x->x.getLevel().equals(mockLevels[3].getName()) && x.getId() == indicators.get(finalI).getId()).findFirst().ifPresent(response-> {
+          String baselineValue = (isNull(response.getDate()) || isNull(response.getValue())) ? "" : response.getValue() + " (" +response.getDate() + ")";
+          assertEquals(baselineValue, row.getCell(3).getTextRecursively());
+        });
+        assertEquals("", row.getCell(4).getTextRecursively());
+        assertEquals("", row.getCell(5).getTextRecursively());
+        assertEquals(Optional.ofNullable(indicators.get(i).getSourceVerification()).orElse(""), row.getCell(6).getTextRecursively());
+        assertEquals(assumptionsValue,row.getCell(7).getTextRecursively());
+
+        // validate merge cells
+        assertTrue(row.getCell(0).getCTTc().getTcPr().isSetVMerge());
+        assertTrue(row.getCell(1).getCTTc().getTcPr().isSetVMerge());
+        assertTrue(row.getCell(7).getCTTc().getTcPr().isSetVMerge());
+      }
+
+      return rowIndex + indicators.size();
+    }else {
+      assertEquals(8, table.getRow(rowIndex).getTableCells().size());
+      // First column has the level and last column is not empty for impact indicators
+      for (int i = 1; i < table.getRow(rowIndex).getTableCells().size() - 1; i++) {
+        assertEquals("", table.getRow(rowIndex).getCell(i).getTextRecursively());
+      }
+      return ++rowIndex;
+    }
   }
 }

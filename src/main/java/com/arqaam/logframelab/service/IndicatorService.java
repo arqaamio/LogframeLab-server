@@ -91,7 +91,7 @@ public class IndicatorService implements Logging {
       }
       try {
         Map<Long, Indicator> mapResult = new HashMap<>();
-        if(file.getOriginalFilename().matches("\\S+\\.docx$")) {
+        if(file.getOriginalFilename().matches(".+\\.docx$")) {
           WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(file.getInputStream());
           MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
           String textNodesXPath = "//w:t";

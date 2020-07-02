@@ -358,7 +358,8 @@ public class IndicatorService implements Logging {
 
         XSSFWorkbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet();
-        String[] columns = new String[]{"Level", "Themes", "Name", "Description", "Source", "Disaggregation", "DAC 5/CRS", "SDG", "Source of Verification", "Data Source"};
+        String[] columns = new String[]{"Level", "Themes", "Name", "Description", "Source", "Disaggregation", "DAC 5/CRS",
+            "SDG", "Source of Verification", "Data Source", "Baseline Value", "Baseline Date"};
 
         // Create a CellStyle with the font
         Font boldFont = workbook.createFont();
@@ -381,7 +382,9 @@ public class IndicatorService implements Logging {
         }
 
         int rowNum = 1;
+        IndicatorResponse response;
         for (Indicator indicator : indicatorList) {
+            response = indicatorResponses.stream().filter(x -> x.getId() == indicator.getId()).findFirst().get();
             Row row = sheet.createRow(rowNum++);
             row.createCell(0).setCellValue(indicator.getLevel().getName());
             row.createCell(1).setCellValue(indicator.getThemes());
@@ -393,6 +396,8 @@ public class IndicatorService implements Logging {
             addCellWithStyle(row, 7, indicator.getSdgCode(), redCellStyle);
             addCellWithStyle(row, 8, indicator.getSourceVerification(), yellowCellStyle);
             row.createCell(9).setCellValue(indicator.getDataSource());
+            row.createCell(10).setCellValue(response.getValue());
+            row.createCell(11).setCellValue(response.getDate());
         }
 
         // Resize all columns to fit the content size

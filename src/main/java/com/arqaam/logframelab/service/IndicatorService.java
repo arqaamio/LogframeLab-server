@@ -10,27 +10,22 @@ import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
 import com.arqaam.logframelab.util.DocManipulationUtil;
 import com.arqaam.logframelab.util.Logging;
-import org.apache.commons.lang3.StringUtils;
+import com.arqaam.logframelab.util.Utils;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.*;
-import org.docx4j.jaxb.XPathBinderAssociationIsPartialException;
-import org.docx4j.openpackaging.exceptions.Docx4JException;
-import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
-import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
-import org.docx4j.wml.Text;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.criteria.Predicate;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
@@ -48,15 +43,18 @@ public class IndicatorService implements Logging {
   protected static final Integer IMPACT_NUM_TEMP_INDIC = 1,
       OUTCOME_NUM_TEMP_INDIC = 3,
       OUTPUT_NUM_TEMP_INDIC = 2;
-
+  private static final Integer TOTAL_PERCENTAGE_OF_SCANNING = 70;
+  private static final Integer TOTAL_PERCENTAGE_OF_SMALL_TASKS = 5;
   private final IndicatorRepository indicatorRepository;
 
   private final LevelRepository levelRepository;
 
+  private final Utils utils;
 
-  public IndicatorService(IndicatorRepository indicatorRepository, LevelRepository levelRepository) {
+  public IndicatorService(IndicatorRepository indicatorRepository, LevelRepository levelRepository, Utils utils) {
     this.indicatorRepository = indicatorRepository;
     this.levelRepository = levelRepository;
+    this.utils = utils;
   }
 
   /**
@@ -67,15 +65,16 @@ public class IndicatorService implements Logging {
    * @return List of Indicators
    */
   public List<IndicatorResponse> extractIndicatorsFromWordFile( MultipartFile file, FiltersDto filter) {
+    Integer progress = TOTAL_PERCENTAGE_OF_SMALL_TASKS;
     List<IndicatorResponse> result = new ArrayList<>();
     List<Indicator> indicatorsList;
-
+    utils.sendProgressMessage(progress);
     if (filter != null && !filter.isEmpty()) {
       indicatorsList = indicatorsFromFilter(filter);
     } else {
       indicatorsList = indicatorRepository.findAll();
     }
-    List<String> wordstoScan = new ArrayList<>(); // current words
+    utils.sendProgressMessage(progress+=TOTAL_PERCENTAGE_OF_SMALL_TASKS);
     // get the maximum indicator length
     int maxIndicatorLength = 1;
     if (indicatorsList != null && !indicatorsList.isEmpty()) {
@@ -89,49 +88,20 @@ public class IndicatorService implements Logging {
           }
         }
       }
-      try {
-        Map<Long, Indicator> mapResult = new HashMap<>();
-        if(file.getOriginalFilename().matches(".+\\.docx$")) {
-          WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(file.getInputStream());
-          MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
-          String textNodesXPath = "//w:t";
-          List<Object> textNodes = mainDocumentPart.getJAXBNodesViaXPath(textNodesXPath, true);
-          Pattern p = Pattern.compile("[a-z0-9]", Pattern.CASE_INSENSITIVE);
-          StringBuffer currentWord = null;
+      utils.sendProgressMessage(progress+=TOTAL_PERCENTAGE_OF_SMALL_TASKS);
 
-          for (Object obj : textNodes) {
-            Text text = ((JAXBElement<Text>) obj).getValue();
-            char[] strArray = text.getValue().toLowerCase().toCharArray();
-            for (char c : strArray) {
-              // append current word to wordstoScan list
-              if (currentWord == null && p.matcher(c + "").find()) {
-                currentWord = new StringBuffer();
-              } else if (currentWord != null && !p.matcher(c + "").find()) {
-                wordstoScan.add(currentWord.toString());
-                currentWord = null;
-              }
-              if (currentWord != null) {
-                currentWord.append(c);
-              }
-              // clear wordstoScan list if exceed the max length of indicators
-              if (wordstoScan.size() == maxIndicatorLength) {
-                checkIndicators(wordstoScan, indicatorsList, mapResult);
-                wordstoScan.remove(wordstoScan.size() - 1);
-              }
-            }
-          }
+      try {
+        Map<Long, Indicator> mapResult;
+          if(file.getOriginalFilename().matches(".+\\.docx$")) {
+            logger().info("Searching indicators in .docx file. maxIndicatorLength: {}", maxIndicatorLength);
+            XWPFDocument doc = new XWPFDocument(file.getInputStream());
+            mapResult = searchForIndicatorsInText(new XWPFWordExtractor(doc).getText(), maxIndicatorLength, progress, indicatorsList);
+            doc.close();
         } else {
           // Read .doc
           logger().info("Searching indicators in .doc file. maxIndicatorLength: {}", maxIndicatorLength);
           HWPFDocument doc = new HWPFDocument(file.getInputStream());
-          Matcher matcher = Pattern.compile("\\w+").matcher(new WordExtractor(doc).getText());
-          while(matcher.find()){
-            wordstoScan.add(matcher.group());
-            if (wordstoScan.size() == maxIndicatorLength) {
-              checkIndicators(wordstoScan, indicatorsList, mapResult);
-              wordstoScan.remove(wordstoScan.size() - 1);
-            }
-          }
+          mapResult = searchForIndicatorsInText(new WordExtractor(doc).getText(), maxIndicatorLength, progress, indicatorsList);
           doc.close();
         }
         if(!mapResult.isEmpty()) {
@@ -150,20 +120,59 @@ public class IndicatorService implements Logging {
             return 1;
           }).map(this::convertIndicatorToIndicatorResponse).collect(Collectors.toList());
         }
-      } catch (XPathBinderAssociationIsPartialException | JAXBException e) {
-        logger().error("Failed to process temporary word file", e);
-        throw new FailedToProcessWordFileException();
-      } catch (Docx4JException e){
-        logger().error("Failed to load/process the temporary word file. Name of the file: {}", file.getName(), e);
-        throw new WordFileLoadFailedException();
       } catch (IOException e) {
         logger().error("Failed to open word file. Name of the file: {}", file.getName(), e);
         throw new FailedToOpenFileException();
+      } catch (Exception e){
+        logger().error("Failed to load/process the word file. Name of the file: {}", file.getName(), e);
+        throw new WordFileLoadFailedException();
       }
     }
     return result;
   }
 
+    /**
+     * Search for indicators keywords in the given text and return the found indicators
+     * @param text Text to be searched
+     * @param maxIndicatorLength Max number of words to be searched at the same time (Its the size of the biggest keyword)
+     * @param progress Progress value to be sent through the web socket
+     * @param indicatorsList List of indicators to be searched
+     * @return Map of the with the indicator id as key and indicator as value
+     */
+  protected Map<Long, Indicator> searchForIndicatorsInText(String text, Integer maxIndicatorLength, Integer progress, List<Indicator> indicatorsList){
+      utils.sendProgressMessage(progress+=TOTAL_PERCENTAGE_OF_SMALL_TASKS);
+      Map<Long, Indicator> mapResult = new HashMap<>();
+      List<String> wordsToScan = new ArrayList<>();
+      Matcher matcher = Pattern.compile("\\w+").matcher(text);
+      int totalMatches = 0, i = 0;
+
+      //TODO: Change to matcher function once java upgraded to 11
+      while(matcher.find()){
+          totalMatches++;
+      }
+      matcher.reset();
+
+      double fraction = (double)TOTAL_PERCENTAGE_OF_SCANNING/(double)totalMatches;
+      // Inverted of the fraction is the number of matches that it takes to reach the 1% of the TOTAL_PERCENTAGE_OF_SCANNING
+      int countUntilSend = fraction > 1 ? (int) fraction : (int) (1/fraction);
+      logger().debug("Total number of matches: {}, fraction: {}, countUntilSend: {}", totalMatches, fraction, countUntilSend);
+      while(matcher.find()){
+          i++;
+          wordsToScan.add(matcher.group());
+          if (wordsToScan.size() == maxIndicatorLength) {
+              // Count until the inverted of the fraction
+              if(i==countUntilSend){
+                  // Send progress value through the web socket(it always increase only by 1%)
+                  utils.sendProgressMessage(progress++);
+                  // Restart the counter to reach the fraction value
+                  i = 0;
+              }
+              checkIndicators(wordsToScan, indicatorsList, mapResult);
+              wordsToScan.remove(wordsToScan.size() - 1);
+          }
+      }
+      return mapResult;
+  }
   /**
      * Fills a list of indicators that contain certain words
      * @param wordsToScan Words to find in the indicators' keyword list

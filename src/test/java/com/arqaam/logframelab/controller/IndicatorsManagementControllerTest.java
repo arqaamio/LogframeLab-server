@@ -1,7 +1,9 @@
 package com.arqaam.logframelab.controller;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -10,14 +12,13 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
 import com.arqaam.logframelab.controller.dto.IndicatorRequestDto;
-import com.arqaam.logframelab.controller.dto.TempIndicatorApprovalRequestDto;
-import com.arqaam.logframelab.controller.dto.TempIndicatorApprovalRequestDto.Approval;
+import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto;
+import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto.Approval;
 import com.arqaam.logframelab.controller.dto.auth.UserDto;
 import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningResponseDto;
 import com.arqaam.logframelab.model.persistence.Indicator;
-import com.arqaam.logframelab.model.persistence.TempIndicator;
-import com.arqaam.logframelab.repository.TempIndicatorRepository;
+import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
 import com.arqaam.logframelab.service.IndicatorMapper;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -62,7 +63,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest imple
   @Autowired
   private IndicatorMapper indicatorMapper;
   @Autowired
-  private TempIndicatorRepository tempIndicatorRepository;
+  private IndicatorRepository indicatorRepository;
 
   private String indicatorsManagerToken;
 
@@ -182,7 +183,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest imple
   void whenFileUploadedForApproval_thenVerifyAddedToTemp() {
     ResponseEntity<Void> response = uploadIndicatorsForApproval();
 
-    List<TempIndicator> tempIndicators = tempIndicatorRepository.findAll();
+    List<Indicator> tempIndicators = indicatorRepository.findAllByTempEquals(true);
 
     assertAll(
         () -> assertThat(response.getStatusCode(), is(HttpStatus.OK)),
@@ -192,7 +193,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest imple
 
   @Test
   void whenTempIndicatorsRequested_thenVerifyResult() {
-    ResponseEntity<ResponsePage<TempIndicator>> tempsForApproval = getTempIndicatorsForApproval();
+    ResponseEntity<ResponsePage<Indicator>> tempsForApproval = getTempIndicatorsForApproval();
 
     assertAll(
         () -> assertThat(tempsForApproval.getStatusCode(), is(HttpStatus.OK))
@@ -201,15 +202,15 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest imple
 
   @Test
   void whenTempIndicatorsApproved_thenVerifyResult() {
-    ResponseEntity<ResponsePage<TempIndicator>> tempsForApproval = getTempIndicatorsForApproval();
+    ResponseEntity<ResponsePage<Indicator>> tempsForApproval = getTempIndicatorsForApproval();
 
     final Random random = new Random();
     List<Approval> approvals = Objects.requireNonNull(tempsForApproval.getBody()).get().map(temp ->
         new Approval(temp.getId(), random.nextBoolean())
     ).collect(Collectors.toList());
 
-    TempIndicatorApprovalRequestDto approvalRequest =
-        new TempIndicatorApprovalRequestDto(approvals);
+    IndicatorApprovalRequestDto approvalRequest =
+        new IndicatorApprovalRequestDto(approvals);
     ResponseEntity<Void> approvalResponse = testRestTemplate
         .exchange(APPROVALS_URI, HttpMethod.POST,
             new HttpEntity<>(approvalRequest, headersWithAuth()), Void.class);
@@ -219,9 +220,9 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest imple
     assertAll(
         () -> assertThat(tempsForApproval.getStatusCode(), is(HttpStatus.OK)),
         () -> assertThat(approvalResponse.getStatusCode(), is(HttpStatus.OK)),
-        () -> assertThat(tempIndicatorRepository
-                .findAllById(approvals.stream().map(Approval::getId).collect(Collectors.toList())),
-            is(empty()))
+        () -> assertThat(indicatorRepository
+                .findAllById(approvals.stream().map(Approval::getId).collect(Collectors.toList())).stream().map(Indicator::isTemp).collect(
+                Collectors.toList()), everyItem(is(false)))
     );
   }
 
@@ -245,13 +246,13 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest imple
         });
   }
 
-  private ResponseEntity<ResponsePage<TempIndicator>> getTempIndicatorsForApproval() {
+  private ResponseEntity<ResponsePage<Indicator>> getTempIndicatorsForApproval() {
     uploadIndicatorsForApproval();
 
     return testRestTemplate
         .exchange(uriForDefaultPage(APPROVALS_URI), HttpMethod.GET,
             new HttpEntity<>(headersWithAuth()),
-            new ParameterizedTypeReference<ResponsePage<TempIndicator>>() {
+            new ParameterizedTypeReference<ResponsePage<Indicator>>() {
             });
   }
 

@@ -1,7 +1,15 @@
 package com.arqaam.logframelab.service;
 
+import static java.util.Objects.isNull;
+
 import com.arqaam.logframelab.controller.dto.FiltersDto;
-import com.arqaam.logframelab.exception.*;
+import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto.FilterRequestDto;
+import com.arqaam.logframelab.exception.FailedToCloseFileException;
+import com.arqaam.logframelab.exception.FailedToOpenFileException;
+import com.arqaam.logframelab.exception.FailedToOpenWorksheetException;
+import com.arqaam.logframelab.exception.FailedToProcessWordFileException;
+import com.arqaam.logframelab.exception.TemplateNotFoundException;
+import com.arqaam.logframelab.exception.WordFileLoadFailedException;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.Level;
@@ -9,9 +17,31 @@ import com.arqaam.logframelab.model.projection.IndicatorFilters;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
 import com.arqaam.logframelab.util.Logging;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import javax.persistence.criteria.Predicate;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.extractor.WordExtractor;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellCopyPolicy;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -27,18 +57,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
-import javax.persistence.criteria.Predicate;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import static java.util.Objects.isNull;
 
 @Service
 public class IndicatorService implements Logging {
@@ -437,18 +455,50 @@ public class IndicatorService implements Logging {
                 themes, sources, levels, sdgCodes, crsCodes);
         return !themes.isPresent() && !sources.isPresent() && !levels.isPresent() && !sdgCodes.isPresent() && !crsCodes.isPresent() ?
             indicatorRepository.findAll() :
-            indicatorRepository.findAll((Specification<Indicator>) (root, criteriaQuery, criteriaBuilder) -> {
-                List<Predicate> predicates = new ArrayList<>();
-                themes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("themes")).value(x))));
-                sources.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("source")).value(x))));
-                levels.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("level").get("id")).value(x))));
-                sdgCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("sdgCode")).value(x))));
-                crsCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("crsCode")).value(x))));
-                return criteriaBuilder.and(predicates.toArray(new Predicate[predicates.size()]));
-            });
+            indicatorRepository.findAll(
+                getIndicatorSpecification(themes, sources, levels, sdgCodes, crsCodes, false));
     }
 
-    /**
+   Specification<Indicator> getIndicatorSpecification(Optional<List<String>> themes,
+      Optional<List<String>> sources, Optional<List<Long>> levels, Optional<List<String>> sdgCodes,
+      Optional<List<String>> crsCodes, boolean temp) {
+    return (root, criteriaQuery, criteriaBuilder) -> {
+        List<Predicate> predicates = new ArrayList<>();
+        themes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("themes")).value(x))));
+        sources.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("source")).value(x))));
+        levels.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("level").get("id")).value(x))));
+        sdgCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("sdgCode")).value(x))));
+        crsCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("crsCode")).value(x))));
+
+        predicates.add(criteriaBuilder.and(criteriaBuilder.equal(root.get("temp"), temp)));
+
+      return criteriaBuilder.and(predicates.toArray(new Predicate[predicates.size()]));
+    };
+  }
+
+  public Specification<Indicator> specificationFromFilter(FilterRequestDto filters, boolean temp) {
+    if (filters == null) {
+      filters = new FilterRequestDto();
+    }
+    return getIndicatorSpecification(
+        filters.getThemes() != null && !filters.getThemes().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getThemes()))
+            : Optional.empty(),
+        filters.getSource() != null && !filters.getSource().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getSource()))
+            : Optional.empty(),
+        filters.getLevelIds() != null && !filters.getLevelIds().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getLevelIds()))
+            : Optional.empty(),
+        filters.getSdgCode() != null && !filters.getSdgCode().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getSdgCode()))
+            : Optional.empty(),
+        filters.getCrsCode() != null && !filters.getCrsCode().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getCrsCode()))
+            : Optional.empty(), temp);
+  }
+
+  /**
      * Converts Indicator to Indicator response
      * @param indicator Indicator to be converted
      * @return IndicatorResponse

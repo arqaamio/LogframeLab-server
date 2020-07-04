@@ -56,6 +56,9 @@ public class Indicator {
     @Column(name = "DATA_SOURCE")
     private String dataSource;
 
+    @Column(name = "TEMP")
+    private boolean temp;
+
     @Transient
     private List<String> keywordsList;
 

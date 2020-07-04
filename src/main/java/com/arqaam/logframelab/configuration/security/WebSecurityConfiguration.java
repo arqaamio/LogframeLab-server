@@ -87,7 +87,7 @@ public class WebSecurityConfiguration  extends WebSecurityConfigurerAdapter  {
         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         .and()
         .authorizeRequests()
-        .antMatchers("/indicator/**", "/auth/login")
+        .antMatchers("/indicator/**", "/auth/login", "/indicators/**")
         .permitAll()
         .anyRequest()
         .authenticated();

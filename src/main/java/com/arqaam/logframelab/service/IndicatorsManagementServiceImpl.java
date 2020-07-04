@@ -2,19 +2,19 @@ package com.arqaam.logframelab.service;
 
 import com.arqaam.logframelab.controller.dto.IndicatorRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto;
-import com.arqaam.logframelab.controller.dto.TempIndicatorApprovalRequestDto;
-import com.arqaam.logframelab.controller.dto.TempIndicatorApprovalRequestDto.Approval;
+import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto.FilterRequestDto;
+import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto;
+import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto.Approval;
 import com.arqaam.logframelab.model.persistence.Indicator;
-import com.arqaam.logframelab.model.persistence.TempIndicator;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
-import com.arqaam.logframelab.repository.TempIndicatorRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,17 +24,13 @@ public class IndicatorsManagementServiceImpl implements IndicatorsManagementServ
 
   private final IndicatorRepository indicatorRepository;
   private final LevelRepository levelRepository;
-  private final IndicatorMapper indicatorMapper;
-  private final TempIndicatorRepository tempIndicatorRepository;
   private final IndicatorService indicatorService;
 
   public IndicatorsManagementServiceImpl(IndicatorRepository indicatorRepository,
-      LevelRepository levelRepository, IndicatorMapper indicatorMapper,
-      TempIndicatorRepository tempIndicatorRepository, IndicatorService indicatorService) {
+      LevelRepository levelRepository,
+      IndicatorService indicatorService) {
     this.indicatorRepository = indicatorRepository;
     this.levelRepository = levelRepository;
-    this.indicatorMapper = indicatorMapper;
-    this.tempIndicatorRepository = tempIndicatorRepository;
     this.indicatorService = indicatorService;
   }
 
@@ -49,7 +45,11 @@ public class IndicatorsManagementServiceImpl implements IndicatorsManagementServ
           indicatorsRequest.getSortBy().getProperty());
     }
 
-    return indicatorRepository.findAll(page);
+    FilterRequestDto filters = indicatorsRequest.getFilters();
+
+    Specification<Indicator> specification = indicatorService.specificationFromFilter(filters, false);
+
+    return indicatorRepository.findAll(specification, page);
   }
 
   @Override
@@ -78,42 +78,39 @@ public class IndicatorsManagementServiceImpl implements IndicatorsManagementServ
   @Override
   public void processFileWithTempIndicators(MultipartFile file) {
     List<Indicator> indicators = indicatorService.extractIndicatorFromFile(file);
-    saveForApproval(indicators);
+    if (!indicators.isEmpty()) {
+      saveForApproval(indicators);
+    }
   }
 
   @Override
-  public Page<TempIndicator> getIndicatorsForApproval(IndicatorsRequestDto indicatorsRequest) {
+  public Page<Indicator> getIndicatorsForApproval(IndicatorsRequestDto indicatorsRequest) {
     PageRequest page = PageRequest
         .of(indicatorsRequest.getPage() - 1, indicatorsRequest.getPageSize());
 
-    return tempIndicatorRepository.findAll(page);
+    FilterRequestDto filters = indicatorsRequest.getFilters();
+
+    Specification<Indicator> specification = indicatorService.specificationFromFilter(filters, true);
+
+    return indicatorRepository.findAll(specification, page);
   }
 
   @Override
   @Transactional
-  public void processTempIndicatorsApproval(TempIndicatorApprovalRequestDto approvalRequest) {
-    List<Approval> listOfApproved = approvalRequest.getApprovals().stream()
-        .filter(Approval::getIsApproved)
+  public void processTempIndicatorsApproval(IndicatorApprovalRequestDto approvalRequest) {
+    List<Long> approvedIds = approvalRequest.getApprovals().stream()
+        .filter(Approval::getIsApproved).map(Approval::getId)
         .collect(Collectors.toList());
 
-    if (listOfApproved.size() > 0) {
-      List<TempIndicator> approvedTempIndicators = tempIndicatorRepository
-          .findAllById(listOfApproved.stream().map(Approval::getId).collect(Collectors.toList()));
-
-      List<Indicator> indicators = approvedTempIndicators.stream()
-          .map(indicatorMapper::tempIndicatorToIndicator)
-          .collect(Collectors.toList());
-      indicatorRepository.saveAll(indicators);
-
-      tempIndicatorRepository.deleteAll(approvedTempIndicators);
+    if (approvedIds.size() > 0) {
+      indicatorRepository.updateToApproved(approvedIds);
     }
 
-    List<Approval> listOfUnapproved = approvalRequest.getApprovals().stream()
-        .filter(approval -> !approval.getIsApproved()).collect(Collectors.toList());
+    List<Long> unapprovedIds = approvalRequest.getApprovals().stream()
+        .filter(approval -> !approval.getIsApproved()).map(Approval::getId).collect(Collectors.toList());
 
-    if (listOfUnapproved.size() > 0) {
-      tempIndicatorRepository.deleteByIdIn(
-          listOfUnapproved.stream().map(Approval::getId).collect(Collectors.toList()));
+    if (unapprovedIds.size() > 0) {
+      indicatorRepository.deleteDisapprovedByIds(unapprovedIds);
     }
   }
 
@@ -128,10 +125,8 @@ public class IndicatorsManagementServiceImpl implements IndicatorsManagementServ
   }
 
   private void saveForApproval(List<Indicator> indicators) {
-    List<TempIndicator> tempIndicators = indicators.stream()
-        .map(indicatorMapper::indicatorToTempIndicator)
-        .collect(Collectors.toList());
+    indicators.forEach(indicator -> indicator.setTemp(true));
 
-    tempIndicatorRepository.saveAll(tempIndicators);
+    indicatorRepository.saveAll(indicators);
   }
 }

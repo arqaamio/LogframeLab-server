@@ -2,9 +2,8 @@ package com.arqaam.logframelab.controller;
 
 import com.arqaam.logframelab.controller.dto.IndicatorRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto;
-import com.arqaam.logframelab.controller.dto.TempIndicatorApprovalRequestDto;
+import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto;
 import com.arqaam.logframelab.model.persistence.Indicator;
-import com.arqaam.logframelab.model.persistence.TempIndicator;
 import com.arqaam.logframelab.service.IndicatorsManagementService;
 import io.swagger.annotations.Api;
 import java.util.Optional;
@@ -73,6 +72,7 @@ public class IndicatorsManagementController {
     return ResponseEntity.ok().build();
   }
 
+  @PreAuthorize("isAuthenticated() || isAnonymous()")
   @PostMapping(value = "upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<?> uploadIndicatorFile(@RequestParam("file") MultipartFile file) {
     indicatorsManagementService.processFileWithTempIndicators(file);
@@ -80,14 +80,14 @@ public class IndicatorsManagementController {
   }
 
   @GetMapping(value = "approvals", produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<Page<TempIndicator>> getTempIndicatorsForApproval(
+  public ResponseEntity<Page<Indicator>> getTempIndicatorsForApproval(
       IndicatorsRequestDto indicatorsRequest) {
     return ResponseEntity
         .ok(indicatorsManagementService.getIndicatorsForApproval(indicatorsRequest));
   }
 
   @PostMapping(value = "approvals", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<?> approvalStatusUpdate(@RequestBody TempIndicatorApprovalRequestDto approvalRequest) {
+  public ResponseEntity<?> approvalStatusUpdate(@RequestBody IndicatorApprovalRequestDto approvalRequest) {
     indicatorsManagementService.processTempIndicatorsApproval(approvalRequest);
     return ResponseEntity.ok().build();
   }

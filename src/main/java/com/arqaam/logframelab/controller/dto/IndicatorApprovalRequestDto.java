@@ -12,7 +12,7 @@ import lombok.Value;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class TempIndicatorApprovalRequestDto {
+public class IndicatorApprovalRequestDto {
 
   @NotEmpty
   private List<Approval> approvals;

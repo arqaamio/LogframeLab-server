@@ -8,6 +8,7 @@ import com.arqaam.logframelab.model.Error;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,9 +23,11 @@ import org.springframework.test.context.ActiveProfiles;
 public class BaseControllerTest {
 
   private static final String SEC_ADMIN_USERNAME = "secadmin";
-  private static final String SEC_ADMIN_PASSWORD = "password";
+  private static final String SEC_ADMIN_PASSWORD = "Passw0rdArqaam1234@";
 
   protected String bearerToken;
+
+  protected HttpEntity defaultHttpEntity;
 
   @Autowired
   protected TestRestTemplate testRestTemplate;
@@ -52,6 +55,9 @@ public class BaseControllerTest {
     JwtAuthenticationTokenResponse tokenResponse = tokenResponseEntity.getBody();
     assert tokenResponse != null;
 
+    HttpHeaders httpHeaders = new HttpHeaders();
+    httpHeaders.setBearerAuth(bearerToken);
+    defaultHttpEntity = new HttpEntity<>(httpHeaders);
     return tokenResponse.getToken();
   }
 

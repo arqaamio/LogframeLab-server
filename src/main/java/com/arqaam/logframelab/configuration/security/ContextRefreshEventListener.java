@@ -16,7 +16,7 @@ public class ContextRefreshEventListener {
 
   // TODO investigate more secure way of storing such credentials
   private static final String SEC_ADMIN_GROUP_NAME = "SEC_ADMIN";
-  private static final String PASSWORD_TO_BE_CHANGED = "password";
+  private static final String PASSWORD_TO_BE_CHANGED = "Passw0rdArqaam1234@";
   private static final String DEFAULT_SEC_ADMIN_USERNAME = "secadmin";
   private static final String SYSTEM = "SYSTEM";
 

@@ -26,7 +26,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 
 @Configuration
-@EnableWebSecurity(debug = true)
+@EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 @EnableJpaRepositories(basePackageClasses = NoOp.class)
 public class WebSecurityConfiguration  extends WebSecurityConfigurerAdapter  {
@@ -87,7 +87,7 @@ public class WebSecurityConfiguration  extends WebSecurityConfigurerAdapter  {
         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         .and()
         .authorizeRequests()
-        .antMatchers("/indicator/**", "/auth/login", "/indicators/**")
+            .antMatchers("/indicator/**", "/worldbank/**", "/auth/login", "/indicators/**")
         .permitAll()
         .anyRequest()
         .authenticated();

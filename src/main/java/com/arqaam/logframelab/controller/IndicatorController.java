@@ -52,9 +52,9 @@ public class IndicatorController implements Logging {
             @ApiResponse(code = 409, message = "Wrong file extension", response = Error.class),
             @ApiResponse(code = 500, message = "Failed to upload the file", response = Error.class)
     })
-    public ResponseEntity<List<IndicatorResponse>> handleFileUpload(@RequestPart("file") MultipartFile file , @RequestPart("filter") FiltersDto filter) throws IOException {
+    public ResponseEntity<List<IndicatorResponse>> handleFileUpload(@RequestPart("file") MultipartFile file , @RequestPart("filter") FiltersDto filter) {
         logger().info("Extract Indicators from Word File. File Name: {}", file.getOriginalFilename());
-        if(!file.getOriginalFilename().matches("\\S+(\\.docx$|\\.doc$)")){
+        if(!file.getOriginalFilename().matches(".+(\\.docx$|\\.doc$)")){
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
            throw new WrongFileExtensionException();
         }

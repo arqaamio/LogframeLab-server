@@ -20,12 +20,12 @@
     </organization>
 
     <properties>
-        <java.version>1.8</java.version>
+        <java.version>11</java.version>
         <jjwt.version>0.11.1</jjwt.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
         <commons-compress.version>1.20</commons-compress.version>
         <docx4j.version>6.1.2</docx4j.version>
         <javaxb.version>2.1</javaxb.version>
@@ -189,8 +189,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>11</source>
+                    <target>11</target>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>

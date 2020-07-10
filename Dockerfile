@@ -1,4 +1,4 @@
-FROM openjdk:8-jdk-alpine
+FROM adoptopenjdk/openjdk11:alpine-jre
 VOLUME /tmp
 COPY target/LogframeLab-server-1.0.0-SNAPSHOT.jar .
 EXPOSE 8080

@@ -6,22 +6,20 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
+import com.arqaam.logframelab.controller.BaseControllerTest;
 import com.arqaam.logframelab.model.persistence.auth.Group;
 import com.arqaam.logframelab.model.persistence.auth.GroupMember;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import com.arqaam.logframelab.repository.GroupRepository;
 import com.arqaam.logframelab.repository.UserRepository;
-import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
-@DataJpaTest
-public class AuthTests implements BaseDatabaseTest {
+public class AuthTests extends BaseControllerTest {
 
   private static final int FIRST_IN_LIST = 0;
   private static final int SEC_ADMIN_GROUP_ID = 1, INDICATOR_ADMIN_GROUP_ID = 3, APP_USER_GROUP_ID = 2;

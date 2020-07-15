@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.model.IndicatorResponse;
-import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,8 +19,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-public class IndicatorControllerIntegrationTest extends BaseControllerTest implements
-    BaseDatabaseTest {
+public class IndicatorControllerIntegrationTest extends BaseControllerTest {
 
   private static final int DATABASE_THEMES_SIZE = 42;
   private static final int DATABASE_CRS_CODE_SIZE = 76;

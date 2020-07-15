@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import com.arqaam.logframelab.controller.BaseControllerTest;
 import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningResponseDto;
-import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
 import java.util.Collection;
 import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,7 +20,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-public class UserManagerTests extends BaseControllerTest implements BaseDatabaseTest  {
+public class UserManagerTests extends BaseControllerTest  {
 
   private static final String APP_USER_USERNAME = "user";
   private static final String APP_USER_PASSWORD = "Password";

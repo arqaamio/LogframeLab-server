@@ -7,7 +7,6 @@ import com.arqaam.logframelab.model.WorldBankIndicator;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.repository.IndicatorRepository;
-import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -24,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-class WorldBankControllerTest extends BaseControllerTest implements BaseDatabaseTest {
+class WorldBankControllerTest extends BaseControllerTest {
 
     @MockBean
     private IndicatorRepository indicatorRepository;

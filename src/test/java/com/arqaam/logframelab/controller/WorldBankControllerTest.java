@@ -37,7 +37,7 @@ class WorldBankControllerTest extends BaseControllerTest implements BaseDatabase
     @Test
     void getCountry() {
         ResponseEntity<Map<String, String>> response = testRestTemplate.exchange("/worldbank/country", HttpMethod.GET,
-                defaultHttpEntity, new ParameterizedTypeReference<Map<String, String>>() {});
+                null, new ParameterizedTypeReference<Map<String, String>>() {});
         assertEquals(HttpStatus.OK,response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(304, response.getBody().size());
@@ -49,7 +49,7 @@ class WorldBankControllerTest extends BaseControllerTest implements BaseDatabase
     void getIndicatorValues() {
         when(indicatorRepository.findById(any())).thenReturn(Optional.of(Indicator.builder().dataSource("https://data.worldbank.org/indicator/EG.CFT.ACCS.ZS?view=chart").build()));
         ResponseEntity<List<WorldBankIndicator>> response = testRestTemplate.exchange("/worldbank/values?countryId=NZL&indicatorId=42", HttpMethod.GET,
-                defaultHttpEntity, new ParameterizedTypeReference<List<WorldBankIndicator>>() {});
+                null, new ParameterizedTypeReference<List<WorldBankIndicator>>() {});
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertFalse(response.getBody().stream().anyMatch(x -> x == null || x.getValue()!=100));
@@ -63,7 +63,7 @@ class WorldBankControllerTest extends BaseControllerTest implements BaseDatabase
     void getIndicatorValues_withDates() {
         when(indicatorRepository.findById(any())).thenReturn(Optional.of(Indicator.builder().dataSource("https://data.worldbank.org/indicator/EG.CFT.ACCS.ZS?view=chart").build()));
         ResponseEntity<List<WorldBankIndicator>> response = testRestTemplate.exchange("/worldbank/values?countryId=NZL&indicatorId=42&years=2000,2001", HttpMethod.GET,
-                defaultHttpEntity, new ParameterizedTypeReference<List<WorldBankIndicator>>() {});
+                null, new ParameterizedTypeReference<List<WorldBankIndicator>>() {});
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(2, response.getBody().size());
@@ -78,7 +78,7 @@ class WorldBankControllerTest extends BaseControllerTest implements BaseDatabase
     void getIndicatorValues_indicatorDoesntExist() {
         when(indicatorRepository.findById(any())).thenReturn(Optional.empty());
         ResponseEntity<Error> response = testRestTemplate.exchange("/worldbank/values?countryId=NZL&indicatorId=0", HttpMethod.GET,
-                defaultHttpEntity, Error.class);
+                null, Error.class);
         assertEqualsException(response, HttpStatus.NOT_FOUND, 10, IndicatorNotFoundException.class);
     }
 
@@ -86,7 +86,7 @@ class WorldBankControllerTest extends BaseControllerTest implements BaseDatabase
     void getIndicatorValues_indicatorMissingDataSource() {
         when(indicatorRepository.findById(any())).thenReturn(Optional.of(Indicator.builder().build()));
         ResponseEntity<Error> response = testRestTemplate.exchange("/worldbank/values?countryId=NZL&indicatorId=42", HttpMethod.GET,
-                defaultHttpEntity, Error.class);
+                null, Error.class);
         assertEqualsException(response, HttpStatus.UNPROCESSABLE_ENTITY, 13, InvalidDataSourceException.class);
     }
 
@@ -94,7 +94,7 @@ class WorldBankControllerTest extends BaseControllerTest implements BaseDatabase
     void getIndicatorValues_indicatorDataSourceDoesntMatch() {
         when(indicatorRepository.findById(any())).thenReturn(Optional.of(Indicator.builder().dataSource("https://randomwebsite.com").build()));
         ResponseEntity<Error> response = testRestTemplate.exchange("/worldbank/values?countryId=NZL&indicatorId=42", HttpMethod.GET,
-                defaultHttpEntity, Error.class);
+                null, Error.class);
         assertEqualsException(response, HttpStatus.UNPROCESSABLE_ENTITY, 13, InvalidDataSourceException.class);
     }
 
@@ -102,7 +102,7 @@ class WorldBankControllerTest extends BaseControllerTest implements BaseDatabase
     void getIndicatorValues_wrongCountryId() {
         when(indicatorRepository.findById(any())).thenReturn(Optional.of(Indicator.builder().dataSource("https://data.worldbank.org/indicator/EG.CFT.ACCS.ZS?view=chart").build()));
         ResponseEntity<Error> response = testRestTemplate.exchange("/worldbank/values?countryId=AAA&indicatorId=42", HttpMethod.GET,
-                defaultHttpEntity, Error.class);
+                null, Error.class);
         assertEqualsException(response, HttpStatus.INTERNAL_SERVER_ERROR, 11, WorldBankAPIRequestFailedException.class);
     }
 
@@ -110,7 +110,7 @@ class WorldBankControllerTest extends BaseControllerTest implements BaseDatabase
     void getIndicatorValues_wrongIndicatorId() {
         when(indicatorRepository.findById(any())).thenReturn(Optional.of(Indicator.builder().dataSource("https://data.worldbank.org/indicator/AAA.AAAA?view=chart").build()));
         ResponseEntity<Error> response = testRestTemplate.exchange("/worldbank/values?countryId=NZL&indicatorId=42", HttpMethod.GET,
-                defaultHttpEntity, Error.class);
+                null, Error.class);
         assertEqualsException(response, HttpStatus.INTERNAL_SERVER_ERROR, 11, WorldBankAPIRequestFailedException.class);
     }
 }

@@ -11,7 +11,6 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -36,13 +35,15 @@ public class IndicatorController implements Logging {
 
     private static final String WORD_FILE_EXTENSION = ".docx";
     private static final String WORKSHEET_FILE_EXTENSION = ".xlsx";
-
     private static final String WORKSHEET_DEFAULT_FORMAT = "xlsx";
     private static final String WORD_FORMAT = "word";
     private static final String DFID_FORMAT = "dfid";
 
-    @Autowired
-    private IndicatorService indicatorService;
+    private final IndicatorService indicatorService;
+
+    public IndicatorController(IndicatorService indicatorService) {
+        this.indicatorService = indicatorService;
+    }
 
     @PostMapping(value = "upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "${IndicatorController.handleFileUpload.value}", nickname = "handleFileUpload", response = IndicatorResponse.class, responseContainer = "List")
@@ -53,7 +54,7 @@ public class IndicatorController implements Logging {
     })
     public ResponseEntity<List<IndicatorResponse>> handleFileUpload(@RequestPart("file") MultipartFile file , @RequestPart("filter") FiltersDto filter) {
         logger().info("Extract Indicators from Word File. File Name: {}", file.getOriginalFilename());
-        if(!file.getOriginalFilename().matches("\\S+(\\.docx$|\\.doc$)")){
+        if(!file.getOriginalFilename().matches(".+(\\.docx$|\\.doc$)")){
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
            throw new WrongFileExtensionException();
         }

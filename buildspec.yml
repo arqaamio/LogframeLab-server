@@ -1,0 +1,16 @@
+version: 0.2
+phases:
+  pre_build:
+    commands:
+      - echo "Entered the pre-build phase"
+  build:
+    commands:
+      - echo "Entered build phase"
+      - mvn clean install -DskipTests
+  post_build:
+    commands:
+      - echo "Entered the post-build phase"
+      - mv target/LogframeLab-server-1.0.0-SNAPSHOT.jar ./
+artifacts:
+  files:
+    - LogframeLab-server-1.0.0-SNAPSHOT.jar

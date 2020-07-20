@@ -20,24 +20,6 @@
   </organization>
 
   <properties>
-      <java.version>1.8</java.version>
-      <jjwt.version>0.11.1</jjwt.version>
-      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-      <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-      <maven.compiler.target>1.8</maven.compiler.target>
-      <maven.compiler.source>1.8</maven.compiler.source>
-      <commons-compress.version>1.20</commons-compress.version>
-      <docx4j.version>6.1.2</docx4j.version>
-      <javaxb.version>2.1</javaxb.version>
-      <lombok.version>1.18.12</lombok.version>
-      <poi.version>4.1.2</poi.version>
-      <swagger.version>2.9.2</swagger.version>
-      <flyway.version>6.3.3</flyway.version>
-      <mockito.junit.jupiter.version>3.3.3</mockito.junit.jupiter.version>
-      <h2.version>1.4.200</h2.version>
-  </properties>
-
-  <properties>
     <java.version>1.8</java.version>
     <jjwt.version>0.11.1</jjwt.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -52,8 +34,8 @@
     <swagger.version>2.9.2</swagger.version>
     <flyway.version>6.3.3</flyway.version>
     <mapstruct.version>1.3.1.Final</mapstruct.version>
-    <testcontainer.version>1.14.1</testcontainer.version>
     <mockito.junit.jupiter.version>3.3.3</mockito.junit.jupiter.version>
+    <h2.version>1.4.200</h2.version>
   </properties>
 
   <dependencies>

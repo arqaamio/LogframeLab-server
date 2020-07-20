@@ -4,7 +4,7 @@ services:
 
   # Spring-Boot application
   app:
-   container_name: logframelab-server
+    container_name: logframelab-server
     image: logframelab-server-image
     build: ./
     environment:

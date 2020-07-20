@@ -3,17 +3,17 @@ version: '3'
 services:
 
   # Spring-Boot application
-  #app:
-   # container_name: logframelab-server
-    #image: logframelab-server-image
-    #build: ./
-    #environment:
-      #SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/arqaam?autoReconnect=true&useSSL=false
-    #ports:
-      #- 8080:8080
-    #depends_on:
-      #- db
-      #- phpmyadmin
+  app:
+   container_name: logframelab-server
+    image: logframelab-server-image
+    build: ./
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/arqaam?autoReconnect=true&useSSL=false
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+      - phpmyadmin
 
   # MySQL
   db:

@@ -14,6 +14,7 @@ import com.arqaam.logframelab.service.auth.AuthService;
 import com.arqaam.logframelab.service.auth.GroupService;
 import com.arqaam.logframelab.service.usermanager.UserManager;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.validation.Valid;
@@ -25,6 +26,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -99,6 +101,13 @@ public class AuthController {
   @PreAuthorize("hasAnyAuthority('CRUD_ADMIN', 'CRUD_APP_USER')")
   public ResponseEntity<Set<GroupDto>> getGroups() {
     return ResponseEntity.ok(groupService.getAllGroups());
+  }
+
+  @GetMapping(value = "users/{username}")
+  @PreAuthorize("hasAnyAuthority('CRUD_ADMIN', 'CRUD_APP_USER')")
+  public ResponseEntity<UserDto> getUser(@PathVariable("username") String username) {
+    Optional<UserDto> userDto = userManager.userExistsByUsername(username);
+    return userDto.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
   }
 
 }

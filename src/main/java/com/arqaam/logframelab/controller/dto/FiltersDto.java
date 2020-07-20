@@ -20,8 +20,12 @@ public class FiltersDto {
   @Getter
   private final Collection<Level> level = new LinkedHashSet<>();
 
+  @Getter
+  private final Collection<Long> levelIds = new LinkedHashSet<>();
+
   private final Collection<String> sdg_code = new LinkedHashSet<>();
   private final Collection<String> crs_code = new LinkedHashSet<>();
+
 
   public Collection<String> getSdgCode() {
     return sdg_code;

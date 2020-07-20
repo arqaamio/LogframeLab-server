@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -410,12 +411,7 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
     return filters;
   }
 
-  private HttpHeaders headersWithAuth() {
-    HttpHeaders headers = new HttpHeaders();
-    headers.setBearerAuth(bearerToken);
 
-    return headers;
-  }
 }
 //    private Integer validateTemplateLevel(XSSFSheet sheet, List<Indicator> indicators, Integer rowIndex, Integer numberTemplateIndicators){
 //        List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();

@@ -1,7 +1,16 @@
 package com.arqaam.logframelab.service;
 
+import static java.util.Objects.isNull;
+
 import com.arqaam.logframelab.controller.dto.FiltersDto;
-import com.arqaam.logframelab.exception.*;
+import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto.FilterRequestDto;
+import com.arqaam.logframelab.exception.FailedToCloseFileException;
+import com.arqaam.logframelab.exception.FailedToOpenFileException;
+import com.arqaam.logframelab.exception.FailedToOpenWorksheetException;
+import com.arqaam.logframelab.exception.FailedToProcessWordFileException;
+import com.arqaam.logframelab.exception.IndicatorNotFoundException;
+import com.arqaam.logframelab.exception.TemplateNotFoundException;
+import com.arqaam.logframelab.exception.WordFileLoadFailedException;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.Level;
@@ -10,10 +19,32 @@ import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
 import com.arqaam.logframelab.util.DocManipulationUtil;
 import com.arqaam.logframelab.util.Logging;
+import java.io.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import javax.persistence.criteria.Predicate;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.extractor.WordExtractor;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellCopyPolicy;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -27,18 +58,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
-import javax.persistence.criteria.Predicate;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import static java.util.Objects.isNull;
 
 @Service
 public class IndicatorService implements Logging {
@@ -286,57 +305,66 @@ public class IndicatorService implements Logging {
      * @param file Worksheet file
      */
      public List<Indicator> importIndicators(MultipartFile file) {
-        List<Level> levels = levelRepository.findAll();
-        Map<String, Level> levelMap = new HashMap<>();
-        for (Level lvl : levels){
-            levelMap.put(lvl.getName(), lvl);
+       return indicatorRepository.saveAll(extractIndicatorFromFile(file));
+    }
+
+    public List<Indicator> extractIndicatorFromFile(MultipartFile file) {
+      List<Level> levels = levelRepository.findAll();
+      Map<String, Level> levelMap = new HashMap<>();
+      for (Level lvl : levels){
+        levelMap.put(lvl.getName(), lvl);
+      }
+
+      logger().info("Importing indicators from xlsx, name {}", file.getName());
+      try {
+        List<Indicator> indicatorList = new ArrayList<>();
+        Iterator<Row> iterator = new XSSFWorkbook(file.getInputStream()).getSheetAt(0).iterator();
+        // skip the headers row
+        if (iterator.hasNext()) {
+          iterator.next();
         }
-       
-        logger().info("Importing indicators from xlsx, name {}", file.getName());
-        try {
-            List<Indicator> indicatorList = new ArrayList<>();
-            Iterator<Row> iterator = new XSSFWorkbook(file.getInputStream()).getSheetAt(0).iterator();
-            // skip the headers row
-            if (iterator.hasNext()) {
-                iterator.next();
-            }
-            int count=-1;
-            while (iterator.hasNext()) {
-                logger().info(" ");
-                Row currentRow = iterator.next();
+        while (iterator.hasNext()) {
+          Row currentRow = iterator.next();
+          try {
+            currentRow.getCell(2).getStringCellValue();
+          } catch (NullPointerException ex) {
+            continue;
+          }
+          // key words
+          String[] keys = currentRow.getCell(2).getStringCellValue().toLowerCase().split(",");
+          for (int i = 0; i < keys.length; i++) {
+            keys[i] = keys[i].trim().replaceAll("\\s+", " ");
+          }
+          Level level = levelMap.get(currentRow.getCell(0).getStringCellValue().toUpperCase());
+          if (!isNull(level)) {
+            Cell crsCodeCell = currentRow.getCell(7, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+            Cell sdgCodeCell = currentRow.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+            Indicator indicator = Indicator.builder()
+                .level(level)
+                .themes(currentRow.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .keywords(String.join(",", keys))
+                .name(currentRow.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .description(currentRow.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .source(currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .disaggregation(currentRow.getCell(6, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().equalsIgnoreCase("yes"))
+                .crsCode(crsCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(crsCodeCell.getNumericCellValue()) : crsCodeCell.getStringCellValue())
+                .sdgCode(sdgCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(sdgCodeCell.getNumericCellValue()) : sdgCodeCell.getStringCellValue())
+                .sourceVerification(currentRow.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .dataSource(currentRow.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .build();
+            indicatorList.add(indicator);
+            /*
+             * Logging per row with a large-enough file caused an error in tests:
+             * https://stackoverflow.com/a/52033799/2211446
+             */
+          }
+        }
+        return indicatorList;
 
-                // key words
-                String[] keys = currentRow.getCell(2).getStringCellValue().toLowerCase().split(",");
-                for (int i = 0; i < keys.length; i++) {
-                    keys[i] = keys[i].trim().replaceAll("\\s+", " ");
-                }
-                Level level = levelMap.get(currentRow.getCell(0).getStringCellValue().toUpperCase());
-                if (!isNull(level)) {
-                    Cell crsCodeCell = currentRow.getCell(7, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                    Indicator indicator = Indicator.builder()
-                            .level(level)
-                            .themes(currentRow.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .keywords(String.join(",", keys))
-                            .name(currentRow.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .description(currentRow.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .source(currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .disaggregation(currentRow.getCell(6, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().equalsIgnoreCase("yes"))
-                            .crsCode(crsCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(crsCodeCell.getNumericCellValue()) : crsCodeCell.getStringCellValue())
-                            .sdgCode(currentRow.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .sourceVerification(currentRow.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .dataSource(currentRow.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .build();
-                    logger().info("Line {}, Saving this indicator {}", count, indicator);
-                    indicatorList.add(indicatorRepository.save(indicator));
-                    count++;
-                }
-            }
-            return indicatorList;
-
-        } catch (IOException e) {
-            logger().error("Failed to open worksheet.", e);
-            throw new FailedToOpenWorksheetException();
-        }/* catch (InvalidFormatException e) {
+      } catch (IOException e) {
+        logger().error("Failed to open worksheet.", e);
+        throw new FailedToOpenWorksheetException();
+      }/* catch (InvalidFormatException e) {
             logger().error("Failed to interpret worksheet. It must be in a wrong format.", e);
             throw new WorksheetInWrongFormatException();
         }*/
@@ -460,18 +488,50 @@ public class IndicatorService implements Logging {
                 themes, sources, levels, sdgCodes, crsCodes);
         return !themes.isPresent() && !sources.isPresent() && !levels.isPresent() && !sdgCodes.isPresent() && !crsCodes.isPresent() ?
             indicatorRepository.findAll() :
-            indicatorRepository.findAll((Specification<Indicator>) (root, criteriaQuery, criteriaBuilder) -> {
-                List<Predicate> predicates = new ArrayList<>();
-                themes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("themes")).value(x))));
-                sources.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("source")).value(x))));
-                levels.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("level").get("id")).value(x))));
-                sdgCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("sdgCode")).value(x))));
-                crsCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("crsCode")).value(x))));
-                return criteriaBuilder.and(predicates.toArray(new Predicate[predicates.size()]));
-            });
+            indicatorRepository.findAll(
+                getIndicatorSpecification(themes, sources, levels, sdgCodes, crsCodes, false));
     }
 
-    /**
+   Specification<Indicator> getIndicatorSpecification(Optional<List<String>> themes,
+      Optional<List<String>> sources, Optional<List<Long>> levels, Optional<List<String>> sdgCodes,
+      Optional<List<String>> crsCodes, boolean temp) {
+    return (root, criteriaQuery, criteriaBuilder) -> {
+        List<Predicate> predicates = new ArrayList<>();
+        themes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("themes")).value(x))));
+        sources.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("source")).value(x))));
+        levels.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("level").get("id")).value(x))));
+        sdgCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("sdgCode")).value(x))));
+        crsCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("crsCode")).value(x))));
+
+        predicates.add(criteriaBuilder.and(criteriaBuilder.equal(root.get("temp"), temp)));
+
+      return criteriaBuilder.and(predicates.toArray(new Predicate[predicates.size()]));
+    };
+  }
+
+  public Specification<Indicator> specificationFromFilter(FilterRequestDto filters, boolean temp) {
+    if (filters == null) {
+      filters = new FilterRequestDto();
+    }
+    return getIndicatorSpecification(
+        filters.getThemes() != null && !filters.getThemes().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getThemes()))
+            : Optional.empty(),
+        filters.getSource() != null && !filters.getSource().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getSource()))
+            : Optional.empty(),
+        filters.getLevelIds() != null && !filters.getLevelIds().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getLevelIds()))
+            : Optional.empty(),
+        filters.getSdgCode() != null && !filters.getSdgCode().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getSdgCode()))
+            : Optional.empty(),
+        filters.getCrsCode() != null && !filters.getCrsCode().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getCrsCode()))
+            : Optional.empty(), temp);
+  }
+
+  /**
      * Get indicator with id. If not found throws IndicatorNotFoundException
      * @param id Id of the indicator
      * @return Indicator

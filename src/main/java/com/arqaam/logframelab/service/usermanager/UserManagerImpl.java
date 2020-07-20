@@ -18,7 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
-public class UserManagerImpl  implements UserManager {
+public class UserManagerImpl implements UserManager {
 
   private final UserService userService;
   private final GroupRepository groupRepository;
@@ -70,5 +70,13 @@ public class UserManagerImpl  implements UserManager {
     userDto.sort(Comparator.comparing(UserDto::getUsername));
 
     return userDto;
+  }
+
+  @Override
+  public Optional<UserDto> userExistsByUsername(String username) {
+    Optional<User> user = userService.findByUsername(username);
+    return user.map(value -> UserDto.builder().username(value.getUsername())
+        .groups(value.getGroupMembership().stream().map(gm -> gm.getGroup().getName()).collect(
+            Collectors.toList())).build());
   }
 }

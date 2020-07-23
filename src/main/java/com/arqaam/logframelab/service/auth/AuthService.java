@@ -14,7 +14,7 @@ public interface AuthService {
 
   String generateToken(User user);
 
-  Long getTokenExpiryInMillis();
+  Long getTokenExpiryInSeconds();
 
   String getTokenType();
 

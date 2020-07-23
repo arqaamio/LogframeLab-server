@@ -4,7 +4,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -41,7 +40,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
       FilterChain filterChain)
       throws ServletException, IOException {
     try {
-      String jwt = getJwtFromRequest(httpServletRequest);
+      String jwt = JwtUtil.getJwtFromRequest(httpServletRequest, jwtTokenProvider);
 
       if (StringUtils.isNotBlank(jwt) && jwtTokenProvider.isTokenValid(jwt)) {
         String username = jwtTokenProvider.getUsernameFromJws(jwt);
@@ -58,14 +57,5 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     filterChain.doFilter(httpServletRequest, httpServletResponse);
-  }
-
-  private String getJwtFromRequest(HttpServletRequest request) {
-    String bearerToken = request.getHeader(jwtTokenProvider.getTokenHeader());
-    if (StringUtils.isNotBlank(bearerToken) && bearerToken.startsWith(jwtTokenProvider.getTokenHeaderPrefix())) {
-      return StringUtils.remove(bearerToken, jwtTokenProvider.getTokenHeaderPrefix());
-    }
-
-    return null;
   }
 }

@@ -18,7 +18,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.validation.Valid;
-import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -65,8 +64,7 @@ public class AuthController {
 
     String token = authService.generateToken(user);
     return ResponseEntity.ok(JwtAuthenticationTokenResponse.builder().token(token)
-        .tokenType(authService.getTokenType()).expiryDuration(
-            authService.getTokenExpiryInMillis())
+        .tokenType(authService.getTokenType())
         .groups(user.getGroupMembership().stream().map(m -> m.getGroup().getName()).collect(
             Collectors.toSet())).build());
   }

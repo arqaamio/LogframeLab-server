@@ -2,6 +2,7 @@ package com.arqaam.logframelab.configuration.security;
 
 import com.arqaam.logframelab.configuration.security.jwt.JwtAuthFilter;
 import com.arqaam.logframelab.configuration.security.jwt.JwtAuthenticationEntryPoint;
+import com.arqaam.logframelab.configuration.security.jwt.JwtRefreshFilter;
 import com.arqaam.logframelab.repository.NoOp;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -35,14 +36,18 @@ public class WebSecurityConfiguration  extends WebSecurityConfigurerAdapter  {
 
   private final JwtAuthFilter jwtAuthFilter;
 
+  private final JwtRefreshFilter jwtRefreshFilter;
+
   private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
   public WebSecurityConfiguration(
       @Qualifier("arqaamUserDetailsService") UserDetailsService userDetailsService,
       JwtAuthFilter jwtAuthFilter,
+      JwtRefreshFilter jwtRefreshFilter,
       JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
     this.userDetailsService = userDetailsService;
     this.jwtAuthFilter = jwtAuthFilter;
+    this.jwtRefreshFilter = jwtRefreshFilter;
     this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
   }
 
@@ -93,6 +98,7 @@ public class WebSecurityConfiguration  extends WebSecurityConfigurerAdapter  {
         .authenticated();
 
     http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+    http.addFilterAfter(jwtRefreshFilter, UsernamePasswordAuthenticationFilter.class);
   }
 
 }

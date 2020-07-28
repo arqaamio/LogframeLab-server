@@ -1,8 +1,6 @@
 package com.arqaam.logframelab.controller;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
@@ -19,7 +17,6 @@ import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningReq
 import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningResponseDto;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.repository.IndicatorRepository;
-import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
 import com.arqaam.logframelab.service.IndicatorMapper;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -48,8 +45,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
-public class IndicatorsManagementControllerTest extends BaseControllerTest implements
-    BaseDatabaseTest {
+public class IndicatorsManagementControllerTest extends BaseControllerTest {
 
   public static final int INDICATOR_ADMIN_GROUP_ID = 3;
   public static final String INDICATOR_USERNAME = "indicator";

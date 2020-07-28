@@ -1,22 +1,22 @@
 package com.arqaam.logframelab.service;
 
-import com.arqaam.logframelab.controller.BaseControllerTest;
 import com.arqaam.logframelab.exception.InvalidDataSourceException;
 import com.arqaam.logframelab.exception.WorldBankAPIRequestFailedException;
 import com.arqaam.logframelab.model.WorldBankIndicator;
 import com.arqaam.logframelab.model.persistence.Indicator;
-import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
 import org.assertj.core.util.Strings;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
-class WorldBankServiceTest implements BaseDatabaseTest {
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles(profiles = "integration")
+class WorldBankServiceTest {
 
     @Autowired
     private WorldBankService worldBankService;

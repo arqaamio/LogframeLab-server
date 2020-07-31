@@ -159,6 +159,7 @@ public class IndicatorService implements Logging {
         throw new WordFileLoadFailedException();
       }
     }
+    utils.sendProgressMessage(progress+TOTAL_PERCENTAGE_OF_SMALL_TASKS*2);
     return result;
   }
 

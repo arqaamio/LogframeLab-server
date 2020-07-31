@@ -1,14 +1,14 @@
 package com.arqaam.logframelab.configuration;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 
@@ -17,10 +17,11 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@RunWith(SpringRunner.class)
+@ActiveProfiles(profiles = "integration")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+@Disabled //Unstable test
 public class WebSocketTest {
 
     static final String WEBSOCKET_URI = "ws://localhost:8080/stomp";
@@ -29,8 +30,8 @@ public class WebSocketTest {
     BlockingQueue<String> blockingQueue;
     WebSocketStompClient stompClient;
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         blockingQueue = new LinkedBlockingDeque<>();
         stompClient = new WebSocketStompClient(new StandardWebSocketClient());
     }

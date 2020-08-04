@@ -11,6 +11,7 @@ import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.arqaam.logframelab.model.persistence.Level;
 import org.apache.http.entity.ContentType;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -208,6 +209,48 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     // }
   }
 
+  @Test
+  void exportIndicatorsPRMFormat() throws IOException {
+    List<Indicator> indicatorList = mockIndicatorList();
+    when(indicatorRepository.findAllById(any())).thenReturn(indicatorList);
+    List<Indicator> impactIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[3])).collect(Collectors.toList());
+    List<Indicator> outcomeIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[1])).collect(Collectors.toList());
+    List<Indicator> outputIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
+
+    List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(indicatorList);
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsPRMFormat(indicatorResponse);
+    assertNotNull(result);
+    XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
+    int posTable = 0;
+    posTable = validatePRMFormatPerLevel(document, impactIndicators, mockLevels[3], posTable);
+    posTable = validatePRMFormatPerLevel(document, outcomeIndicators, mockLevels[1], posTable);
+    validatePRMFormatPerLevel(document, outputIndicators, mockLevels[0], posTable);
+  }
+
+  @Test
+  void exportIndicatorsPRMFormat_withEmptyLevelIndicators() throws IOException {
+    List<Indicator> indicatorList = mockIndicatorList();
+    when(indicatorRepository.findAllById(any())).thenReturn(indicatorList.stream()
+            .filter(x -> !x.getLevel().equals(mockLevels[3])).collect(Collectors.toList()));
+    List<Indicator> impactIndicators = new ArrayList<>();
+    List<Indicator> outcomeIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[1])).collect(Collectors.toList());
+    List<Indicator> outputIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
+
+    List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(indicatorList);
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsPRMFormat(indicatorResponse);
+
+    assertNotNull(result);
+    XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
+    int posTable = 0;
+    posTable = validatePRMFormatPerLevel(document, impactIndicators, mockLevels[3], posTable);
+    posTable = validatePRMFormatPerLevel(document, outcomeIndicators, mockLevels[1], posTable);
+    validatePRMFormatPerLevel(document, outputIndicators, mockLevels[0], posTable);
+  }
 
   List<Indicator> mockIndicatorList() {
     String keyword = "food insecurity,agriculture";
@@ -246,6 +289,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         .dataSource("https://data.worldbank.org/indicator/SE.PRM.TENR.FE?view=chart")
         .date("2001")
         .value("100")
+        .sourceVerification("Capacity4Dev")
         .crsCode(mockCrsCodes.get(1)).build());
     list.add(Indicator.builder().id(5L).name("Revenue, excluding grants (% of GDP)")
         .description("Public Sector").level(mockLevels[3]).keywords("government")
@@ -255,6 +299,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         .dataSource("https://data.worldbank.org/indicator/EG.ELC.ACCS.UR.ZS?view=chart")
         .date("1980")
         .value("50")
+        .sourceVerification("SDG Country Data")
         .crsCode(mockCrsCodes.get(2)).build());
     list.add(
         Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
@@ -265,6 +310,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
             .dataSource("https://data.worldbank.org/indicator/EG.CFT.ACCS.ZS?view=chart")
             .date("2001")
             .value("100")
+            .sourceVerification("World Bank")
             .crsCode(mockCrsCodes.get(3)).build());
 
     return list;
@@ -384,5 +430,37 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
       }
       return ++rowIndex;
     }
+  }
+
+  /**
+   * Validates PRM document and returns the position of the next table. If it was a removed table then it won't change
+   * @param document PRM Document to validate
+   * @param indicators Indicators to validate with
+   * @param level Level of the indicators
+   * @param posTable Position of the table in the table array
+   * @return The position of the next table. If it was a removed table then it won't change
+   */
+  private int validatePRMFormatPerLevel(XWPFDocument document, List<Indicator> indicators, Level level, Integer posTable) {
+    if(indicators.isEmpty()){
+      for (XWPFTable table : document.getTables()){
+        assertNotEquals(level.getName() + " #1:".toLowerCase(), table.getRow(0).getCell(0).getText().toLowerCase());
+      }
+      return posTable;
+    }
+    XWPFTable table = document.getTableArray(posTable);
+    assertTrue(table.getRow(0).getCell(0).getText().toLowerCase().contains(indicators.get(0).getLevel().getName().toLowerCase()));
+    for (int i = 2; i < table.getRows().size(); i+=2) {
+      assertEquals("Indicator " + i/2 + ":", table.getRow(i).getCell(0).getParagraphs().get(0).getText());
+      assertEquals(indicators.get(i/2 -1).getName(), table.getRow(i).getCell(0).getParagraphs().get(1).getText());
+      assertEquals(indicators.get(i/2 -1).getValue() + " (" + indicators.get(i/2 -1).getDate() + ")", table.getRow(i).getCell(1).getParagraphs().get(0).getText());
+      assertEquals("NOTES:", table.getRow(i+1).getCell(0).getParagraphs().get(0).getText());
+      if(indicators.get(i/2 -1).getSourceVerification() == null){
+        assertEquals(1, table.getRow(i+1).getCell(0).getParagraphs().size());
+        assertEquals("NOTES:", table.getRow(i+1).getCell(0).getText());
+      }else {
+        assertEquals(indicators.get(i/2 -1).getSourceVerification(), table.getRow(i+1).getCell(0).getParagraphs().get(1).getText());
+      }
+    }
+    return posTable+1;
   }
 }

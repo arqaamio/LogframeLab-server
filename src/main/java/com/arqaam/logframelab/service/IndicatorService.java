@@ -707,4 +707,86 @@ public class IndicatorService implements Logging {
         // Number of the row of the next level's template
         return initialRow + numberTemplateIndicators * 4;
     }
+
+    /**
+     * Fills the PRM template with the indicators
+     * @param indicatorResponses Indicators to fill the indicator file
+     * @return The PRM template filled with the indicators
+     */
+    public ByteArrayOutputStream exportIndicatorsPRMFormat(List<IndicatorResponse> indicatorResponses){
+        logger().info("Starting to export indicators using the PRM template");
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        List<Level> levels = levelRepository.findAllByOrderByPriority();
+        List<Indicator> indicatorList = indicatorRepository.findAllById(indicatorResponses.stream()
+                .mapToLong(IndicatorResponse::getId).boxed().collect(Collectors.toList()));
+
+        logger().info("Organizing the indicators per level and add value and date");
+        List<Indicator> impactIndicators = new ArrayList<>();
+        List<Indicator> outcomeIndicators = new ArrayList<>();
+        List<Indicator> outputIndicators = new ArrayList<>();
+        for (int i = 0; i < indicatorList.size(); i++) {
+            Indicator indicator = indicatorList.get(i);
+            IndicatorResponse response = indicatorResponses.stream().filter(x-> x.getId() == indicator.getId()).findAny().get();
+            if(!StringUtils.isEmpty(response.getValue()))
+                indicator.setValue(response.getValue());
+            if(!StringUtils.isEmpty(response.getDate()))
+                indicator.setDate(response.getDate());
+            // Can't do switch because the values aren't known before runtime
+            if (levels.get(0).equals(indicator.getLevel())) {
+                impactIndicators.add(indicator);
+            } else if (levels.get(1).equals(indicator.getLevel())) {
+                outcomeIndicators.add(indicator);
+            } else {
+                outputIndicators.add(indicator);
+            }
+        }
+
+        try {
+            XWPFDocument document = new XWPFDocument(new ClassPathResource("PRM_Template.docx").getInputStream());
+            XWPFTable impactTable = document.getTableArray(0);
+            XWPFTable outcomeTable = document.getTableArray(1);
+            XWPFTable outputTable = document.getTableArray(2);
+
+            logger().info("Removing tables if a certain level as no indicators");
+            if(impactIndicators.isEmpty()) document.removeBodyElement(document.getPosOfTable(impactTable));
+            if(outcomeIndicators.isEmpty()) document.removeBodyElement(document.getPosOfTable(outcomeTable));
+            if(outputIndicators.isEmpty()) document.removeBodyElement(document.getPosOfTable(outputTable));
+
+            fillIndicatorPerTable(impactTable, impactIndicators);
+            fillIndicatorPerTable(outcomeTable, outcomeIndicators);
+            fillIndicatorPerTable(outputTable, outputIndicators);
+            logger().info("Writing the changes to the template to a outputStream");
+            document.write(outputStream);
+        } catch (IOException e) {
+            logger().error("Template was not found.", e);
+            throw new FailedToOpenFileException();
+        }
+        return outputStream;
+    }
+
+    /**
+     * Fills the table of the level with the indicators
+     * @param table Table to be filled
+     * @param indicators Indicators with which the table will be filled
+     */
+    private void fillIndicatorPerTable(XWPFTable table, List<Indicator> indicators){
+        logger().info("Starting to fill the table with the indicators of the the size: {}", indicators.size());
+        for (int i = 0; i < indicators.size(); i++) {
+            if(table.getRow(i*2+2)==null){
+                XWPFTableRow row = table.insertNewTableRow(table.getNumberOfRows());
+                XWPFTableRow row2 = table.insertNewTableRow(table.getNumberOfRows());
+                for (int j = 0; j < 5; j++) {
+                    row.addNewTableCell();
+                    row2.addNewTableCell();
+                }
+                // Merge the Notes row
+                DocManipulationUtil.mergeCellsByRow(table, 0, 4, table.getNumberOfRows() - 1);
+            }
+            DocManipulationUtil.setTextOnCellWithBoldTitle(table.getRow(i*2+2).getCell(0),"Indicator "+ (i+1) +":", indicators.get(i).getName(), null);
+            if(!StringUtils.isEmpty(indicators.get(i).getValue()) && !StringUtils.isEmpty(indicators.get(i).getDate())){
+                DocManipulationUtil.setTextOnCell(table.getRow(i*2+2).getCell(1), indicators.get(i).getValue() + " (" + indicators.get(i).getDate()+ ")", null);
+            }
+            DocManipulationUtil.setTextOnCellWithBoldTitle(table.getRow(i*2+3).getCell(0), "NOTES:" ,indicators.get(i).getSourceVerification(), null);
+        }
+    }
 }

@@ -241,6 +241,17 @@ class IndicatorControllerTest extends BaseControllerTest {
   }
 
   @Test
+  void downloadIndicators_PRMFormat() {
+    List<IndicatorResponse> indicators = getExpectedResult();
+    when(indicatorRepositoryMock.findAllById(any())).thenReturn(mockIndicatorList());
+    ResponseEntity<Resource> response = testRestTemplate
+            .exchange("/indicator/download?format=prm", HttpMethod.POST,
+                    new HttpEntity<>(indicators, headersWithAuth()), Resource.class);
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+  }
+
+  @Test
   void downloadIndicators_emptyIndicators() {
     List<IndicatorResponse> indicators = new ArrayList<>();
     ResponseEntity<Error> response =

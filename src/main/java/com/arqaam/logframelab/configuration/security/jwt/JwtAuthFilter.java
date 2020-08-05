@@ -1,15 +1,14 @@
 package com.arqaam.logframelab.configuration.security.jwt;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
@@ -43,7 +42,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     try {
       String jwt = getJwtFromRequest(httpServletRequest);
 
-      if (StringUtils.isNotBlank(jwt) && jwtTokenProvider.isTokenValid(jwt)) {
+      if (!StringUtils.isEmpty(jwt) && jwtTokenProvider.isTokenValid(jwt)) {
         String username = jwtTokenProvider.getUsernameFromJws(jwt);
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
@@ -62,8 +61,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
   private String getJwtFromRequest(HttpServletRequest request) {
     String bearerToken = request.getHeader(jwtTokenProvider.getTokenHeader());
-    if (StringUtils.isNotBlank(bearerToken) && bearerToken.startsWith(jwtTokenProvider.getTokenHeaderPrefix())) {
-      return StringUtils.remove(bearerToken, jwtTokenProvider.getTokenHeaderPrefix());
+    if (!StringUtils.isEmpty(bearerToken) && bearerToken.startsWith(jwtTokenProvider.getTokenHeaderPrefix())) {
+      return StringUtils.delete(bearerToken, jwtTokenProvider.getTokenHeaderPrefix());
     }
 
     return null;

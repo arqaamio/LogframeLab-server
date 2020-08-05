@@ -2,6 +2,7 @@ package com.arqaam.logframelab.repository;
 
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.projection.IndicatorFilters;
+import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.Collection;
@@ -56,4 +57,14 @@ public interface IndicatorRepository extends JpaRepository<Indicator, Long>, Jpa
   @Modifying
   @Query(value = "UPDATE Indicator ind set ind.temp = false WHERE ind.id in :ids")
   void updateToApproved(@Param("ids") Collection<Long> ids);
+
+  @Override
+  <S extends Indicator> boolean exists(Example<S> example);
+
+  /**
+   * Returns all indicators that have a name in the iterable
+   * @param names Names to be searched
+   * @return Indicators that have the names searched
+   */
+  List<Indicator> findAllByNameIn(Iterable<String> names);
 }

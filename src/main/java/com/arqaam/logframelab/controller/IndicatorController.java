@@ -132,17 +132,6 @@ public class IndicatorController implements Logging {
 //        }
     }
 */
-
-    @GetMapping("themes")
-    @ApiOperation(value = "${IndicatorController.getThemes.value}", nickname = "getThemes", response = String.class, responseContainer = "List")
-    @ApiResponses({
-            @ApiResponse(code = 200, message = "themes was loaded"),
-            @ApiResponse(code = 500, message = "failed to upload themes", response = Error.class)
-    })
-    public List<String> getThemes(){
-        return indicatorService.getAllThemes();
-    }
-
     @PostMapping(value = "import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "${IndicatorController.importIndicatorFile.value}", nickname = "importIndicatorFile", response = IndicatorResponse.class, responseContainer = "List")
     @ApiResponses({

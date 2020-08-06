@@ -3,7 +3,8 @@ package com.arqaam.logframelab.configuration.security.jwt;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import java.io.IOException;
 import java.time.Duration;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -31,15 +32,17 @@ public class JwtRefreshFilter extends OncePerRequestFilter {
 
     Date tokenExpiry = jwtTokenProvider.jwsExpiry(jwt);
     Duration timeToExpire = Duration
-        .between(LocalDate.now(), LocalDate.from(tokenExpiry.toInstant()));
+        .between(LocalDateTime.now(), LocalDateTime.from(tokenExpiry.toInstant().atZone(ZoneId.systemDefault())));
 
     if (timeToExpire.getSeconds() <= ONE_HOUR) {
       Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-      User user = (User) authentication.getPrincipal();
-      String jws = jwtTokenProvider.generateJwsToken(user);
+      if (authentication != null) {
+        User user = (User) authentication.getPrincipal();
+        String jws = jwtTokenProvider.generateJwsToken(user);
 
-      response.setHeader("jws", jws);
+        response.setHeader("jws", jws);
+      }
     }
 
     filterChain.doFilter(request, response);

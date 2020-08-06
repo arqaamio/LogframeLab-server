@@ -15,6 +15,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import javax.crypto.SecretKey;
+
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -74,6 +76,10 @@ public class JwtTokenProvider {
   }
 
   public Date jwsExpiry(String jws) {
+    if (StringUtils.isBlank(jws)) {
+      return Date.from(Instant.now());
+    }
+
     return Jwts.parserBuilder().setSigningKey(secretKey).build()
         .parseClaimsJws(jws).getBody().getExpiration();
   }

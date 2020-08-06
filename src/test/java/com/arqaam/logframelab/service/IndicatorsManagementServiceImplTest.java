@@ -64,9 +64,9 @@ class IndicatorsManagementServiceImplTest {
 
     @Test
     void processFileWithTempIndicators() throws IOException {
-        MockMultipartFile file = new MockMultipartFile("Clusters.xlsx", "Clusters.xlsx",
+        MockMultipartFile file = new MockMultipartFile("Indicators.xlsx", "Indicators.xlsx",
                 MediaType.APPLICATION_OCTET_STREAM.toString(),
-                new ClassPathResource("test_doc.docx").getInputStream());
+                new ClassPathResource("Indicators.xlsx").getInputStream());
         List<Indicator> indicators = new ArrayList<>();
         indicators.add(Indicator.builder().name("Fake Name").build());
         indicators.add(Indicator.builder().name("Fake Name 2").build());

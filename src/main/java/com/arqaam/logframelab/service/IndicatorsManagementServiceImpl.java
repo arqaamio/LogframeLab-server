@@ -144,14 +144,12 @@ public class IndicatorsManagementServiceImpl implements IndicatorsManagementServ
 
     // Get the ids of the indicators to be updated (they are meant to be updated if an indicator with the same name already exists)
     logger().info("Adding the ids to the indicators that are meant to be update");
-    List<Indicator> finalIndicators = indicators;
-    indicators = indicatorRepository.findAllByNameIn(indicators.stream().map(Indicator::getName).collect(Collectors.toSet()))
-            .stream().map(indicator -> {
-              Indicator updatedIndicator = finalIndicators.stream().filter(x->x.getName().equals(indicator.getName())).findFirst().orElse(indicator);
-              updatedIndicator.setId(indicator.getId());
-              return updatedIndicator;
-            }).collect(Collectors.toList());
-
+    List<Indicator> toBeUpdated = indicatorRepository.findAllByNameIn(indicators.stream().map(Indicator::getName).collect(Collectors.toSet()));
+    if(!toBeUpdated.isEmpty()) {
+      indicators = indicators.stream().peek(indicator -> indicator.setId(toBeUpdated.stream()
+              .filter(x -> x.getName().equals(indicator.getName())).findFirst().orElse(indicator).getId()))
+              .collect(Collectors.toList());
+    }
     logger().info("Saving the indicators to the database.");
     // saveAll saves and updates depending if the objects have id or not
     indicatorRepository.saveAll(indicators);

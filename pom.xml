@@ -21,7 +21,7 @@
 
   <properties>
     <java.version>11</java.version>
-    <jjwt.version>0.11.1</jjwt.version>
+    <jjwt.version>0.11.2</jjwt.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <maven.compiler.target>11</maven.compiler.target>
@@ -52,7 +52,10 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-security</artifactId>
     </dependency>
-
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-websocket</artifactId>
+    </dependency>
     <dependency>
       <groupId>io.springfox</groupId>
       <artifactId>springfox-swagger2</artifactId>
@@ -173,13 +176,6 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
-        <configuration>
-          <profiles>
-            <profile>dev</profile>
-            <profile>test</profile>
-            <profile>prod</profile>
-          </profiles>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.flywaydb</groupId>

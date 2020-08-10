@@ -4,13 +4,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -84,11 +82,11 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
     List<Indicator> mockIndicators = mockIndicatorList().stream()
         .filter(x -> !x.getLevel().equals(mockLevels[3])).collect(Collectors.toList());
     mockIndicators.add(new Indicator(100L, "Extra indicator 1", "", "", mockLevels[1], "",
-        "", false, "", "", mockSourceVerification.get(0), "", false, null, null, null, 0));
+        null, false, null, null, mockSourceVerification.get(0), "", false, null, null, null, 0));
     mockIndicators.add(new Indicator(100L, "Extra indicator 2", "", "", mockLevels[1], "",
-        "", false, "", "", mockSourceVerification.get(1), "", false, null, null, null, 0));
+        null, false, null, null, mockSourceVerification.get(1), "", false, null, null, null, 0));
     mockIndicators.add(new Indicator(100L, "Extra indicator 3", "", "", mockLevels[1], "",
-        "", false, "", "", mockSourceVerification.get(2), "", false, null, null, null, 0));
+        null, false, null, null, mockSourceVerification.get(2), "", false, null, null, null, 0));
     when(indicatorRepository.findAllById(any())).thenReturn(mockIndicators);
 
     ByteArrayOutputStream outputStream = indicatorService
@@ -119,11 +117,11 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
     List<Indicator> mockIndicators = mockIndicatorList().stream()
         .filter(x -> !x.getLevel().equals(mockLevels[1])).collect(Collectors.toList());
     mockIndicators.add(new Indicator(100L, "Extra indicator 1", "", "", mockLevels[0], "",
-        "", false, "", "", mockSourceVerification.get(0), "", false, null, null, null, 0));
+        null, false, null, null, mockSourceVerification.get(0), "", false, null, null, null, 0));
     mockIndicators.add(new Indicator(100L, "Extra indicator 2", "", "", mockLevels[0], "",
-        "", false, "", "", mockSourceVerification.get(1), "", false, null, null, null, 0));
+        null, false, null, null, mockSourceVerification.get(1), "", false, null, null, null, 0));
     mockIndicators.add(new Indicator(100L, "Extra indicator 3", "", "", mockLevels[0], "",
-        "", false, "", "", mockSourceVerification.get(2), "", false, null, null, null, 0));
+        null, false, null, null, mockSourceVerification.get(2), "", false, null, null, null, 0));
     when(indicatorRepository.findAllById(any())).thenReturn(mockIndicators);
 
     ByteArrayOutputStream outputStream = indicatorService
@@ -154,11 +152,11 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
     List<Indicator> mockIndicators = mockIndicatorList().stream()
         .filter(x -> !x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
     mockIndicators.add(new Indicator(100L, "Extra indicator 1", "", "", mockLevels[3], "",
-        "", false, "", "", mockSourceVerification.get(0), "", false, null, null, null, 0));
+        null, false, null, null, mockSourceVerification.get(0), "", false, null, null, null, 0));
     mockIndicators.add(new Indicator(100L, "Extra indicator 2", "", "", mockLevels[3], "",
-        "", false, "", "", mockSourceVerification.get(1), "", false, null, null, null, 0));
+        null, false, null, null, mockSourceVerification.get(1), "", false, null, null, null, 0));
     mockIndicators.add(new Indicator(100L, "Extra indicator 3", "", "", mockLevels[3], "",
-        "", false, "", "", mockSourceVerification.get(2), "", false, null, null, null, 0));
+        null, false, null, null, mockSourceVerification.get(2), "", false, null, null, null, 0));
     when(indicatorRepository.findAllById(any())).thenReturn(mockIndicators);
 
     ByteArrayOutputStream outputStream = indicatorService
@@ -278,10 +276,10 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
     list.add(
         Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
             .themes("Global Partnership for Sustainable Development")
-            .source("UN Sustainable Development Goals")
+            .source(Collections.singleton(mockSources.get(1)))
             .disaggregation(true)
-            .crsCode("51010.0")
-            .sdgCode("19.4")
+            .crsCode(Collections.singleton(mockCrsCodes.get(1)))
+            .sdgCode(Collections.singleton(mockSdgCodes.get(1)))
             .sourceVerification("Capacity4Dev")
             .dataSource("https://data.worldbank.org/indicator/SN.ITK.VITA.ZS?view=chart")
             .description("Food & Agriculture").keywords(keyword).level(mockLevels[1])
@@ -291,10 +289,10 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
     list.add(Indicator.builder().id(4L).name(
         "Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support")
         .themes("Global Partnership for Sustainable Development")
-        .source("UN Sustainable Development Goals")
+        .source(Collections.singleton(mockSources.get(2)))
         .disaggregation(true)
-        .crsCode("43060.0")
-        .sdgCode("1.a")
+        .crsCode(Collections.singleton(mockCrsCodes.get(2)))
+        .sdgCode(Collections.singleton(mockSdgCodes.get(2)))
         .sourceVerification("Capacity4Dev")
         .dataSource("https://data.worldbank.org/indicator/SI.POV.URGP?view=chart")
         .description("Digitalisation").keywords("policy").level(mockLevels[0])
@@ -303,10 +301,10 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
         .keywordsList(keywordsPolicyList).build());
     list.add(Indicator.builder().id(5L).name("Revenue, excluding grants (% of GDP)")
         .themes("Global Partnership for Sustainable Development")
-        .source("UN Sustainable Development Goals")
+        .source(Collections.singleton(mockSources.get(3)))
         .disaggregation(false)
-        .crsCode("99810.0")
-        .sdgCode("17.4")
+        .crsCode(Collections.singleton(mockCrsCodes.get(3)))
+        .sdgCode(Collections.singleton(mockSdgCodes.get(3)))
         .sourceVerification("HIPSO")
         .dataSource("https://data.worldbank.org/indicator/EG.CFT.ACCS.ZS?view=chart")
         .description("Technical Note, EURF 2.01").keywords("government").level(mockLevels[3])

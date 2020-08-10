@@ -7,16 +7,13 @@ import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto.FilterRequestD
 import com.arqaam.logframelab.exception.FailedToCloseFileException;
 import com.arqaam.logframelab.exception.FailedToOpenFileException;
 import com.arqaam.logframelab.exception.FailedToOpenWorksheetException;
-import com.arqaam.logframelab.exception.FailedToProcessWordFileException;
 import com.arqaam.logframelab.exception.IndicatorNotFoundException;
 import com.arqaam.logframelab.exception.TemplateNotFoundException;
 import com.arqaam.logframelab.exception.WordFileLoadFailedException;
 import com.arqaam.logframelab.model.IndicatorResponse;
-import com.arqaam.logframelab.model.persistence.Indicator;
-import com.arqaam.logframelab.model.persistence.Level;
+import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.model.projection.IndicatorFilters;
-import com.arqaam.logframelab.repository.IndicatorRepository;
-import com.arqaam.logframelab.repository.LevelRepository;
+import com.arqaam.logframelab.repository.*;
 import com.arqaam.logframelab.util.DocManipulationUtil;
 import com.arqaam.logframelab.util.Logging;
 import com.arqaam.logframelab.util.Utils;
@@ -31,9 +28,7 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.persistence.criteria.Predicate;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
+
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.ss.usermodel.Cell;
@@ -57,14 +52,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.criteria.Predicate;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import static java.util.Objects.isNull;
 
 @Service
 public class IndicatorService implements Logging {
@@ -79,12 +67,20 @@ public class IndicatorService implements Logging {
   private final IndicatorRepository indicatorRepository;
 
   private final LevelRepository levelRepository;
+  private final SourceRepository sourceRepository;
+  private final SDGCodeRepository sdgCodeRepository;
+  private final CRSCodeRepository crsCodeRepository;
 
   private final Utils utils;
 
-  public IndicatorService(IndicatorRepository indicatorRepository, LevelRepository levelRepository, Utils utils) {
+  public IndicatorService(IndicatorRepository indicatorRepository, LevelRepository levelRepository,
+                          SourceRepository sourceRepository, SDGCodeRepository sdgCodeRepository,
+                          CRSCodeRepository crsCodeRepository, Utils utils) {
     this.indicatorRepository = indicatorRepository;
     this.levelRepository = levelRepository;
+    this.sourceRepository = sourceRepository;
+    this.sdgCodeRepository = sdgCodeRepository;
+    this.crsCodeRepository = crsCodeRepository;
     this.utils = utils;
   }
 
@@ -332,6 +328,10 @@ public class IndicatorService implements Logging {
 
     public List<Indicator> extractIndicatorFromFile(MultipartFile file) {
       List<Level> levels = levelRepository.findAll();
+      List<Source> sources = sourceRepository.findAll();
+      List<SDGCode> sdgCodes = sdgCodeRepository.findAll();
+      List<CRSCode> crsCodes = crsCodeRepository.findAll();
+
       Map<String, Level> levelMap = new HashMap<>();
       for (Level lvl : levels){
         levelMap.put(lvl.getName(), lvl);
@@ -367,10 +367,13 @@ public class IndicatorService implements Logging {
                 .keywords(String.join(",", keys))
                 .name(currentRow.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
                 .description(currentRow.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                .source(currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .source(Arrays.stream(currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().split(",")).map(
+                        x-> sources.stream().filter(y->y.getName().equalsIgnoreCase(x)).findFirst().orElse(null)).collect(Collectors.toSet()))
                 .disaggregation(currentRow.getCell(6, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().equalsIgnoreCase("yes"))
-                .crsCode(crsCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(crsCodeCell.getNumericCellValue()) : crsCodeCell.getStringCellValue())
-                .sdgCode(sdgCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(sdgCodeCell.getNumericCellValue()) : sdgCodeCell.getStringCellValue())
+                .crsCode(Arrays.stream(((crsCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(crsCodeCell.getNumericCellValue()) : crsCodeCell.getStringCellValue()))
+                        .split(",")).map(x-> crsCodes.stream().filter(y->String.valueOf(y.getId()).equalsIgnoreCase(x)).findFirst().orElse(null)).collect(Collectors.toSet()))
+                .sdgCode(Arrays.stream(((sdgCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(sdgCodeCell.getNumericCellValue()) : sdgCodeCell.getStringCellValue()))
+                        .split(",")).map(x-> sdgCodes.stream().filter(y->String.valueOf(y.getId()).equalsIgnoreCase(x)).findFirst().orElse(null)).collect(Collectors.toSet()))
                 .sourceVerification(currentRow.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
                 .dataSource(currentRow.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
                 .build();
@@ -440,10 +443,10 @@ public class IndicatorService implements Logging {
             row.createCell(1).setCellValue(indicator.getThemes());
             row.createCell(2).setCellValue(indicator.getName());
             row.createCell(3).setCellValue(indicator.getDescription());
-            row.createCell(4).setCellValue(indicator.getSource());
+            row.createCell(4).setCellValue(indicator.getSource().stream().map(Source::getName).collect(Collectors.joining()));
             addCellWithStyle(row, 5, isNull(indicator.getDisaggregation())? "" : (indicator.getDisaggregation() ? "Yes" : "No"), yellowCellStyle);
-            addCellWithStyle(row, 6, indicator.getCrsCode(), redCellStyle);
-            addCellWithStyle(row, 7, indicator.getSdgCode(), redCellStyle);
+            addCellWithStyle(row, 6, indicator.getCrsCode().stream().map(x-> String.valueOf(x.getId())).collect(Collectors.joining(",")), redCellStyle);
+            addCellWithStyle(row, 7, indicator.getSdgCode().stream().map(x-> String.valueOf(x.getId())).collect(Collectors.joining(",")), redCellStyle);
             addCellWithStyle(row, 8, indicator.getSourceVerification(), yellowCellStyle);
             row.createCell(9).setCellValue(indicator.getDataSource());
             row.createCell(10).setCellValue(response.getValue());
@@ -492,10 +495,10 @@ public class IndicatorService implements Logging {
         FiltersDto filters = new FiltersDto();
 
         filters.getThemes().addAll(filtersResult.stream().map(IndicatorFilters::getThemes).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
-        filters.getSource().addAll(filtersResult.stream().map(IndicatorFilters::getSource).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+        filters.getSource().addAll(filtersResult.stream().map(IndicatorFilters::getSource).filter(f -> !f.isEmpty()).flatMap(Collection::stream).collect(Collectors.toSet()));
         filters.getLevel().addAll(filtersResult.stream().map(IndicatorFilters::getLevel).collect(Collectors.toList()));
-        filters.getSdgCode().addAll(filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
-        filters.getCrsCode().addAll(filtersResult.stream().map(IndicatorFilters::getCrsCode).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+        filters.getSdgCode().addAll(filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty()).flatMap(Collection::stream).collect(Collectors.toSet()));
+        filters.getCrsCode().addAll(filtersResult.stream().map(IndicatorFilters::getCrsCode).filter(f -> !f.isEmpty()).flatMap(Collection::stream).collect(Collectors.toSet()));
 
         return filters;
     }
@@ -509,33 +512,33 @@ public class IndicatorService implements Logging {
      * @param crsCodes List of CRS Codes
      * @return List of IndicatorResponse
      */
-    public List<Indicator> getIndicators(Optional<List<String>> themes, Optional<List<String>> sources, Optional<List<Long>> levels,
-                                                 Optional<List<String>> sdgCodes, Optional<List<String>> crsCodes) {
+    public List<Indicator> getIndicators(Optional<List<String>> themes, Optional<List<Long>> sources, Optional<List<Long>> levels,
+                                                 Optional<List<Long>> sdgCodes, Optional<List<Long>> crsCodes) {
         logger().info("Starting repository call with with themes: {}, sources: {}, levels: {}, sdgCodes: {}, crsCodes: {}",
                 themes, sources, levels, sdgCodes, crsCodes);
-        return !themes.isPresent() && !sources.isPresent() && !levels.isPresent() && !sdgCodes.isPresent() && !crsCodes.isPresent() ?
+        return themes.isEmpty() && sources.isEmpty() && levels.isEmpty() && sdgCodes.isEmpty() && crsCodes.isEmpty() ?
             indicatorRepository.findAll() :
             indicatorRepository.findAll(
                 getIndicatorSpecification(themes, sources, levels, sdgCodes, crsCodes, false));
     }
 
    Specification<Indicator> getIndicatorSpecification(Optional<List<String>> themes,
-      Optional<List<String>> sources, Optional<List<Long>> levels, Optional<List<String>> sdgCodes,
-      Optional<List<String>> crsCodes, boolean temp) {
+      Optional<List<Long>> sources, Optional<List<Long>> levels, Optional<List<Long>> sdgCodes,
+      Optional<List<Long>> crsCodes, boolean temp) {
     return (root, criteriaQuery, criteriaBuilder) -> {
         List<Predicate> predicates = new ArrayList<>();
+
         themes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("themes")).value(x))));
-        sources.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("source")).value(x))));
+        sources.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.join("source").get("id")).value(x))));
         levels.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("level").get("id")).value(x))));
-        sdgCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("sdgCode")).value(x))));
-        crsCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("crsCode")).value(x))));
+        sdgCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.join("sdgCode").get("id")).value(x))));
+        crsCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.join("crsCode").get("id")).value(x))));
 
         predicates.add(criteriaBuilder.and(criteriaBuilder.equal(root.get("temp"), temp)));
 
       return criteriaBuilder.and(predicates.toArray(new Predicate[predicates.size()]));
     };
   }
-
   public Specification<Indicator> specificationFromFilter(FilterRequestDto filters, boolean temp) {
     if (filters == null) {
       filters = new FilterRequestDto();
@@ -544,17 +547,17 @@ public class IndicatorService implements Logging {
         filters.getThemes() != null && !filters.getThemes().isEmpty() ? Optional
             .of(new ArrayList<>(filters.getThemes()))
             : Optional.empty(),
-        filters.getSource() != null && !filters.getSource().isEmpty() ? Optional
-            .of(new ArrayList<>(filters.getSource()))
+        filters.getSourceIds() != null && !filters.getSourceIds().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getSourceIds()))
             : Optional.empty(),
         filters.getLevelIds() != null && !filters.getLevelIds().isEmpty() ? Optional
             .of(new ArrayList<>(filters.getLevelIds()))
             : Optional.empty(),
-        filters.getSdgCode() != null && !filters.getSdgCode().isEmpty() ? Optional
-            .of(new ArrayList<>(filters.getSdgCode()))
+        filters.getSdgCodeIds() != null && !filters.getSdgCodeIds().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getSdgCodeIds()))
             : Optional.empty(),
-        filters.getCrsCode() != null && !filters.getCrsCode().isEmpty() ? Optional
-            .of(new ArrayList<>(filters.getCrsCode()))
+        filters.getCrsCodeIds() != null && !filters.getCrsCodeIds().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getCrsCodeIds()))
             : Optional.empty(), temp);
   }
 
@@ -597,16 +600,16 @@ public class IndicatorService implements Logging {
             ? Optional.of(new ArrayList<>(filter.getThemes()))
             : Optional.empty(),
         filter.getSource().size() > 0
-            ? Optional.of(new ArrayList<>(filter.getSource()))
+            ? Optional.of(filter.getSource().stream().map(Source::getId).collect(Collectors.toList()))
             : Optional.empty(),
         filter.getLevel().size() > 0
             ? Optional.of(filter.getLevel().stream().map(Level::getId).collect(Collectors.toList()))
             : Optional.empty(),
         filter.getSdgCode().size() > 0
-            ? Optional.of(new ArrayList<>(filter.getSdgCode()))
+            ? Optional.of(filter.getSdgCode().stream().map(SDGCode::getId).collect(Collectors.toList()))
             : Optional.empty(),
         filter.getCrsCode().size() > 0
-            ? Optional.of(new ArrayList<>(filter.getSdgCode()))
+            ? Optional.of(filter.getCrsCode().stream().map(CRSCode::getId).collect(Collectors.toList()))
             : Optional.empty());
   }
     /**

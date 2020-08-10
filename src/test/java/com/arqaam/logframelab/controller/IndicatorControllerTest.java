@@ -3,9 +3,7 @@ package com.arqaam.logframelab.controller;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -15,8 +13,7 @@ import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
 import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.IndicatorResponse;
-import com.arqaam.logframelab.model.persistence.Indicator;
-import com.arqaam.logframelab.model.persistence.Level;
+import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
 import com.arqaam.logframelab.service.IndicatorService;
@@ -36,14 +33,11 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+
+import java.util.*;
 
 class IndicatorControllerTest extends BaseControllerTest {
 
@@ -62,14 +56,21 @@ class IndicatorControllerTest extends BaseControllerTest {
           "Nutrition", "Agriculture", "Health", "WASH", "Electricity", "Private Sector",
           "Infrastructure", "Migration", "Climate Change", "Environment", "Public Sector",
           "Human Rights", "Conflict", "Food Security", "Equality", "Water and Sanitation");
-  private final static List<String> mockSources = Arrays
-      .asList("Capacity4Dev", "EU", "WFP", "ECHO", "ECHO,WFP",
-          "ECHO,WHO", "FAO", "FAO,WHO", "WHO", "FANTA", "IPA", "WHO,FAO", "ACF",
-          "Nutrition Cluster", "Freendom House", "CyberGreen", "ITU",
-          "UN Sustainable Development Goals", "World Bank", "UNDP", "ILO", "IMF");
-  private final static List<String> mockSdgCodes = Arrays.asList("8.2", "7.1", "4.1", "1.a", "1.b");
-  private final static List<String> mockCrsCodes = Arrays
-      .asList("99810.0", "15160.0", "24010.0", "15190.0", "43010.0", "24050.0", "43030.0");
+  private final static List<Source> mockSources = Arrays.asList(
+          new Source(1L, "Capacity4Dev"),new Source(1L, "EU"),new Source(2L, "WFP"),new Source(3L, "ECHO"),
+          new Source(4L,"FAO"), new Source(5L,"WHO"), new Source(6L,"FANTA"), new Source(7L,"IPA"), new Source(8L, "ACF"),
+          new Source(9L,"Nutrition Cluster"), new Source(10L,"Freedom House"), new Source(11L,"CyberGreen"), new Source(12L,"ITU"),
+          new Source(13L,"UN Sustainable Development Goals"), new Source(14L,"World Bank"), new Source(15L,"UNDP"), new Source(16L,"ILO"),
+          new Source(7L,"IMF"));
+  private final static List<SDGCode> mockSdgCodes =  Arrays.asList(
+          new SDGCode(1L,"End poverty in all its forms everywhere"),
+          new SDGCode(2L,"End hunger, achieve food security and improved nutrition and promote sustainable agriculture"),
+          new SDGCode(3L,"Ensure healthy lives and promote well-being for all at all ages"),
+          new SDGCode(4L,"Ensure inclusive and equitable quality education and promote lifelong learning opportunities for all"),
+          new SDGCode(5L,"Achieve gender equality and empower all women and girls"));
+  private final static List<CRSCode> mockCrsCodes = Arrays
+        .asList(new CRSCode(998L,"Unallocated / Unspecified"),new CRSCode(151L, "Government & Civil Society-general"),
+                new CRSCode(240L, "Banking & Financial Services"), new CRSCode(112L, "Basic Education"));
   private final static List<Long> mockLevelsId = Arrays.stream(mockLevels).map(Level::getId)
       .collect(Collectors.toList());
   private final static List<String> mockSourceVerification = Arrays
@@ -92,8 +93,8 @@ class IndicatorControllerTest extends BaseControllerTest {
     when(indicatorRepositoryMock.findAll(any(Specification.class))).
         thenReturn(mockIndicatorList().stream()
             .filter(x -> mockThemes.contains(x.getThemes()) && mockLevelsId
-                .contains(x.getLevel().getId()) && mockSources.contains(x.getSource())
-                && mockSdgCodes.contains(x.getSdgCode()) && mockCrsCodes.contains(x.getCrsCode()))
+                .contains(x.getLevel().getId()) && mockSources.containsAll(x.getSource()) &&
+                    mockSdgCodes.containsAll(x.getSdgCode()) && mockCrsCodes.containsAll(x.getCrsCode()))
             .collect(Collectors.toList()));
 
     when(indicatorRepositoryMock.findAll()).thenReturn(mockIndicatorList());
@@ -128,9 +129,9 @@ class IndicatorControllerTest extends BaseControllerTest {
             () -> assertThat(
                 filters.getLevel().stream().map(Level::getName).collect(Collectors.toSet()),
                 hasItem(resp.getLevel())),
-            () -> assertThat(filters.getSource(), hasItem(resp.getSource())),
-            () -> assertThat(filters.getCrsCode(), hasItem(resp.getCrsCode())),
-            () -> assertThat(filters.getSdgCode(), hasItem(resp.getSdgCode()))));
+            () -> assertTrue(filters.getCrsCode().containsAll(resp.getCrsCode())),
+            () -> assertTrue(filters.getSource().containsAll(resp.getSource())),
+            () -> assertTrue(filters.getSdgCode().containsAll(resp.getSdgCode()))));
   }
 
   @Test
@@ -272,9 +273,9 @@ class IndicatorControllerTest extends BaseControllerTest {
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
         .exchange("/indicator?themes=" + String.join(",", mockThemes) +
                 "&levels=" + mockLevelsId.stream().map(String::valueOf).collect(Collectors.joining(","))
-                + "&sources=" + String.join(",", mockSources) +
-                "&sdgCodes=" + String.join(",", mockSdgCodes) + "&crsCodes=" + String
-                .join(",", mockCrsCodes), HttpMethod.GET,
+                + "&sources=" + mockSources.stream().map(x-> String.valueOf(x.getId())).collect(Collectors.joining(",")) +
+                "&sdgCodes=" + mockSdgCodes.stream().map(x-> String.valueOf(x.getId())).collect(Collectors.joining(",")) +
+                "&crsCodes=" + mockCrsCodes.stream().map(x-> String.valueOf(x.getId())).collect(Collectors.joining(",")), HttpMethod.GET,
             new HttpEntity<>(headersWithAuth()), new ParameterizedTypeReference<List<IndicatorResponse>>() {
             });
 
@@ -292,7 +293,7 @@ class IndicatorControllerTest extends BaseControllerTest {
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
         .exchange("/indicator?themes=" + String.join(",", mockThemes) +
                 "&levels=" + mockLevelsId.stream().map(String::valueOf).collect(Collectors.joining(","))
-                + "&sources=" + String.join(",", mockSources),
+                + "&sources=" + mockSources.stream().map(x-> String.valueOf(x.getId())).collect(Collectors.joining(",")),
             HttpMethod.GET, new HttpEntity<>(headersWithAuth()),
             new ParameterizedTypeReference<List<IndicatorResponse>>() {
             });
@@ -342,25 +343,25 @@ class IndicatorControllerTest extends BaseControllerTest {
         "Number of policies/strategies/laws/regulation developed/revised for digitalisation with EU support")
         .description("Digitalisation").level(mockLevels[0]).keywords("policy")
         .keywordsList(keywordsPolicyList)
-        .source(mockSources.get(0)).themes(mockThemes.get(0)).sdgCode(mockSdgCodes.get(0))
-        .crsCode(mockCrsCodes.get(0)).build());
+        .source(Collections.singleton(mockSources.get(0))).themes(mockThemes.get(0)).sdgCode(Collections.singleton(mockSdgCodes.get(0)))
+        .crsCode(Collections.singleton(mockCrsCodes.get(0))).build());
     list.add(Indicator.builder().id(73L).name(
         "Number of government policies developed or revised with civil society organisation participation through EU support")
         .description("Public Sector").level(mockLevels[1]).keywords("government policies, policy")
         .keywordsList(keywordsGovPolicyList)
-        .source(mockSources.get(1)).themes(mockThemes.get(1)).sdgCode(mockSdgCodes.get(1))
-        .crsCode(mockCrsCodes.get(1)).build());
+        .source(Collections.singleton(mockSources.get(1))).themes(mockThemes.get(1)).sdgCode(Collections.singleton(mockSdgCodes.get(1)))
+        .crsCode(Collections.singleton(mockCrsCodes.get(1))).build());
     list.add(Indicator.builder().id(5L).name("Revenue, excluding grants (% of GDP)")
         .description("Public Sector").level(mockLevels[3]).keywords("government")
         .keywordsList(keywordsGovList)
-        .source(mockSources.get(2)).themes(mockThemes.get(2)).sdgCode(mockSdgCodes.get(2))
-        .crsCode(mockCrsCodes.get(2)).build());
+        .source(Collections.singleton(mockSources.get(2))).themes(mockThemes.get(2)).sdgCode(Collections.singleton(mockSdgCodes.get(2)))
+        .crsCode(Collections.singleton(mockCrsCodes.get(2))).build());
     list.add(
         Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
             .description("Food & Agriculture").level(mockLevels[1]).keywords(keyword)
             .keywordsList(keywordsFoodList)
-            .source(mockSources.get(3)).themes(mockThemes.get(3)).sdgCode(mockSdgCodes.get(3))
-            .crsCode(mockCrsCodes.get(3)).build());
+            .source(Collections.singleton(mockSources.get(3))).themes(mockThemes.get(3)).sdgCode(Collections.singleton(mockSdgCodes.get(3)))
+            .crsCode(Collections.singleton(mockCrsCodes.get(3))).build());
 
     return list;
   }
@@ -396,17 +397,12 @@ class IndicatorControllerTest extends BaseControllerTest {
                 "Food Security", "Equality", "Water and Sanitation"));
     filters
         .getCrsCode()
-        .addAll(
-            Arrays.asList("0.0", "16010.0", "24010.0", "15190.0", "99810.0", "15160.0", "15160.0"));
+        .addAll(mockCrsCodes);
     filters.getLevel().addAll(Arrays.asList(mockLevels));
     filters
         .getSource()
-        .addAll(Arrays
-            .asList("Capacity4Dev", "EU", "WFP", "ECHO", "ECHO,WFP", "ECHO,WHO", "FAO", "FAO,WHO",
-                "WHO", "FANTA", "IPA", "WHO,FAO", "ACF", "Nutrition Cluster", "Freendom House",
-                "CyberGreen", "ITU", "UN Sustainable Development Goals", "World Bank", "UNDP",
-                "ILO", "IMF"));
-    filters.getSdgCode().addAll(Arrays.asList("4.1", "7.1", "1.a", "8.2"));
+        .addAll(mockSources);
+    filters.getSdgCode().addAll(mockSdgCodes);
     return filters;
   }
 

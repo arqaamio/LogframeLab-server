@@ -133,16 +133,6 @@ public class IndicatorController implements Logging {
     }
 */
 
-    @GetMapping("themes")
-    @ApiOperation(value = "${IndicatorController.getThemes.value}", nickname = "getThemes", response = String.class, responseContainer = "List")
-    @ApiResponses({
-            @ApiResponse(code = 200, message = "themes was loaded"),
-            @ApiResponse(code = 500, message = "failed to upload themes", response = Error.class)
-    })
-    public List<String> getThemes(){
-        return indicatorService.getAllThemes();
-    }
-
     @PostMapping(value = "import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "${IndicatorController.importIndicatorFile.value}", nickname = "importIndicatorFile", response = IndicatorResponse.class, responseContainer = "List")
     @ApiResponses({
@@ -172,10 +162,10 @@ public class IndicatorController implements Logging {
             @ApiResponse(code = 500, message = "Unexpected error occurred", response = Error.class)
     })
     public ResponseEntity<List<IndicatorResponse>> getIndicators(@RequestParam(required = false) List<String> themes,
-                                                                 @RequestParam(required = false) List<String> sources,
+                                                                 @RequestParam(required = false) List<Long> sources,
                                                                  @RequestParam(required = false) List<Long> levels,
-                                                                 @RequestParam(required = false) List<String> sdgCodes,
-                                                                 @RequestParam(required = false) List<String> crsCodes) {
+                                                                 @RequestParam(required = false) List<Long> sdgCodes,
+                                                                 @RequestParam(required = false) List<Long> crsCodes) {
 
         logger().info("Retrieving Indicators with themes: {}, sources: {}, levels: {}, sdgCodes: {}, crsCodes: {}",
                 themes, sources, levels, sdgCodes, crsCodes);

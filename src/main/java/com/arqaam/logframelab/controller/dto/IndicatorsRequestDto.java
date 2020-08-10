@@ -4,6 +4,10 @@ import java.util.Collection;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
+
+import com.arqaam.logframelab.model.persistence.CRSCode;
+import com.arqaam.logframelab.model.persistence.SDGCode;
+import com.arqaam.logframelab.model.persistence.Source;
 import lombok.Data;
 import lombok.Getter;
 
@@ -31,16 +35,16 @@ public class IndicatorsRequestDto {
     private Collection<String> themes;
 
     @Getter
-    private Collection<String> source;
+    private Collection<Long> sourceIds;
 
-    private Collection<String> sdg_code;
-    private Collection<String> crs_code;
+    private Collection<Long> sdg_code;
+    private Collection<Long> crs_code;
 
-    public Collection<String> getSdgCode() {
+    public Collection<Long> getSdgCodeIds() {
       return sdg_code;
     }
 
-    public Collection<String> getCrsCode() {
+    public Collection<Long> getCrsCodeIds() {
       return crs_code;
     }
   }

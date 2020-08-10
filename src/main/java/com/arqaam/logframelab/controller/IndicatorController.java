@@ -38,6 +38,7 @@ public class IndicatorController implements Logging {
     private static final String WORKSHEET_DEFAULT_FORMAT = "xlsx";
     private static final String WORD_FORMAT = "word";
     private static final String DFID_FORMAT = "dfid";
+    private static final String PRM_FORMAT = "prm";
 
     private final IndicatorService indicatorService;
 
@@ -64,10 +65,10 @@ public class IndicatorController implements Logging {
     @PostMapping(value = "download", consumes = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "${IndicatorController.downloadIndicators.value}", nickname = "downloadIndicators", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @ApiResponses({
-            @ApiResponse(code = 200, message = "File was uploaded"),
+            @ApiResponse(code = 200, message = "Indicators were downloaded"),
             @ApiResponse(code = 404, message = "Template not found", response = Error.class),
             @ApiResponse(code = 409, message = "Failed to download indicators. It cannot be empty", response = Error.class),
-            @ApiResponse(code = 500, message = "File failed to upload", response = Error.class)
+            @ApiResponse(code = 500, message = "Unexpected Error", response = Error.class)
     })
     public ResponseEntity<Resource> downloadIndicators(@RequestBody List<IndicatorResponse> indicators,
                                                        @RequestParam(value = "format", defaultValue = WORD_FILE_EXTENSION) String format) {
@@ -88,6 +89,9 @@ public class IndicatorController implements Logging {
             case DFID_FORMAT:
                 outputStream = indicatorService.exportIndicatorsDFIDFormat(indicators);
                 extension = WORKSHEET_FILE_EXTENSION;
+                break;
+            case PRM_FORMAT:
+                outputStream = indicatorService.exportIndicatorsPRMFormat(indicators);
                 break;
             case WORD_FORMAT:
             default:

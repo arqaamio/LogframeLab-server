@@ -12,6 +12,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import org.apache.http.entity.ContentType;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
@@ -20,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -31,7 +35,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
     List<IndicatorResponse> expectedResult = getExpectedResult(false);
     MultipartFile file = new MockMultipartFile("test_doc.docx", "test_doc.docx",
-        ContentType.APPLICATION_OCTET_STREAM.toString(),
+        MediaType.APPLICATION_OCTET_STREAM.toString(),
         new ClassPathResource("test_doc.docx").getInputStream());
     List<IndicatorResponse> result = indicatorService.extractIndicatorsFromWordFile(file, null);
     assertNotNull(result);
@@ -43,9 +47,9 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
   void extractIndicatorsFromWordFile_doc() throws IOException {
     when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
     List<IndicatorResponse> expectedResult = getExpectedResult(false);
-    MultipartFile file = new MockMultipartFile("test_doc.doc", "test_doc.doc",
-        ContentType.APPLICATION_OCTET_STREAM.toString(),
-        new ClassPathResource("test_doc.doc").getInputStream());
+    MultipartFile file = new MockMultipartFile("test doc.doc", "test doc.doc",
+        MediaType.APPLICATION_OCTET_STREAM.toString(),
+        new ClassPathResource("test doc.doc").getInputStream());
     List<IndicatorResponse> result = indicatorService.extractIndicatorsFromWordFile(file, null);
     assertNotNull(result);
     assertFalse(result.isEmpty());
@@ -170,35 +174,39 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
   }
 
   @Test
-  void exportIndicatorsInWorksheet() {
+  void exportIndicatorsInWorksheet() throws IOException {
     List<Indicator> expectedResult = mockIndicatorList();
 
     when(indicatorRepository.findAllById(any())).thenReturn(expectedResult);
+    List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(expectedResult);
     ByteArrayOutputStream outputStream = indicatorService
-        .exportIndicatorsInWorksheet(createListIndicatorResponse(null));
-//        MultipartFile multipartFile = new MockMultipartFile("indicators_export.xlsx", outputStream.toByteArray());
-//        List<Indicator> result = indicatorService.importIndicators(multipartFile);
-//
-//        // because Id in the result is null, and in the expected result it isn't.
-//        for (int i = 0; i < expectedResult.size(); i++) {
-//            assertEquals(expectedResult.get(i).getLevel(), result.get(i).getLevel());
-//            assertEquals(expectedResult.get(i).getKeywordsList(), result.get(i).getKeywordsList());
-//            assertEquals(expectedResult.get(i).getDisaggregation(), result.get(i).getDisaggregation());
-//            assertEquals(expectedResult.get(i).getCrsCode(), result.get(i).getCrsCode());
-//            assertEquals(expectedResult.get(i).getDescription(), result.get(i).getDescription());
-//            assertEquals(expectedResult.get(i).getName(), result.get(i).getName());
-//            assertEquals(expectedResult.get(i).getSdgCode(), result.get(i).getSdgCode());
-//            assertEquals(expectedResult.get(i).getSource(), result.get(i).getSource());
-//            assertEquals(expectedResult.get(i).getThemes(), result.get(i).getThemes());
-//            assertEquals(expectedResult.get(i).getDataSource(), result.get(i).getDataSource());
-//            assertEquals(expectedResult.get(i).getSourceVerification(), result.get(i).getSourceVerification());
-//        }
+        .exportIndicatorsInWorksheet(indicatorResponse);
+    XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(outputStream.toByteArray()));
+    XSSFSheet sheet = workbook.getSheetAt(0);
+    IndicatorResponse response;
+    for (int i = 0; i < expectedResult.size(); i++) {
+      XSSFRow row = sheet.getRow(i+1);
+      final Indicator indicator = expectedResult.get(i);
+      response = indicatorResponse.stream().filter(x -> x.getId() == indicator.getId()).findFirst().get();
+      assertEquals(indicator.getLevel().getName(), row.getCell(0).getStringCellValue());
+      assertEquals(indicator.getThemes(), row.getCell(1).getStringCellValue());
+      assertEquals(indicator.getName(), row.getCell(2).getStringCellValue());
+      assertEquals(Optional.ofNullable(indicator.getDescription()).orElse(""), row.getCell(3).getStringCellValue());
+      assertEquals(Optional.ofNullable(indicator.getSource()).orElse(""), row.getCell(4).getStringCellValue());
+      assertEquals(indicator.getDisaggregation() ? "Yes" : "No", row.getCell(5).getStringCellValue());
+      assertEquals(Optional.ofNullable(indicator.getCrsCode()).orElse(""), row.getCell(6).getStringCellValue());
+      assertEquals(Optional.ofNullable(indicator.getSdgCode()).orElse(""), row.getCell(7).getStringCellValue());
+      assertEquals(Optional.ofNullable(indicator.getSourceVerification()).orElse(""), row.getCell(8).getStringCellValue());
+      assertEquals(Optional.ofNullable(indicator.getDataSource()).orElse(""), row.getCell(9).getStringCellValue());
+      assertEquals(Optional.ofNullable(response.getValue()).orElse(""), row.getCell(10).getStringCellValue());
+      assertEquals(Optional.ofNullable(response.getDate()).orElse(""), row.getCell(11).getStringCellValue());
+    }
 
-//        try(OutputStream fileOutputStream = new FileOutputStream("thefilename.xlsx")) {
-//            outputStream.writeTo(fileOutputStream);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+    // try(OutputStream fileOutputStream = new FileOutputStream("thefilename.xlsx")) {
+    //     outputStream.writeTo(fileOutputStream);
+    // } catch (IOException e) {
+    //     e.printStackTrace();
+    // }
   }
 
 
@@ -224,6 +232,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         "Number of policies/strategies/laws/regulation developed/revised for digitalisation with EU support")
         .description("Digitalisation").level(mockLevels[0]).keywords("policy")
         .keywordsList(keywordsPolicyList)
+        .disaggregation(false)
         .source(mockSources.get(0)).themes(mockThemes.get(0)).sdgCode(mockSdgCodes.get(0))
         .dataSource("https://data.worldbank.org/indicator/NY.ADJ.DKAP.GN.ZS?view=chart")
         .date("2000")
@@ -233,6 +242,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         "Number of government policies developed or revised with civil society organisation participation through EU support")
         .description("Public Sector").level(mockLevels[1]).keywords("government policies, policy")
         .keywordsList(keywordsGovPolicyList)
+        .disaggregation(true)
         .source(mockSources.get(1)).themes(mockThemes.get(1)).sdgCode(mockSdgCodes.get(1))
         .dataSource("https://data.worldbank.org/indicator/SE.PRM.TENR.FE?view=chart")
         .date("2001")
@@ -241,6 +251,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     list.add(Indicator.builder().id(5L).name("Revenue, excluding grants (% of GDP)")
         .description("Public Sector").level(mockLevels[3]).keywords("government")
         .keywordsList(keywordsGovList)
+        .disaggregation(true)
         .source(mockSources.get(2)).themes(mockThemes.get(2)).sdgCode(mockSdgCodes.get(2))
         .dataSource("https://data.worldbank.org/indicator/EG.ELC.ACCS.UR.ZS?view=chart")
         .date("1980")
@@ -250,6 +261,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
             .description("Food & Agriculture").level(mockLevels[1]).keywords(keyword)
             .keywordsList(keywordsFoodList)
+            .disaggregation(false)
             .source(mockSources.get(3)).themes(mockThemes.get(3)).sdgCode(mockSdgCodes.get(3))
             .dataSource("https://data.worldbank.org/indicator/EG.CFT.ACCS.ZS?view=chart")
             .date("2001")
@@ -263,6 +275,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
   private List<IndicatorResponse> createListIndicatorResponse(List<Indicator> indicators) {
     List<IndicatorResponse> list = new ArrayList<>();
     if(Optional.ofNullable(indicators).isPresent() && !indicators.isEmpty()) {
+      int i = 0;
       for (Indicator indicator : indicators) {
         list.add(IndicatorResponse.builder()
                 .name(indicator.getName())
@@ -275,9 +288,10 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
                 .source(indicator.getSource())
                 .themes(indicator.getThemes())
                 .disaggregation(indicator.getDisaggregation())
-                .date(indicator.getDate())
-                .value(indicator.getValue())
+                .date(String.valueOf(2000+i))
+                .value(String.valueOf(50+i))
                 .build());
+        i++;
       }
     } else {
       for (int i = 1; i < 6; i++) {

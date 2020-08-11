@@ -19,7 +19,6 @@ import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.Level;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
-import com.arqaam.logframelab.repository.initializer.BaseDatabaseTest;
 import com.arqaam.logframelab.service.IndicatorService;
 
 import java.util.ArrayList;
@@ -28,6 +27,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +45,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-class IndicatorControllerTest extends BaseControllerTest implements BaseDatabaseTest {
+class IndicatorControllerTest extends BaseControllerTest {
 
   private static final Level[] mockLevels =
       new Level[]{
@@ -258,7 +258,7 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("filter", getSampleFilter());
 
-    body.add("file", new ClassPathResource("test_doc.doc"));
+    body.add("file", new ClassPathResource("test doc.doc"));
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate.exchange("/indicator/upload", HttpMethod.POST,
         new HttpEntity<>(body, headers), new ParameterizedTypeReference<List<IndicatorResponse>>() {});
 
@@ -410,12 +410,7 @@ class IndicatorControllerTest extends BaseControllerTest implements BaseDatabase
     return filters;
   }
 
-  private HttpHeaders headersWithAuth() {
-    HttpHeaders headers = new HttpHeaders();
-    headers.setBearerAuth(bearerToken);
 
-    return headers;
-  }
 }
 //    private Integer validateTemplateLevel(XSSFSheet sheet, List<Indicator> indicators, Integer rowIndex, Integer numberTemplateIndicators){
 //        List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();

@@ -1,7 +1,16 @@
 package com.arqaam.logframelab.service;
 
+import static java.util.Objects.isNull;
+
 import com.arqaam.logframelab.controller.dto.FiltersDto;
-import com.arqaam.logframelab.exception.*;
+import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto.FilterRequestDto;
+import com.arqaam.logframelab.exception.FailedToCloseFileException;
+import com.arqaam.logframelab.exception.FailedToOpenFileException;
+import com.arqaam.logframelab.exception.FailedToOpenWorksheetException;
+import com.arqaam.logframelab.exception.FailedToProcessWordFileException;
+import com.arqaam.logframelab.exception.IndicatorNotFoundException;
+import com.arqaam.logframelab.exception.TemplateNotFoundException;
+import com.arqaam.logframelab.exception.WordFileLoadFailedException;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.Level;
@@ -10,27 +19,44 @@ import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
 import com.arqaam.logframelab.util.DocManipulationUtil;
 import com.arqaam.logframelab.util.Logging;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.poi.hwpf.HWPFDocument;
-import org.apache.poi.hwpf.extractor.WordExtractor;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.poi.xwpf.usermodel.*;
-import org.docx4j.jaxb.XPathBinderAssociationIsPartialException;
-import org.docx4j.openpackaging.exceptions.Docx4JException;
-import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
-import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
-import org.docx4j.wml.Text;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
+import com.arqaam.logframelab.util.Utils;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.persistence.criteria.Predicate;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
+import org.apache.poi.hwpf.HWPFDocument;
+import org.apache.poi.hwpf.extractor.WordExtractor;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellCopyPolicy;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
+import org.apache.poi.xwpf.usermodel.*;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.persistence.criteria.Predicate;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
@@ -48,15 +74,18 @@ public class IndicatorService implements Logging {
   protected static final Integer IMPACT_NUM_TEMP_INDIC = 1,
       OUTCOME_NUM_TEMP_INDIC = 3,
       OUTPUT_NUM_TEMP_INDIC = 2;
-
+  private static final Integer TOTAL_PERCENTAGE_OF_SCANNING = 70;
+  private static final Integer TOTAL_PERCENTAGE_OF_SMALL_TASKS = 5;
   private final IndicatorRepository indicatorRepository;
 
   private final LevelRepository levelRepository;
 
+  private final Utils utils;
 
-  public IndicatorService(IndicatorRepository indicatorRepository, LevelRepository levelRepository) {
+  public IndicatorService(IndicatorRepository indicatorRepository, LevelRepository levelRepository, Utils utils) {
     this.indicatorRepository = indicatorRepository;
     this.levelRepository = levelRepository;
+    this.utils = utils;
   }
 
   /**
@@ -67,15 +96,16 @@ public class IndicatorService implements Logging {
    * @return List of Indicators
    */
   public List<IndicatorResponse> extractIndicatorsFromWordFile( MultipartFile file, FiltersDto filter) {
+    Integer progress = TOTAL_PERCENTAGE_OF_SMALL_TASKS;
     List<IndicatorResponse> result = new ArrayList<>();
     List<Indicator> indicatorsList;
-
+    utils.sendProgressMessage(progress);
     if (filter != null && !filter.isEmpty()) {
       indicatorsList = indicatorsFromFilter(filter);
     } else {
       indicatorsList = indicatorRepository.findAll();
     }
-    List<String> wordstoScan = new ArrayList<>(); // current words
+    utils.sendProgressMessage(progress+=TOTAL_PERCENTAGE_OF_SMALL_TASKS);
     // get the maximum indicator length
     int maxIndicatorLength = 1;
     if (indicatorsList != null && !indicatorsList.isEmpty()) {
@@ -89,49 +119,20 @@ public class IndicatorService implements Logging {
           }
         }
       }
-      try {
-        Map<Long, Indicator> mapResult = new HashMap<>();
-        if(file.getOriginalFilename().matches("\\S+\\.docx$")) {
-          WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(file.getInputStream());
-          MainDocumentPart mainDocumentPart = wordMLPackage.getMainDocumentPart();
-          String textNodesXPath = "//w:t";
-          List<Object> textNodes = mainDocumentPart.getJAXBNodesViaXPath(textNodesXPath, true);
-          Pattern p = Pattern.compile("[a-z0-9]", Pattern.CASE_INSENSITIVE);
-          StringBuffer currentWord = null;
+      utils.sendProgressMessage(progress+=TOTAL_PERCENTAGE_OF_SMALL_TASKS);
 
-          for (Object obj : textNodes) {
-            Text text = ((JAXBElement<Text>) obj).getValue();
-            char[] strArray = text.getValue().toLowerCase().toCharArray();
-            for (char c : strArray) {
-              // append current word to wordstoScan list
-              if (currentWord == null && p.matcher(c + "").find()) {
-                currentWord = new StringBuffer();
-              } else if (currentWord != null && !p.matcher(c + "").find()) {
-                wordstoScan.add(currentWord.toString());
-                currentWord = null;
-              }
-              if (currentWord != null) {
-                currentWord.append(c);
-              }
-              // clear wordstoScan list if exceed the max length of indicators
-              if (wordstoScan.size() == maxIndicatorLength) {
-                checkIndicators(wordstoScan, indicatorsList, mapResult);
-                wordstoScan.remove(wordstoScan.size() - 1);
-              }
-            }
-          }
+      try {
+        Map<Long, Indicator> mapResult;
+          if(file.getOriginalFilename().matches(".+\\.docx$")) {
+            logger().info("Searching indicators in .docx file. maxIndicatorLength: {}", maxIndicatorLength);
+            XWPFDocument doc = new XWPFDocument(file.getInputStream());
+            mapResult = searchForIndicatorsInText(new XWPFWordExtractor(doc).getText(), maxIndicatorLength, progress, indicatorsList);
+            doc.close();
         } else {
           // Read .doc
           logger().info("Searching indicators in .doc file. maxIndicatorLength: {}", maxIndicatorLength);
           HWPFDocument doc = new HWPFDocument(file.getInputStream());
-          Matcher matcher = Pattern.compile("\\w+").matcher(new WordExtractor(doc).getText());
-          while(matcher.find()){
-            wordstoScan.add(matcher.group());
-            if (wordstoScan.size() == maxIndicatorLength) {
-              checkIndicators(wordstoScan, indicatorsList, mapResult);
-              wordstoScan.remove(wordstoScan.size() - 1);
-            }
-          }
+          mapResult = searchForIndicatorsInText(new WordExtractor(doc).getText(), maxIndicatorLength, progress, indicatorsList);
           doc.close();
         }
         if(!mapResult.isEmpty()) {
@@ -150,20 +151,60 @@ public class IndicatorService implements Logging {
             return 1;
           }).map(this::convertIndicatorToIndicatorResponse).collect(Collectors.toList());
         }
-      } catch (XPathBinderAssociationIsPartialException | JAXBException e) {
-        logger().error("Failed to process temporary word file", e);
-        throw new FailedToProcessWordFileException();
-      } catch (Docx4JException e){
-        logger().error("Failed to load/process the temporary word file. Name of the file: {}", file.getName(), e);
-        throw new WordFileLoadFailedException();
       } catch (IOException e) {
         logger().error("Failed to open word file. Name of the file: {}", file.getName(), e);
         throw new FailedToOpenFileException();
+      } catch (Exception e){
+        logger().error("Failed to load/process the word file. Name of the file: {}", file.getName(), e);
+        throw new WordFileLoadFailedException();
       }
     }
+    utils.sendProgressMessage(progress+TOTAL_PERCENTAGE_OF_SMALL_TASKS*2);
     return result;
   }
 
+    /**
+     * Search for indicators keywords in the given text and return the found indicators
+     * @param text Text to be searched
+     * @param maxIndicatorLength Max number of words to be searched at the same time (Its the size of the biggest keyword)
+     * @param progress Progress value to be sent through the web socket
+     * @param indicatorsList List of indicators to be searched
+     * @return Map of the with the indicator id as key and indicator as value
+     */
+  protected Map<Long, Indicator> searchForIndicatorsInText(String text, Integer maxIndicatorLength, Integer progress, List<Indicator> indicatorsList){
+      utils.sendProgressMessage(progress+=TOTAL_PERCENTAGE_OF_SMALL_TASKS);
+      Map<Long, Indicator> mapResult = new HashMap<>();
+      List<String> wordsToScan = new ArrayList<>();
+      Matcher matcher = Pattern.compile("\\w+").matcher(text);
+      int totalMatches = 0, i = 0;
+
+      //TODO: Change to matcher function once java upgraded to 11
+      while(matcher.find()){
+          totalMatches++;
+      }
+      matcher.reset();
+
+      double fraction = (double)TOTAL_PERCENTAGE_OF_SCANNING/(double)totalMatches;
+      // Inverted of the fraction is the number of matches that it takes to reach the 1% of the TOTAL_PERCENTAGE_OF_SCANNING
+      int countUntilSend = fraction > 1 ? (int) fraction : (int) (1/fraction);
+      logger().debug("Total number of matches: {}, fraction: {}, countUntilSend: {}", totalMatches, fraction, countUntilSend);
+      while(matcher.find()){
+          i++;
+          wordsToScan.add(matcher.group());
+          if (wordsToScan.size() == maxIndicatorLength) {
+              // Count until the inverted of the fraction
+              if(i==countUntilSend){
+                  // Send progress value through the web socket(it always increase only by 1%)
+                  utils.sendProgressMessage(progress++);
+                  // Restart the counter to reach the fraction value
+                  i = 0;
+              }
+              checkIndicators(wordsToScan, indicatorsList, mapResult);
+              wordsToScan.remove(wordsToScan.size() - 1);
+          }
+      }
+      return mapResult;
+  }
   /**
      * Fills a list of indicators that contain certain words
      * @param wordsToScan Words to find in the indicators' keyword list
@@ -286,57 +327,66 @@ public class IndicatorService implements Logging {
      * @param file Worksheet file
      */
      public List<Indicator> importIndicators(MultipartFile file) {
-        List<Level> levels = levelRepository.findAll();
-        Map<String, Level> levelMap = new HashMap<>();
-        for (Level lvl : levels){
-            levelMap.put(lvl.getName(), lvl);
+       return indicatorRepository.saveAll(extractIndicatorFromFile(file));
+    }
+
+    public List<Indicator> extractIndicatorFromFile(MultipartFile file) {
+      List<Level> levels = levelRepository.findAll();
+      Map<String, Level> levelMap = new HashMap<>();
+      for (Level lvl : levels){
+        levelMap.put(lvl.getName(), lvl);
+      }
+
+      logger().info("Importing indicators from xlsx, name {}", file.getName());
+      try {
+        List<Indicator> indicatorList = new ArrayList<>();
+        Iterator<Row> iterator = new XSSFWorkbook(file.getInputStream()).getSheetAt(0).iterator();
+        // skip the headers row
+        if (iterator.hasNext()) {
+          iterator.next();
         }
-       
-        logger().info("Importing indicators from xlsx, name {}", file.getName());
-        try {
-            List<Indicator> indicatorList = new ArrayList<>();
-            Iterator<Row> iterator = new XSSFWorkbook(file.getInputStream()).getSheetAt(0).iterator();
-            // skip the headers row
-            if (iterator.hasNext()) {
-                iterator.next();
-            }
-            int count=-1;
-            while (iterator.hasNext()) {
-                logger().info(" ");
-                Row currentRow = iterator.next();
+        while (iterator.hasNext()) {
+          Row currentRow = iterator.next();
+          try {
+            currentRow.getCell(2).getStringCellValue();
+          } catch (NullPointerException ex) {
+            continue;
+          }
+          // key words
+          String[] keys = currentRow.getCell(2).getStringCellValue().toLowerCase().split(",");
+          for (int i = 0; i < keys.length; i++) {
+            keys[i] = keys[i].trim().replaceAll("\\s+", " ");
+          }
+          Level level = levelMap.get(currentRow.getCell(0).getStringCellValue().toUpperCase());
+          if (!isNull(level)) {
+            Cell crsCodeCell = currentRow.getCell(7, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+            Cell sdgCodeCell = currentRow.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+            Indicator indicator = Indicator.builder()
+                .level(level)
+                .themes(currentRow.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .keywords(String.join(",", keys))
+                .name(currentRow.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .description(currentRow.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .source(currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .disaggregation(currentRow.getCell(6, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().equalsIgnoreCase("yes"))
+                .crsCode(crsCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(crsCodeCell.getNumericCellValue()) : crsCodeCell.getStringCellValue())
+                .sdgCode(sdgCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(sdgCodeCell.getNumericCellValue()) : sdgCodeCell.getStringCellValue())
+                .sourceVerification(currentRow.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .dataSource(currentRow.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .build();
+            indicatorList.add(indicator);
+            /*
+             * Logging per row with a large-enough file caused an error in tests:
+             * https://stackoverflow.com/a/52033799/2211446
+             */
+          }
+        }
+        return indicatorList;
 
-                // key words
-                String[] keys = currentRow.getCell(2).getStringCellValue().toLowerCase().split(",");
-                for (int i = 0; i < keys.length; i++) {
-                    keys[i] = keys[i].trim().replaceAll("\\s+", " ");
-                }
-                Level level = levelMap.get(currentRow.getCell(0).getStringCellValue().toUpperCase());
-                if (!isNull(level)) {
-                    Cell crsCodeCell = currentRow.getCell(7, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                    Indicator indicator = Indicator.builder()
-                            .level(level)
-                            .themes(currentRow.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .keywords(String.join(",", keys))
-                            .name(currentRow.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .description(currentRow.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .source(currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .disaggregation(currentRow.getCell(6, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().equalsIgnoreCase("yes"))
-                            .crsCode(crsCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(crsCodeCell.getNumericCellValue()) : crsCodeCell.getStringCellValue())
-                            .sdgCode(currentRow.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .sourceVerification(currentRow.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .dataSource(currentRow.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                            .build();
-                    logger().info("Line {}, Saving this indicator {}", count, indicator);
-                    indicatorList.add(indicatorRepository.save(indicator));
-                    count++;
-                }
-            }
-            return indicatorList;
-
-        } catch (IOException e) {
-            logger().error("Failed to open worksheet.", e);
-            throw new FailedToOpenWorksheetException();
-        }/* catch (InvalidFormatException e) {
+      } catch (IOException e) {
+        logger().error("Failed to open worksheet.", e);
+        throw new FailedToOpenWorksheetException();
+      }/* catch (InvalidFormatException e) {
             logger().error("Failed to interpret worksheet. It must be in a wrong format.", e);
             throw new WorksheetInWrongFormatException();
         }*/
@@ -358,7 +408,8 @@ public class IndicatorService implements Logging {
 
         XSSFWorkbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet();
-        String[] columns = new String[]{"Level", "Themes", "Name", "Description", "Source", "Disaggregation", "DAC 5/CRS", "SDG", "Source of Verification", "Data Source"};
+        String[] columns = new String[]{"Level", "Themes", "Name", "Description", "Source", "Disaggregation", "DAC 5/CRS",
+            "SDG", "Source of Verification", "Data Source", "Baseline Value", "Baseline Date"};
 
         // Create a CellStyle with the font
         Font boldFont = workbook.createFont();
@@ -381,7 +432,9 @@ public class IndicatorService implements Logging {
         }
 
         int rowNum = 1;
+        IndicatorResponse response;
         for (Indicator indicator : indicatorList) {
+            response = indicatorResponses.stream().filter(x -> x.getId() == indicator.getId()).findFirst().get();
             Row row = sheet.createRow(rowNum++);
             row.createCell(0).setCellValue(indicator.getLevel().getName());
             row.createCell(1).setCellValue(indicator.getThemes());
@@ -393,6 +446,8 @@ public class IndicatorService implements Logging {
             addCellWithStyle(row, 7, indicator.getSdgCode(), redCellStyle);
             addCellWithStyle(row, 8, indicator.getSourceVerification(), yellowCellStyle);
             row.createCell(9).setCellValue(indicator.getDataSource());
+            row.createCell(10).setCellValue(response.getValue());
+            row.createCell(11).setCellValue(response.getDate());
         }
 
         // Resize all columns to fit the content size
@@ -460,18 +515,50 @@ public class IndicatorService implements Logging {
                 themes, sources, levels, sdgCodes, crsCodes);
         return !themes.isPresent() && !sources.isPresent() && !levels.isPresent() && !sdgCodes.isPresent() && !crsCodes.isPresent() ?
             indicatorRepository.findAll() :
-            indicatorRepository.findAll((Specification<Indicator>) (root, criteriaQuery, criteriaBuilder) -> {
-                List<Predicate> predicates = new ArrayList<>();
-                themes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("themes")).value(x))));
-                sources.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("source")).value(x))));
-                levels.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("level").get("id")).value(x))));
-                sdgCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("sdgCode")).value(x))));
-                crsCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("crsCode")).value(x))));
-                return criteriaBuilder.and(predicates.toArray(new Predicate[predicates.size()]));
-            });
+            indicatorRepository.findAll(
+                getIndicatorSpecification(themes, sources, levels, sdgCodes, crsCodes, false));
     }
 
-    /**
+   Specification<Indicator> getIndicatorSpecification(Optional<List<String>> themes,
+      Optional<List<String>> sources, Optional<List<Long>> levels, Optional<List<String>> sdgCodes,
+      Optional<List<String>> crsCodes, boolean temp) {
+    return (root, criteriaQuery, criteriaBuilder) -> {
+        List<Predicate> predicates = new ArrayList<>();
+        themes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("themes")).value(x))));
+        sources.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("source")).value(x))));
+        levels.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("level").get("id")).value(x))));
+        sdgCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("sdgCode")).value(x))));
+        crsCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("crsCode")).value(x))));
+
+        predicates.add(criteriaBuilder.and(criteriaBuilder.equal(root.get("temp"), temp)));
+
+      return criteriaBuilder.and(predicates.toArray(new Predicate[predicates.size()]));
+    };
+  }
+
+  public Specification<Indicator> specificationFromFilter(FilterRequestDto filters, boolean temp) {
+    if (filters == null) {
+      filters = new FilterRequestDto();
+    }
+    return getIndicatorSpecification(
+        filters.getThemes() != null && !filters.getThemes().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getThemes()))
+            : Optional.empty(),
+        filters.getSource() != null && !filters.getSource().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getSource()))
+            : Optional.empty(),
+        filters.getLevelIds() != null && !filters.getLevelIds().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getLevelIds()))
+            : Optional.empty(),
+        filters.getSdgCode() != null && !filters.getSdgCode().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getSdgCode()))
+            : Optional.empty(),
+        filters.getCrsCode() != null && !filters.getCrsCode().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getCrsCode()))
+            : Optional.empty(), temp);
+  }
+
+  /**
      * Get indicator with id. If not found throws IndicatorNotFoundException
      * @param id Id of the indicator
      * @return Indicator

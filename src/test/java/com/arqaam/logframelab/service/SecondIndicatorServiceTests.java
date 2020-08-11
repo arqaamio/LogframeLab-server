@@ -14,13 +14,13 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.util.StringUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
@@ -84,11 +84,11 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
     List<Indicator> mockIndicators = mockIndicatorList().stream()
         .filter(x -> !x.getLevel().equals(mockLevels[3])).collect(Collectors.toList());
     mockIndicators.add(new Indicator(100L, "Extra indicator 1", "", "", mockLevels[1], "",
-        "", false, "", "", mockSourceVerification.get(0), "", null, null, null, 0));
+        "", false, "", "", mockSourceVerification.get(0), "", false, null, null, null, 0));
     mockIndicators.add(new Indicator(100L, "Extra indicator 2", "", "", mockLevels[1], "",
-        "", false, "", "", mockSourceVerification.get(1), "", null, null, null, 0));
+        "", false, "", "", mockSourceVerification.get(1), "", false, null, null, null, 0));
     mockIndicators.add(new Indicator(100L, "Extra indicator 3", "", "", mockLevels[1], "",
-        "", false, "", "", mockSourceVerification.get(2), "", null, null, null, 0));
+        "", false, "", "", mockSourceVerification.get(2), "", false, null, null, null, 0));
     when(indicatorRepository.findAllById(any())).thenReturn(mockIndicators);
 
     ByteArrayOutputStream outputStream = indicatorService
@@ -119,11 +119,11 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
     List<Indicator> mockIndicators = mockIndicatorList().stream()
         .filter(x -> !x.getLevel().equals(mockLevels[1])).collect(Collectors.toList());
     mockIndicators.add(new Indicator(100L, "Extra indicator 1", "", "", mockLevels[0], "",
-        "", false, "", "", mockSourceVerification.get(0), "", null, null, null, 0));
+        "", false, "", "", mockSourceVerification.get(0), "", false, null, null, null, 0));
     mockIndicators.add(new Indicator(100L, "Extra indicator 2", "", "", mockLevels[0], "",
-        "", false, "", "", mockSourceVerification.get(1), "", null, null, null, 0));
+        "", false, "", "", mockSourceVerification.get(1), "", false, null, null, null, 0));
     mockIndicators.add(new Indicator(100L, "Extra indicator 3", "", "", mockLevels[0], "",
-        "", false, "", "", mockSourceVerification.get(2), "", null, null, null, 0));
+        "", false, "", "", mockSourceVerification.get(2), "", false, null, null, null, 0));
     when(indicatorRepository.findAllById(any())).thenReturn(mockIndicators);
 
     ByteArrayOutputStream outputStream = indicatorService
@@ -154,11 +154,11 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
     List<Indicator> mockIndicators = mockIndicatorList().stream()
         .filter(x -> !x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
     mockIndicators.add(new Indicator(100L, "Extra indicator 1", "", "", mockLevels[3], "",
-        "", false, "", "", mockSourceVerification.get(0), "", null, null, null, 0));
+        "", false, "", "", mockSourceVerification.get(0), "", false, null, null, null, 0));
     mockIndicators.add(new Indicator(100L, "Extra indicator 2", "", "", mockLevels[3], "",
-        "", false, "", "", mockSourceVerification.get(1), "", null, null, null, 0));
+        "", false, "", "", mockSourceVerification.get(1), "", false, null, null, null, 0));
     mockIndicators.add(new Indicator(100L, "Extra indicator 3", "", "", mockLevels[3], "",
-        "", false, "", "", mockSourceVerification.get(2), "", null, null, null, 0));
+        "", false, "", "", mockSourceVerification.get(2), "", false, null, null, null, 0));
     when(indicatorRepository.findAllById(any())).thenReturn(mockIndicators);
 
     ByteArrayOutputStream outputStream = indicatorService

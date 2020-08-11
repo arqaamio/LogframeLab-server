@@ -14,12 +14,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.arqaam.logframelab.util.DocManipulationUtil;
+import com.arqaam.logframelab.util.Utils;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.data.jpa.domain.Specification;
 
-public abstract class BaseIndicatorServiceTest {
+public abstract class BaseIndicatorServiceTest  {
 
   final static Level[] mockLevels = new Level[]{
       new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green", 3),
@@ -50,6 +51,8 @@ public abstract class BaseIndicatorServiceTest {
   LevelRepository levelRepository;
   @Mock
   DocManipulationUtil docManipulationUtil;
+  @Mock
+  Utils utils;
 
   @InjectMocks
   IndicatorService indicatorService;

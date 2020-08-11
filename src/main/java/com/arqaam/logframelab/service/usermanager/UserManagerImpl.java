@@ -13,12 +13,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
-public class UserManagerImpl  implements UserManager {
+public class UserManagerImpl implements UserManager {
 
   private final UserService userService;
   private final GroupRepository groupRepository;
@@ -40,7 +40,7 @@ public class UserManagerImpl  implements UserManager {
     if (optionalUser.isPresent()) {
       user = optionalUser.get();
       user.removeAllGroups();
-    } else if (StringUtils.isBlank(authProvisioningRequest.getPassword())) {
+    } else if (StringUtils.isEmpty(authProvisioningRequest.getPassword())) {
       throw new UserProvisioningException("user.provisioning.exception.no-password");
     } else {
       user = User.builder().enabled(true).username(authProvisioningRequest.getUsername())
@@ -70,5 +70,13 @@ public class UserManagerImpl  implements UserManager {
     userDto.sort(Comparator.comparing(UserDto::getUsername));
 
     return userDto;
+  }
+
+  @Override
+  public Optional<UserDto> userExistsByUsername(String username) {
+    Optional<User> user = userService.findByUsername(username);
+    return user.map(value -> UserDto.builder().username(value.getUsername())
+        .groups(value.getGroupMembership().stream().map(gm -> gm.getGroup().getName()).collect(
+            Collectors.toList())).build());
   }
 }

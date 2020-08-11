@@ -1,4 +1,4 @@
-version: '3'
+version: '3.5'
 
 services:
 
@@ -11,10 +11,11 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/arqaam?autoReconnect=true&useSSL=false
     ports:
       - 8080:8080
-      - 127.0.0.1:8080:8080
     depends_on:
       - db
       - phpmyadmin
+    networks:
+      - proxynet
 
   # MySQL
   db:
@@ -34,6 +35,8 @@ services:
       - ./docker/db/sql:/docker-entrypoint-initdb.d
     ports:
       - 3306:3306
+    networks:
+      - proxynet
 
   # phpMyAdmin
   phpmyadmin:
@@ -46,3 +49,8 @@ services:
       - PMA_PASSWORD=root
     ports:
       - 8082:80
+    networks:
+      - proxynet
+networks:
+  proxynet:
+    name: logframelab_network

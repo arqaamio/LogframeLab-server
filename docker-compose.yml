@@ -1,4 +1,4 @@
-version: '3.5'
+version: '3'
 
 services:
 
@@ -15,7 +15,7 @@ services:
       - db
       - phpmyadmin
     networks:
-      - proxynet
+      - logframelab_network
 
   # MySQL
   db:
@@ -36,7 +36,7 @@ services:
     ports:
       - 3306:3306
     networks:
-      - proxynet
+      - logframelab_network
 
   # phpMyAdmin
   phpmyadmin:
@@ -50,7 +50,8 @@ services:
     ports:
       - 8082:80
     networks:
-      - proxynet
+      - logframelab_network
 networks:
-  proxynet:
-    name: logframelab_network
+  logframelab_network:
+    external:
+      name: logframelab_network

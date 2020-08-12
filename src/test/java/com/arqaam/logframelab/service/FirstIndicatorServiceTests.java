@@ -293,7 +293,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         .dataSource("https://data.worldbank.org/indicator/SE.PRM.TENR.FE?view=chart")
         .date("2001")
         .value("100")
-        .crsCode(Collections.singleton(mockCrsCodes.get(1))).build());
+        .crsCode(Collections.singleton(mockCrsCodes.get(1))).build()
         .sourceVerification("Capacity4Dev")
         .build());
 

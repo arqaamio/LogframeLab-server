@@ -14,6 +14,9 @@ services:
     depends_on:
       - db
       - phpmyadmin
+    networks:
+      - logframelab_network
+
   # MySQL
   db:
     image: mysql:5.7
@@ -32,6 +35,8 @@ services:
       - ./docker/db/sql:/docker-entrypoint-initdb.d
     ports:
       - 3306:3306
+    networks:
+      - logframelab_network
 
   # phpMyAdmin
   phpmyadmin:
@@ -44,3 +49,9 @@ services:
       - PMA_PASSWORD=root
     ports:
       - 8082:80
+    networks:
+      - logframelab_network
+networks:
+  logframelab_network:
+    external:
+      name: logframelab_network

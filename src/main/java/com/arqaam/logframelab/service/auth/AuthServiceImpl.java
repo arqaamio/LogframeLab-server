@@ -73,8 +73,8 @@ public class AuthServiceImpl  implements AuthService {
   }
 
   @Override
-  public Long getTokenExpiryInMillis() {
-    return tokenProvider.getJwtExpirationInMillis();
+  public Long getTokenExpiryInSeconds() {
+    return tokenProvider.getJwtExpirationInSeconds();
   }
 
   @Override

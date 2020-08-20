@@ -196,7 +196,7 @@ public class IndicatorService implements Logging {
                   i = 0;
               }
               checkIndicators(wordsToScan, indicatorsList, mapResult);
-              wordsToScan.remove(wordsToScan.size() - 1);
+              wordsToScan = new ArrayList<>();
           }
       }
       return mapResult;

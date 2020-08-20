@@ -11,14 +11,9 @@
       "description": "Description for jwt.header.prefix."
     },
     {
-      "name": "jwt.expiration",
+      "name": "jwt.expiration.in.days",
       "type": "java.lang.String",
       "description": "Description for jwt.expiration."
-    },
-    {
-      "name": "jwt.claims.refresh.name",
-      "type": "java.lang.String",
-      "description": "Description for jwt.claims.refresh.name."
     }
   ]
 }

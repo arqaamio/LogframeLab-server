@@ -26,8 +26,8 @@ public class JwtTokenProvider {
   public static final String TOKEN_TYPE = "JWS";
   private static SecretKey secretKey;
 
-  @Value("${jwt.expiration.in.days}")
-  private int jwtExpirationInDays;
+  @Value("${jwt.expiration.in.hours}")
+  private int jwtExpirationInHours;
 
   @Value("${jwt.header.prefix}")
   private String tokenType;
@@ -46,7 +46,7 @@ public class JwtTokenProvider {
     return Jwts.builder()
         .setSubject(user.getUsername())
         .setIssuedAt(Date.from(Instant.now()))
-        .setExpiration(Date.from(Instant.now().plus(jwtExpirationInDays, ChronoUnit.DAYS)))
+        .setExpiration(Date.from(Instant.now().plus(jwtExpirationInHours, ChronoUnit.HOURS)))
         .signWith(secretKey, SignatureAlgorithm.HS512)
         .compact();
   }
@@ -85,7 +85,7 @@ public class JwtTokenProvider {
   }
 
   public Long getJwtExpirationInSeconds() {
-    return jwtExpirationInDays * 24 * 60 * 60L;
+    return jwtExpirationInHours * 60 * 60L;
   }
 
   public String getTokenType() {

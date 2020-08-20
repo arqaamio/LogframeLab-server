@@ -18,7 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class JwtRefreshFilter extends OncePerRequestFilter {
 
-  private static final long ONE_HOUR = 60 * 60 * 60L;
+  private static final long ONE_HOUR =  60 * 60L;
   private final JwtTokenProvider jwtTokenProvider;
 
   public JwtRefreshFilter(JwtTokenProvider jwtTokenProvider) {

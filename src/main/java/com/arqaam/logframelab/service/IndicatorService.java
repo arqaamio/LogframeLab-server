@@ -363,7 +363,7 @@ public class IndicatorService implements Logging {
             Cell sdgCodeCell = currentRow.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
             Indicator indicator = Indicator.builder()
                 .level(level)
-                .themes(currentRow.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .sector(currentRow.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
                 .keywords(String.join(",", keys))
                 .name(currentRow.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
                 .description(currentRow.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
@@ -411,7 +411,7 @@ public class IndicatorService implements Logging {
 
         XSSFWorkbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet();
-        String[] columns = new String[]{"Level", "Themes", "Name", "Description", "Source", "Disaggregation", "DAC 5/CRS",
+        String[] columns = new String[]{"Level", "Sector", "Name", "Description", "Source", "Disaggregation", "DAC 5/CRS",
             "SDG", "Source of Verification", "Data Source", "Baseline Value", "Baseline Date"};
 
         // Create a CellStyle with the font
@@ -440,7 +440,7 @@ public class IndicatorService implements Logging {
             response = indicatorResponses.stream().filter(x -> x.getId() == indicator.getId()).findFirst().get();
             Row row = sheet.createRow(rowNum++);
             row.createCell(0).setCellValue(indicator.getLevel().getName());
-            row.createCell(1).setCellValue(indicator.getThemes());
+            row.createCell(1).setCellValue(indicator.getSector());
             row.createCell(2).setCellValue(indicator.getName());
             row.createCell(3).setCellValue(indicator.getDescription());
             row.createCell(4).setCellValue(indicator.getSource().stream().map(Source::getName).collect(Collectors.joining()));
@@ -485,8 +485,8 @@ public class IndicatorService implements Logging {
      * Get all thematic areas of indicators
      * @return all thematic areas
      */
-    public List<String> getAllThemes() {
-        return indicatorRepository.getThemes();
+    public List<String> getSectors() {
+        return indicatorRepository.getSectors();
     }
 
     public FiltersDto getFilters() {
@@ -494,7 +494,7 @@ public class IndicatorService implements Logging {
 
         FiltersDto filters = new FiltersDto();
 
-        filters.getThemes().addAll(filtersResult.stream().map(IndicatorFilters::getThemes).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
+        filters.getSector().addAll(filtersResult.stream().map(IndicatorFilters::getSector).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
         filters.getSource().addAll(filtersResult.stream().map(IndicatorFilters::getSource).filter(f -> !f.isEmpty()).flatMap(Collection::stream).collect(Collectors.toSet()));
         filters.getLevel().addAll(filtersResult.stream().map(IndicatorFilters::getLevel).collect(Collectors.toList()));
         filters.getSdgCode().addAll(filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty()).flatMap(Collection::stream).collect(Collectors.toSet()));
@@ -505,30 +505,30 @@ public class IndicatorService implements Logging {
 
     /**
      * Returns indicators that match the filters
-     * @param themes List of Themes
+     * @param sector List of Sectors
      * @param sources List of Sources
      * @param levels List of Levels id
      * @param sdgCodes List of SDG codes
      * @param crsCodes List of CRS Codes
      * @return List of IndicatorResponse
      */
-    public List<Indicator> getIndicators(Optional<List<String>> themes, Optional<List<Long>> sources, Optional<List<Long>> levels,
+    public List<Indicator> getIndicators(Optional<List<String>> sector, Optional<List<Long>> sources, Optional<List<Long>> levels,
                                                  Optional<List<Long>> sdgCodes, Optional<List<Long>> crsCodes) {
-        logger().info("Starting repository call with with themes: {}, sources: {}, levels: {}, sdgCodes: {}, crsCodes: {}",
-                themes, sources, levels, sdgCodes, crsCodes);
-        return themes.isEmpty() && sources.isEmpty() && levels.isEmpty() && sdgCodes.isEmpty() && crsCodes.isEmpty() ?
+        logger().info("Starting repository call with with sector: {}, sources: {}, levels: {}, sdgCodes: {}, crsCodes: {}",
+                sector, sources, levels, sdgCodes, crsCodes);
+        return sector.isEmpty() && sources.isEmpty() && levels.isEmpty() && sdgCodes.isEmpty() && crsCodes.isEmpty() ?
             indicatorRepository.findAll() :
             indicatorRepository.findAll(
-                getIndicatorSpecification(themes, sources, levels, sdgCodes, crsCodes, false));
+                getIndicatorSpecification(sector, sources, levels, sdgCodes, crsCodes, false));
     }
 
-   Specification<Indicator> getIndicatorSpecification(Optional<List<String>> themes,
+   Specification<Indicator> getIndicatorSpecification(Optional<List<String>> sector,
       Optional<List<Long>> sources, Optional<List<Long>> levels, Optional<List<Long>> sdgCodes,
       Optional<List<Long>> crsCodes, boolean temp) {
     return (root, criteriaQuery, criteriaBuilder) -> {
         List<Predicate> predicates = new ArrayList<>();
 
-        themes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("themes")).value(x))));
+        sector.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("sector")).value(x))));
         sources.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.join("source").get("id")).value(x))));
         levels.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("level").get("id")).value(x))));
         sdgCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.join("sdgCode").get("id")).value(x))));
@@ -544,8 +544,8 @@ public class IndicatorService implements Logging {
       filters = new FilterRequestDto();
     }
     return getIndicatorSpecification(
-        filters.getThemes() != null && !filters.getThemes().isEmpty() ? Optional
-            .of(new ArrayList<>(filters.getThemes()))
+        filters.getSectors() != null && !filters.getSectors().isEmpty() ? Optional
+            .of(new ArrayList<>(filters.getSectors()))
             : Optional.empty(),
         filters.getSourceIds() != null && !filters.getSourceIds().isEmpty() ? Optional
             .of(new ArrayList<>(filters.getSourceIds()))
@@ -583,7 +583,7 @@ public class IndicatorService implements Logging {
                 .color(indicator.getLevel().getColor())
                 .name(indicator.getName())
                 .description(indicator.getDescription())
-                .themes(indicator.getThemes())
+                .sector(indicator.getSector())
                 .disaggregation(indicator.getDisaggregation())
                 .crsCode(indicator.getCrsCode())
                 .sdgCode(indicator.getSdgCode())
@@ -596,8 +596,8 @@ public class IndicatorService implements Logging {
 
   private List<Indicator> indicatorsFromFilter(FiltersDto filter) {
     return getIndicators(
-        filter.getThemes().size() > 0
-            ? Optional.of(new ArrayList<>(filter.getThemes()))
+        filter.getSector().size() > 0
+            ? Optional.of(new ArrayList<>(filter.getSector()))
             : Optional.empty(),
         filter.getSource().size() > 0
             ? Optional.of(filter.getSource().stream().map(Source::getId).collect(Collectors.toList()))

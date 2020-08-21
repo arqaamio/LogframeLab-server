@@ -143,7 +143,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
         .sdgCode(Collections.singleton(new SDGCode(1L, "10.4")))
         .source(Collections.singleton(new Source(1L,"UN Sustainable Development Goals")))
         .sourceVerification("Project's M&E system")
-        .themes("Inequality")
+        .sector("Inequality")
         .build();
 
     ResponseEntity<Indicator> indicator = testRestTemplate

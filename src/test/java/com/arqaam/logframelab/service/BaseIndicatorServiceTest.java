@@ -10,7 +10,6 @@ import com.arqaam.logframelab.repository.LevelRepository;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.arqaam.logframelab.util.DocManipulationUtil;
@@ -28,7 +27,7 @@ public abstract class BaseIndicatorServiceTest  {
       new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange", 4),
       new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple", 1)
   };
-  final static List<String> mockThemes = Arrays.asList("Digitalisation", "Education", "Poverty",
+  final static List<String> mockSectors = Arrays.asList("Digitalisation", "Education", "Poverty",
       "Nutrition", "Agriculture", "Health", "WASH", "Electricity", "Private Sector",
       "Infrastructure", "Migration", "Climate Change", "Environment", "Public Sector",
       "Human Rights", "Conflict", "Food Security", "Equality", "Water and Sanitation");
@@ -76,7 +75,7 @@ public abstract class BaseIndicatorServiceTest  {
     lenient().when(indicatorRepository.findAllById(any())).thenReturn(mockIndicatorList());
     lenient().when(indicatorRepository.findAll(any(Specification.class))).
         thenReturn(mockIndicatorList().stream()
-            .filter(x -> mockThemes.contains(x.getThemes()) && mockLevelsId
+            .filter(x -> mockSectors.contains(x.getSector()) && mockLevelsId
                 .contains(x.getLevel().getId()) && mockSources.containsAll(x.getSource())
                 && mockSdgCodes.containsAll(x.getSdgCode()) && mockCrsCodes.containsAll(x.getCrsCode()))
             .collect(Collectors.toList()));

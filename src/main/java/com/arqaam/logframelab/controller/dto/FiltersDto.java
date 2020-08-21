@@ -15,7 +15,7 @@ import java.util.LinkedHashSet;
 public class FiltersDto {
 
   @Getter
-  private final Collection<String> themes = new LinkedHashSet<>();
+  private final Collection<String> sector = new LinkedHashSet<>();
 
   @Getter
   private final Collection<Source> source = new LinkedHashSet<>();
@@ -40,7 +40,7 @@ public class FiltersDto {
 
   @JsonIgnore
   public boolean isEmpty() {
-    return themes.isEmpty()
+    return sector.isEmpty()
         && source.isEmpty()
         && level.isEmpty()
         && sdg_code.isEmpty()

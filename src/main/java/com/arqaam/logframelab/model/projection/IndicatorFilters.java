@@ -9,7 +9,7 @@ import java.util.Set;
 
 public interface IndicatorFilters {
 
-  String getThemes();
+  String getSector();
 
   String getDescription();
 

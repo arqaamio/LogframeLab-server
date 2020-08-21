@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 import com.arqaam.logframelab.model.persistence.SDGCode;
 import com.arqaam.logframelab.model.persistence.Source;
 import com.arqaam.logframelab.model.persistence.Level;
-import org.apache.http.entity.ContentType;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -193,7 +192,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
       final Indicator indicator = expectedResult.get(i);
       response = indicatorResponse.stream().filter(x -> x.getId() == indicator.getId()).findFirst().get();
       assertEquals(indicator.getLevel().getName(), row.getCell(0).getStringCellValue());
-      assertEquals(indicator.getThemes(), row.getCell(1).getStringCellValue());
+      assertEquals(indicator.getSector(), row.getCell(1).getStringCellValue());
       assertEquals(indicator.getName(), row.getCell(2).getStringCellValue());
       assertEquals(Optional.ofNullable(indicator.getDescription()).orElse(""), row.getCell(3).getStringCellValue());
       assertEquals(Optional.of(indicator.getSource().stream().map(Source::getName).collect(Collectors.joining(","))).orElse(null), row.getCell(4).getStringCellValue());
@@ -279,7 +278,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         .description("Digitalisation").level(mockLevels[0]).keywords("policy")
         .keywordsList(keywordsPolicyList)
         .disaggregation(false)
-        .source(Collections.singleton(mockSources.get(0))).themes(mockThemes.get(0)).sdgCode(Collections.singleton(mockSdgCodes.get(0)))
+        .source(Collections.singleton(mockSources.get(0))).sector(mockSectors.get(0)).sdgCode(Collections.singleton(mockSdgCodes.get(0)))
         .dataSource("https://data.worldbank.org/indicator/NY.ADJ.DKAP.GN.ZS?view=chart")
         .date("2000")
         .value("100")
@@ -289,7 +288,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         .description("Public Sector").level(mockLevels[1]).keywords("government policies, policy")
         .keywordsList(keywordsGovPolicyList)
         .disaggregation(true)
-        .source(Collections.singleton(mockSources.get(1))).themes(mockThemes.get(1)).sdgCode(Collections.singleton(mockSdgCodes.get(1)))
+        .source(Collections.singleton(mockSources.get(1))).sector(mockSectors.get(1)).sdgCode(Collections.singleton(mockSdgCodes.get(1)))
         .dataSource("https://data.worldbank.org/indicator/SE.PRM.TENR.FE?view=chart")
         .date("2001")
         .value("100")
@@ -301,7 +300,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         .description("Public Sector").level(mockLevels[3]).keywords("government")
         .keywordsList(keywordsGovList)
         .disaggregation(true)
-        .source(Collections.singleton(mockSources.get(2))).themes(mockThemes.get(2)).sdgCode(Collections.singleton(mockSdgCodes.get(2)))
+        .source(Collections.singleton(mockSources.get(2))).sector(mockSectors.get(2)).sdgCode(Collections.singleton(mockSdgCodes.get(2)))
         .dataSource("https://data.worldbank.org/indicator/EG.ELC.ACCS.UR.ZS?view=chart")
         .date("1980")
         .value("50")
@@ -311,7 +310,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
             .description("Food & Agriculture").level(mockLevels[1]).keywords(keyword)
             .keywordsList(keywordsFoodList)
             .disaggregation(false)
-            .source(Collections.singleton(mockSources.get(3))).themes(mockThemes.get(3)).sdgCode(Collections.singleton(mockSdgCodes.get(3)))
+            .source(Collections.singleton(mockSources.get(3))).sector(mockSectors.get(3)).sdgCode(Collections.singleton(mockSdgCodes.get(3)))
             .dataSource("https://data.worldbank.org/indicator/EG.CFT.ACCS.ZS?view=chart")
             .date("2001")
             .value("100")
@@ -337,7 +336,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
                 .sdgCode(indicator.getSdgCode())
                 .crsCode(indicator.getCrsCode())
                 .source(indicator.getSource())
-                .themes(indicator.getThemes())
+                .sector(indicator.getSector())
                 .disaggregation(indicator.getDisaggregation())
                 .date(String.valueOf(2000+i))
                 .value(String.valueOf(50+i))
@@ -357,12 +356,12 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
   void getIndicators() {
     List<Indicator> expectedResult = mockIndicatorList().stream()
         .filter(
-            x -> mockThemes.contains(x.getThemes()) && mockLevelsId.contains(x.getLevel().getId())
+            x -> mockSectors.contains(x.getSector()) && mockLevelsId.contains(x.getLevel().getId())
                 && mockSources.containsAll(x.getSource())
                 && mockSdgCodes.containsAll(x.getSdgCode()) && mockCrsCodes.containsAll(x.getCrsCode()))
         .collect(Collectors.toList());
 
-    List<Indicator> result = indicatorService.getIndicators(Optional.of(mockThemes),
+    List<Indicator> result = indicatorService.getIndicators(Optional.of(mockSectors),
         Optional.of(mockSources.stream().map(Source::getId).collect(Collectors.toList())),
         Optional.of(mockLevelsId), Optional.of(mockSdgCodes.stream().map(SDGCode::getId).collect(Collectors.toList())),
         Optional.of(mockCrsCodes.stream().map(CRSCode::getId).collect(Collectors.toList())));
@@ -375,17 +374,17 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
   void getIndicators_someFilters() {
     when(indicatorRepository.findAll(any(Specification.class))).
         thenReturn(mockIndicatorList().stream()
-            .filter(x -> mockThemes.contains(x.getThemes()) && mockLevelsId
+            .filter(x -> mockSectors.contains(x.getSector()) && mockLevelsId
                 .contains(x.getLevel().getId()) && mockSources.containsAll(x.getSource())
             ).collect(Collectors.toList()));
 
     List<Indicator> expectedResult = mockIndicatorList().stream()
         .filter(
-            x -> mockThemes.contains(x.getThemes()) && mockLevelsId.contains(x.getLevel().getId())
+            x -> mockSectors.contains(x.getSector()) && mockLevelsId.contains(x.getLevel().getId())
                 && mockSources.containsAll(x.getSource())
         ).collect(Collectors.toList());
 
-    List<Indicator> result = indicatorService.getIndicators(Optional.of(mockThemes),
+    List<Indicator> result = indicatorService.getIndicators(Optional.of(mockSectors),
         Optional.of(mockSources.stream().map(Source::getId).collect(Collectors.toList())), Optional.of(mockLevelsId), Optional.empty(), Optional.empty());
     verify(indicatorRepository).findAll(any(Specification.class));
     verify(indicatorRepository, times(0)).findAll();

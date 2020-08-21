@@ -165,16 +165,16 @@ public class IndicatorController implements Logging {
             @ApiResponse(code = 200, message = "File was uploaded", response = IndicatorResponse.class, responseContainer = "List"),
             @ApiResponse(code = 500, message = "Unexpected error occurred", response = Error.class)
     })
-    public ResponseEntity<List<IndicatorResponse>> getIndicators(@RequestParam(required = false) List<String> themes,
+    public ResponseEntity<List<IndicatorResponse>> getIndicators(@RequestParam(required = false) List<String> sectors,
                                                                  @RequestParam(required = false) List<Long> sources,
                                                                  @RequestParam(required = false) List<Long> levels,
                                                                  @RequestParam(required = false) List<Long> sdgCodes,
                                                                  @RequestParam(required = false) List<Long> crsCodes) {
 
-        logger().info("Retrieving Indicators with themes: {}, sources: {}, levels: {}, sdgCodes: {}, crsCodes: {}",
-                themes, sources, levels, sdgCodes, crsCodes);
+        logger().info("Retrieving Indicators with sectors: {}, sources: {}, levels: {}, sdgCodes: {}, crsCodes: {}",
+                sectors, sources, levels, sdgCodes, crsCodes);
 
-        return ResponseEntity.ok(indicatorService.getIndicators(Optional.ofNullable(themes), Optional.ofNullable(sources),
+        return ResponseEntity.ok(indicatorService.getIndicators(Optional.ofNullable(sectors), Optional.ofNullable(sources),
                 Optional.ofNullable(levels), Optional.ofNullable(sdgCodes), Optional.ofNullable(crsCodes))
                 .stream().map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList()));
     }

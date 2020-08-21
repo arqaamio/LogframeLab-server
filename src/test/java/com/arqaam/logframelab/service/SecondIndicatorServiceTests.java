@@ -275,7 +275,7 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
 
     list.add(
         Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
-            .themes("Global Partnership for Sustainable Development")
+            .sector("Global Partnership for Sustainable Development")
             .source(Collections.singleton(mockSources.get(1)))
             .disaggregation(true)
             .crsCode(Collections.singleton(mockCrsCodes.get(1)))
@@ -288,7 +288,7 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
             .keywordsList(keywordsList).build());
     list.add(Indicator.builder().id(4L).name(
         "Number of policies/strategies/laws/regulation developed/revised for digitalization with EU support")
-        .themes("Global Partnership for Sustainable Development")
+        .sector("Global Partnership for Sustainable Development")
         .source(Collections.singleton(mockSources.get(2)))
         .disaggregation(true)
         .crsCode(Collections.singleton(mockCrsCodes.get(2)))
@@ -300,7 +300,7 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
         .value("50")
         .keywordsList(keywordsPolicyList).build());
     list.add(Indicator.builder().id(5L).name("Revenue, excluding grants (% of GDP)")
-        .themes("Global Partnership for Sustainable Development")
+        .sector("Global Partnership for Sustainable Development")
         .source(Collections.singleton(mockSources.get(3)))
         .disaggregation(false)
         .crsCode(Collections.singleton(mockCrsCodes.get(3)))

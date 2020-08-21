@@ -22,6 +22,6 @@ public class IndicatorRequestDto {
   private Set<SDGCode> sdgCode;
   private Set<Source> source;
   private String sourceVerification;
-  private String themes;
+  private String sector;
   private Long levelId;
 }

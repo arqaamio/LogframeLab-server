@@ -23,11 +23,11 @@ public interface IndicatorRepository extends JpaRepository<Indicator, Long>, Jpa
 
   List<Indicator> findIndicatorByIdIn(Collection<Long> id);
 
-  @Query(value = "select * from IND_INDICATOR where THEMES in (:themes)", nativeQuery = true)
-  List<Indicator> getIndicatorsByThemes(@Param("themes") List<String> themesList);
+  @Query(value = "select * from IND_INDICATOR where SECTOR in (:sector)", nativeQuery = true)
+  List<Indicator> getIndicatorsBySectors(@Param("sector") List<String> sectorsList);
 
-  @Query(value = "select distinct(THEMES) from IND_INDICATOR where THEMES <> ''", nativeQuery = true)
-  List<String> getThemes();
+  @Query(value = "select distinct(SECTOR) from IND_INDICATOR where SECTOR <> ''", nativeQuery = true)
+  List<String> getSectors();
 
   List<IndicatorFilters> getAllBy();
 

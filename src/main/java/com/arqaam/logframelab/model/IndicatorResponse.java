@@ -19,7 +19,7 @@ public class IndicatorResponse {
     private String color;
     private String name;
     private String description;
-    private String themes;
+    private String sector;
     private Set<Source> source;
     private Boolean disaggregation;
     private Set<CRSCode> crsCode;

@@ -63,7 +63,7 @@ public class IndicatorsManagementServiceImpl implements IndicatorsManagementServ
             .crsCode(indicatorRequest.getCrsCode())
             .sdgCode(indicatorRequest.getSdgCode())
             .source(indicatorRequest.getSource())
-            .themes(indicatorRequest.getThemes())
+            .sector(indicatorRequest.getSector())
             .sourceVerification(indicatorRequest.getSourceVerification())
             .dataSource(indicatorRequest.getDataSource())
             .disaggregation(indicatorRequest.getDisaggregation())

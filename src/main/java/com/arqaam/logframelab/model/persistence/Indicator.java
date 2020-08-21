@@ -36,8 +36,8 @@ public class Indicator {
     @JoinColumn(name="Level")
     private Level level;
 
-    @Column(name = "THEMES")
-    private String themes;
+    @Column(name = "SECTOR")
+    private String sector;
 
     @ManyToMany
     @JoinTable(name = "INDICATOR_SOURCE")

@@ -32,7 +32,7 @@ public class IndicatorsRequestDto {
     private Collection<Long> levelIds;
 
     @Getter
-    private Collection<String> themes;
+    private Collection<String> sectors;
 
     @Getter
     private Collection<Long> sourceIds;

@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,7 +50,7 @@ class IndicatorControllerTest extends BaseControllerTest {
 
   private static final FiltersDto EMPTY_FILTER = new FiltersDto();
 
-  private final static List<String> mockThemes = Arrays
+  private final static List<String> mockSectors = Arrays
       .asList("Digitalisation", "Education", "Poverty",
           "Nutrition", "Agriculture", "Health", "WASH", "Electricity", "Private Sector",
           "Infrastructure", "Migration", "Climate Change", "Environment", "Public Sector",
@@ -92,7 +91,7 @@ class IndicatorControllerTest extends BaseControllerTest {
         .thenReturn(Arrays.stream(mockLevels).sorted().collect(Collectors.toList()));
     when(indicatorRepositoryMock.findAll(any(Specification.class))).
         thenReturn(mockIndicatorList().stream()
-            .filter(x -> mockThemes.contains(x.getThemes()) && mockLevelsId
+            .filter(x -> mockSectors.contains(x.getSector()) && mockLevelsId
                 .contains(x.getLevel().getId()) && mockSources.containsAll(x.getSource()) &&
                     mockSdgCodes.containsAll(x.getSdgCode()) && mockCrsCodes.containsAll(x.getCrsCode()))
             .collect(Collectors.toList()));
@@ -125,7 +124,7 @@ class IndicatorControllerTest extends BaseControllerTest {
 
     Objects.requireNonNull(response.getBody())
         .forEach(resp -> assertAll(
-            () -> assertThat(filters.getThemes(), hasItem(resp.getThemes())),
+            () -> assertThat(filters.getSector(), hasItem(resp.getSector())),
             () -> assertThat(
                 filters.getLevel().stream().map(Level::getName).collect(Collectors.toSet()),
                 hasItem(resp.getLevel())),
@@ -282,7 +281,7 @@ class IndicatorControllerTest extends BaseControllerTest {
   void getIndicators() {
     List<IndicatorResponse> expectedResult = getExpectedResult();
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
-        .exchange("/indicator?themes=" + String.join(",", mockThemes) +
+        .exchange("/indicator?sector=" + String.join(",", mockSectors) +
                 "&levels=" + mockLevelsId.stream().map(String::valueOf).collect(Collectors.joining(","))
                 + "&sources=" + mockSources.stream().map(x-> String.valueOf(x.getId())).collect(Collectors.joining(",")) +
                 "&sdgCodes=" + mockSdgCodes.stream().map(x-> String.valueOf(x.getId())).collect(Collectors.joining(",")) +
@@ -302,7 +301,7 @@ class IndicatorControllerTest extends BaseControllerTest {
   void getIndicators_someFilters() {
     List<IndicatorResponse> expectedResult = getExpectedResult();
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
-        .exchange("/indicator?themes=" + String.join(",", mockThemes) +
+        .exchange("/indicator?sector=" + String.join(",", mockSectors) +
                 "&levels=" + mockLevelsId.stream().map(String::valueOf).collect(Collectors.joining(","))
                 + "&sources=" + mockSources.stream().map(x-> String.valueOf(x.getId())).collect(Collectors.joining(",")),
             HttpMethod.GET, new HttpEntity<>(headersWithAuth()),
@@ -354,24 +353,24 @@ class IndicatorControllerTest extends BaseControllerTest {
         "Number of policies/strategies/laws/regulation developed/revised for digitalisation with EU support")
         .description("Digitalisation").level(mockLevels[0]).keywords("policy")
         .keywordsList(keywordsPolicyList)
-        .source(Collections.singleton(mockSources.get(0))).themes(mockThemes.get(0)).sdgCode(Collections.singleton(mockSdgCodes.get(0)))
+        .source(Collections.singleton(mockSources.get(0))).sector(mockSectors.get(0)).sdgCode(Collections.singleton(mockSdgCodes.get(0)))
         .crsCode(Collections.singleton(mockCrsCodes.get(0))).build());
     list.add(Indicator.builder().id(73L).name(
         "Number of government policies developed or revised with civil society organisation participation through EU support")
         .description("Public Sector").level(mockLevels[1]).keywords("government policies, policy")
         .keywordsList(keywordsGovPolicyList)
-        .source(Collections.singleton(mockSources.get(1))).themes(mockThemes.get(1)).sdgCode(Collections.singleton(mockSdgCodes.get(1)))
+        .source(Collections.singleton(mockSources.get(1))).sector(mockSectors.get(1)).sdgCode(Collections.singleton(mockSdgCodes.get(1)))
         .crsCode(Collections.singleton(mockCrsCodes.get(1))).build());
     list.add(Indicator.builder().id(5L).name("Revenue, excluding grants (% of GDP)")
         .description("Public Sector").level(mockLevels[3]).keywords("government")
         .keywordsList(keywordsGovList)
-        .source(Collections.singleton(mockSources.get(2))).themes(mockThemes.get(2)).sdgCode(Collections.singleton(mockSdgCodes.get(2)))
+        .source(Collections.singleton(mockSources.get(2))).sector(mockSectors.get(2)).sdgCode(Collections.singleton(mockSdgCodes.get(2)))
         .crsCode(Collections.singleton(mockCrsCodes.get(2))).build());
     list.add(
         Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
             .description("Food & Agriculture").level(mockLevels[1]).keywords(keyword)
             .keywordsList(keywordsFoodList)
-            .source(Collections.singleton(mockSources.get(3))).themes(mockThemes.get(3)).sdgCode(Collections.singleton(mockSdgCodes.get(3)))
+            .source(Collections.singleton(mockSources.get(3))).sector(mockSectors.get(3)).sdgCode(Collections.singleton(mockSdgCodes.get(3)))
             .crsCode(Collections.singleton(mockCrsCodes.get(3))).build());
 
     return list;
@@ -400,7 +399,7 @@ class IndicatorControllerTest extends BaseControllerTest {
   private FiltersDto getSampleFilter() {
     FiltersDto filters = new FiltersDto();
     filters
-        .getThemes()
+        .getSector()
         .addAll(Arrays
             .asList("Digitalisation", "Education", "Poverty", "Nutrition", "Agriculture", "Health",
                 "WASH", "Electricity", "Private Sector", "Infrastructure", "Migration",

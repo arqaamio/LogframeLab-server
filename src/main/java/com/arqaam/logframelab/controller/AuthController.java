@@ -64,8 +64,7 @@ public class AuthController {
 
     String token = authService.generateToken(user);
     return ResponseEntity.ok(JwtAuthenticationTokenResponse.builder().token(token)
-        .tokenType(authService.getTokenType()).expiryDuration(
-            authService.getTokenExpiryInMillis())
+        .tokenType(authService.getTokenType())
         .groups(user.getGroupMembership().stream().map(m -> m.getGroup().getName()).collect(
             Collectors.toSet())).build());
   }

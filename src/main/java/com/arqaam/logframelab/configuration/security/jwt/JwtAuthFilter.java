@@ -1,5 +1,6 @@
 package com.arqaam.logframelab.configuration.security.jwt;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -8,7 +9,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
@@ -40,9 +40,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
       FilterChain filterChain)
       throws ServletException, IOException {
     try {
-      String jwt = getJwtFromRequest(httpServletRequest);
+      String jwt = JwtUtil.getJwtFromRequest(httpServletRequest, jwtTokenProvider);
 
-      if (!StringUtils.isEmpty(jwt) && jwtTokenProvider.isTokenValid(jwt)) {
+      if (!StringUtils.isBlank(jwt) && jwtTokenProvider.isTokenValid(jwt)) {
         String username = jwtTokenProvider.getUsernameFromJws(jwt);
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
@@ -57,14 +57,5 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     filterChain.doFilter(httpServletRequest, httpServletResponse);
-  }
-
-  private String getJwtFromRequest(HttpServletRequest request) {
-    String bearerToken = request.getHeader(jwtTokenProvider.getTokenHeader());
-    if (!StringUtils.isEmpty(bearerToken) && bearerToken.startsWith(jwtTokenProvider.getTokenHeaderPrefix())) {
-      return StringUtils.delete(bearerToken, jwtTokenProvider.getTokenHeaderPrefix());
-    }
-
-    return null;
   }
 }

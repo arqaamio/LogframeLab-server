@@ -2,6 +2,7 @@ package com.arqaam.logframelab.configuration.security;
 
 import com.arqaam.logframelab.configuration.security.jwt.JwtAuthFilter;
 import com.arqaam.logframelab.configuration.security.jwt.JwtAuthenticationEntryPoint;
+import com.arqaam.logframelab.configuration.security.jwt.JwtRefreshFilter;
 import com.arqaam.logframelab.repository.NoOp;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -19,11 +20,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
@@ -35,14 +31,18 @@ public class WebSecurityConfiguration  extends WebSecurityConfigurerAdapter  {
 
   private final JwtAuthFilter jwtAuthFilter;
 
+  private final JwtRefreshFilter jwtRefreshFilter;
+
   private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
   public WebSecurityConfiguration(
       @Qualifier("arqaamUserDetailsService") UserDetailsService userDetailsService,
       JwtAuthFilter jwtAuthFilter,
+      JwtRefreshFilter jwtRefreshFilter,
       JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
     this.userDetailsService = userDetailsService;
     this.jwtAuthFilter = jwtAuthFilter;
+    this.jwtRefreshFilter = jwtRefreshFilter;
     this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
   }
 
@@ -92,7 +92,8 @@ public class WebSecurityConfiguration  extends WebSecurityConfigurerAdapter  {
         .anyRequest()
         .authenticated();
 
-    http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+    http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(jwtRefreshFilter, UsernamePasswordAuthenticationFilter.class);
   }
 
 }

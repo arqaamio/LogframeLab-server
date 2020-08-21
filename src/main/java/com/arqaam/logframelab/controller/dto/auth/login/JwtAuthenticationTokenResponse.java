@@ -15,6 +15,5 @@ import lombok.Setter;
 public class JwtAuthenticationTokenResponse {
   private String token;
   private String tokenType;
-  private Long expiryDuration;
   private Collection<String> groups;
 }

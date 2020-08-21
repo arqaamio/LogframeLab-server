@@ -2,15 +2,23 @@ package com.arqaam.logframelab.configuration.security.jwt;
 
 import com.arqaam.logframelab.exception.InvalidJwsTokenException;
 import com.arqaam.logframelab.model.persistence.auth.User;
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
+import javax.crypto.SecretKey;
+
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
-import javax.crypto.SecretKey;
-import java.time.Instant;
-import java.util.Date;
 
 @Component
 public class JwtTokenProvider {
@@ -18,8 +26,8 @@ public class JwtTokenProvider {
   public static final String TOKEN_TYPE = "JWS";
   private static SecretKey secretKey;
 
-  @Value("${jwt.expiration}")
-  private Long jwtExpirationInMillis;
+  @Value("${jwt.expiration.in.hours}")
+  private int jwtExpirationInHours;
 
   @Value("${jwt.header.prefix}")
   private String tokenType;
@@ -38,7 +46,7 @@ public class JwtTokenProvider {
     return Jwts.builder()
         .setSubject(user.getUsername())
         .setIssuedAt(Date.from(Instant.now()))
-        .setExpiration(Date.from(Instant.now().plusMillis(jwtExpirationInMillis)))
+        .setExpiration(Date.from(Instant.now().plus(jwtExpirationInHours, ChronoUnit.HOURS)))
         .signWith(secretKey, SignatureAlgorithm.HS512)
         .compact();
   }
@@ -67,8 +75,17 @@ public class JwtTokenProvider {
     }
   }
 
-  public Long getJwtExpirationInMillis() {
-    return jwtExpirationInMillis;
+  public Date jwsExpiry(String jws) {
+    if (StringUtils.isBlank(jws)) {
+      return Date.from(Instant.now());
+    }
+
+    return Jwts.parserBuilder().setSigningKey(secretKey).build()
+        .parseClaimsJws(jws).getBody().getExpiration();
+  }
+
+  public Long getJwtExpirationInSeconds() {
+    return jwtExpirationInHours * 60 * 60L;
   }
 
   public String getTokenType() {

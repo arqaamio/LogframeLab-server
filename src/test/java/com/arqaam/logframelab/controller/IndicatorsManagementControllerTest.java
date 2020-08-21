@@ -211,8 +211,6 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
         .exchange(APPROVALS_URI, HttpMethod.POST,
             new HttpEntity<>(approvalRequest, headersWithAuth()), Void.class);
 
-    ;
-
     assertAll(
         () -> assertThat(tempsForApproval.getStatusCode(), is(HttpStatus.OK)),
         () -> assertThat(approvalResponse.getStatusCode(), is(HttpStatus.OK)),

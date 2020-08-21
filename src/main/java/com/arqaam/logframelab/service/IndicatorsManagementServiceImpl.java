@@ -11,6 +11,10 @@ import com.arqaam.logframelab.repository.LevelRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import com.arqaam.logframelab.util.Logging;
+import org.springframework.data.domain.Example;
+import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort.Direction;
@@ -20,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
-public class IndicatorsManagementServiceImpl implements IndicatorsManagementService {
+public class IndicatorsManagementServiceImpl implements IndicatorsManagementService, Logging {
 
   private final IndicatorRepository indicatorRepository;
   private final LevelRepository levelRepository;
@@ -124,9 +128,30 @@ public class IndicatorsManagementServiceImpl implements IndicatorsManagementServ
     return indicatorRepository.findById(id);
   }
 
+  /**
+   * Saves all the indicators that don't already exist in the database
+   * @param indicators The indicators to be filtered and saved
+   */
   private void saveForApproval(List<Indicator> indicators) {
-    indicators.forEach(indicator -> indicator.setTemp(true));
+    logger().info("Starting to check for duplicates");
+    ExampleMatcher matcher = ExampleMatcher.matchingAll()
+            .withIgnorePaths("id")
+            .withIgnorePaths("temp")
+            .withIgnoreCase();
+    // Filter to remove duplicated indicators
+    indicators = indicators.stream().filter(x -> !indicatorRepository.exists(Example.of(x, matcher)))
+            .peek(indicator -> indicator.setTemp(true)).collect(Collectors.toList());
 
+    // Get the ids of the indicators to be updated (they are meant to be updated if an indicator with the same name already exists)
+    logger().info("Adding the ids to the indicators that are meant to be update");
+    List<Indicator> toBeUpdated = indicatorRepository.findAllByNameIn(indicators.stream().map(Indicator::getName).collect(Collectors.toSet()));
+    if(!toBeUpdated.isEmpty()) {
+      indicators = indicators.stream().peek(indicator -> indicator.setId(toBeUpdated.stream()
+              .filter(x -> x.getName().equals(indicator.getName())).findFirst().orElse(indicator).getId()))
+              .collect(Collectors.toList());
+    }
+    logger().info("Saving the indicators to the database.");
+    // saveAll saves and updates depending if the objects have id or not
     indicatorRepository.saveAll(indicators);
   }
 }

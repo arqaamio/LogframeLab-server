@@ -3,11 +3,18 @@ package com.arqaam.logframelab.controller;
 import com.arqaam.logframelab.controller.dto.IndicatorRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto;
+import com.arqaam.logframelab.exception.FailedToOpenWorksheetException;
+import com.arqaam.logframelab.model.Error;
+import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.service.IndicatorsManagementService;
 import io.swagger.annotations.Api;
 import java.util.Optional;
 import javax.validation.Valid;
+
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -74,12 +81,21 @@ public class IndicatorsManagementController {
 
   @PreAuthorize("isAuthenticated() || isAnonymous()")
   @PostMapping(value = "upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+  @ApiOperation(value = "${IndicatorManagementController.uploadIndicatorFile.value}", nickname = "uploadIndicatorFile")
+  @ApiResponses({
+          @ApiResponse(code = 200, message = "Uploads temporary indicators successfully"),
+          @ApiResponse(code = 500, message = "Failed to open worksheet", response = Error.class),
+  })
   public ResponseEntity<?> uploadIndicatorFile(@RequestParam("file") MultipartFile file) {
     indicatorsManagementService.processFileWithTempIndicators(file);
     return ResponseEntity.ok().build();
   }
 
   @GetMapping(value = "approvals", produces = MediaType.APPLICATION_JSON_VALUE)
+  @ApiOperation(value = "${IndicatorManagementController.getTempIndicatorsForApproval.value}", nickname = "getTempIndicatorsForApproval")
+  @ApiResponses({
+          @ApiResponse(code = 200, message = "Indicators waiting for approval were retrieved successfully", response = Indicator.class, responseContainer = "Page"),
+  })
   public ResponseEntity<Page<Indicator>> getTempIndicatorsForApproval(
       IndicatorsRequestDto indicatorsRequest) {
     return ResponseEntity
@@ -87,6 +103,10 @@ public class IndicatorsManagementController {
   }
 
   @PostMapping(value = "approvals", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+  @ApiOperation(value = "${IndicatorManagementController.approvalStatusUpdate.value}", nickname = "approvalStatusUpdate")
+  @ApiResponses({
+          @ApiResponse(code = 200, message = "The indicators were approved", response = IndicatorResponse.class, responseContainer = "List"),
+  })
   public ResponseEntity<?> approvalStatusUpdate(@RequestBody IndicatorApprovalRequestDto approvalRequest) {
     indicatorsManagementService.processTempIndicatorsApproval(approvalRequest);
     return ResponseEntity.ok().build();

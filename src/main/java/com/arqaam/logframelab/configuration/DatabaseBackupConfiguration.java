@@ -45,7 +45,7 @@ public class DatabaseBackupConfiguration implements Logging {
 
         setupBackupLocation();
 
-        String backupFilename = databaseBackupLocation + databaseBackupFileName + "_" + backupTime + ".sql";
+        String backupFilename = System.getProperty("user.home") + File.separator + databaseBackupLocation + File.separator + databaseBackupFileName + "_" + backupTime + ".sql";
 
         String commandToExecute = String.format(command, databaseUser, databasePassword, databaseName, backupFilename);
 
@@ -75,7 +75,8 @@ public class DatabaseBackupConfiguration implements Logging {
 
     @Scheduled(cron = "${backup.cleanup}")
     public void cleanupStaleBackups() {
-        File location = new File(databaseBackupLocation);
+        File location = new File( System.getProperty("user.home") + File.separator + databaseBackupLocation);
+        logger().info("Backup clean up at {}", new Date());
 
         if (Objects.requireNonNull(location.listFiles()).length > maxToKeep) {
             List<File> sortedByLastModified = Arrays.stream(location.listFiles())
@@ -87,7 +88,7 @@ public class DatabaseBackupConfiguration implements Logging {
     }
 
     private void setupBackupLocation() {
-        File backupLocation = new File(databaseBackupLocation);
+        File backupLocation = new File( System.getProperty("user.home") + File.separator + databaseBackupLocation);
         if (!backupLocation.exists()) {
             backupLocation.mkdirs();
         }

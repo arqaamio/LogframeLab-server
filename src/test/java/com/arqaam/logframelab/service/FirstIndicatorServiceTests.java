@@ -5,14 +5,16 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.arqaam.logframelab.model.IndicatorResponse;
+import com.arqaam.logframelab.model.persistence.CRSCode;
 import com.arqaam.logframelab.model.persistence.Indicator;
 
 import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.arqaam.logframelab.model.persistence.SDGCode;
+import com.arqaam.logframelab.model.persistence.Source;
 import com.arqaam.logframelab.model.persistence.Level;
-import org.apache.http.entity.ContentType;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -190,13 +192,13 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
       final Indicator indicator = expectedResult.get(i);
       response = indicatorResponse.stream().filter(x -> x.getId() == indicator.getId()).findFirst().get();
       assertEquals(indicator.getLevel().getName(), row.getCell(0).getStringCellValue());
-      assertEquals(indicator.getThemes(), row.getCell(1).getStringCellValue());
+      assertEquals(indicator.getSector(), row.getCell(1).getStringCellValue());
       assertEquals(indicator.getName(), row.getCell(2).getStringCellValue());
       assertEquals(Optional.ofNullable(indicator.getDescription()).orElse(""), row.getCell(3).getStringCellValue());
-      assertEquals(Optional.ofNullable(indicator.getSource()).orElse(""), row.getCell(4).getStringCellValue());
+      assertEquals(Optional.of(indicator.getSource().stream().map(Source::getName).collect(Collectors.joining(","))).orElse(null), row.getCell(4).getStringCellValue());
       assertEquals(indicator.getDisaggregation() ? "Yes" : "No", row.getCell(5).getStringCellValue());
-      assertEquals(Optional.ofNullable(indicator.getCrsCode()).orElse(""), row.getCell(6).getStringCellValue());
-      assertEquals(Optional.ofNullable(indicator.getSdgCode()).orElse(""), row.getCell(7).getStringCellValue());
+      assertEquals(Optional.of(indicator.getCrsCode().stream().map(x->String.valueOf(x.getId())).collect(Collectors.joining(","))).orElse(null), row.getCell(6).getStringCellValue());
+      assertEquals(Optional.of(indicator.getSdgCode().stream().map(x->String.valueOf(x.getId())).collect(Collectors.joining(","))).orElse(null), row.getCell(7).getStringCellValue());
       assertEquals(Optional.ofNullable(indicator.getSourceVerification()).orElse(""), row.getCell(8).getStringCellValue());
       assertEquals(Optional.ofNullable(indicator.getDataSource()).orElse(""), row.getCell(9).getStringCellValue());
       assertEquals(Optional.ofNullable(response.getValue()).orElse(""), row.getCell(10).getStringCellValue());
@@ -276,43 +278,45 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         .description("Digitalisation").level(mockLevels[0]).keywords("policy")
         .keywordsList(keywordsPolicyList)
         .disaggregation(false)
-        .source(mockSources.get(0)).themes(mockThemes.get(0)).sdgCode(mockSdgCodes.get(0))
+        .source(Collections.singleton(mockSources.get(0))).sector(mockSectors.get(0)).sdgCode(Collections.singleton(mockSdgCodes.get(0)))
         .dataSource("https://data.worldbank.org/indicator/NY.ADJ.DKAP.GN.ZS?view=chart")
         .date("2000")
         .value("100")
-        .crsCode(mockCrsCodes.get(0)).build());
+        .crsCode(Collections.singleton(mockCrsCodes.get(0))).build());
     list.add(Indicator.builder().id(73L).name(
         "Number of government policies developed or revised with civil society organisation participation through EU support")
         .description("Public Sector").level(mockLevels[1]).keywords("government policies, policy")
         .keywordsList(keywordsGovPolicyList)
         .disaggregation(true)
-        .source(mockSources.get(1)).themes(mockThemes.get(1)).sdgCode(mockSdgCodes.get(1))
+        .source(Collections.singleton(mockSources.get(1))).sector(mockSectors.get(1)).sdgCode(Collections.singleton(mockSdgCodes.get(1)))
         .dataSource("https://data.worldbank.org/indicator/SE.PRM.TENR.FE?view=chart")
         .date("2001")
         .value("100")
+        .crsCode(Collections.singleton(mockCrsCodes.get(1)))
         .sourceVerification("Capacity4Dev")
-        .crsCode(mockCrsCodes.get(1)).build());
+        .build());
+
     list.add(Indicator.builder().id(5L).name("Revenue, excluding grants (% of GDP)")
         .description("Public Sector").level(mockLevels[3]).keywords("government")
         .keywordsList(keywordsGovList)
         .disaggregation(true)
-        .source(mockSources.get(2)).themes(mockThemes.get(2)).sdgCode(mockSdgCodes.get(2))
+        .source(Collections.singleton(mockSources.get(2))).sector(mockSectors.get(2)).sdgCode(Collections.singleton(mockSdgCodes.get(2)))
         .dataSource("https://data.worldbank.org/indicator/EG.ELC.ACCS.UR.ZS?view=chart")
         .date("1980")
         .value("50")
-        .sourceVerification("SDG Country Data")
-        .crsCode(mockCrsCodes.get(2)).build());
+        .crsCode(Collections.singleton(mockCrsCodes.get(2))).build());
     list.add(
         Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
             .description("Food & Agriculture").level(mockLevels[1]).keywords(keyword)
             .keywordsList(keywordsFoodList)
             .disaggregation(false)
-            .source(mockSources.get(3)).themes(mockThemes.get(3)).sdgCode(mockSdgCodes.get(3))
+            .source(Collections.singleton(mockSources.get(3))).sector(mockSectors.get(3)).sdgCode(Collections.singleton(mockSdgCodes.get(3)))
             .dataSource("https://data.worldbank.org/indicator/EG.CFT.ACCS.ZS?view=chart")
             .date("2001")
             .value("100")
+            .crsCode(Collections.singleton(mockCrsCodes.get(3)))
             .sourceVerification("World Bank")
-            .crsCode(mockCrsCodes.get(3)).build());
+            .build());
 
     return list;
   }
@@ -332,7 +336,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
                 .sdgCode(indicator.getSdgCode())
                 .crsCode(indicator.getCrsCode())
                 .source(indicator.getSource())
-                .themes(indicator.getThemes())
+                .sector(indicator.getSector())
                 .disaggregation(indicator.getDisaggregation())
                 .date(String.valueOf(2000+i))
                 .value(String.valueOf(50+i))
@@ -352,14 +356,15 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
   void getIndicators() {
     List<Indicator> expectedResult = mockIndicatorList().stream()
         .filter(
-            x -> mockThemes.contains(x.getThemes()) && mockLevelsId.contains(x.getLevel().getId())
-                && mockSources.contains(x.getSource())
-                && mockSdgCodes.contains(x.getSdgCode()) && mockCrsCodes.contains(x.getCrsCode()))
+            x -> mockSectors.contains(x.getSector()) && mockLevelsId.contains(x.getLevel().getId())
+                && mockSources.containsAll(x.getSource())
+                && mockSdgCodes.containsAll(x.getSdgCode()) && mockCrsCodes.containsAll(x.getCrsCode()))
         .collect(Collectors.toList());
 
-    List<Indicator> result = indicatorService.getIndicators(Optional.of(mockThemes),
-        Optional.of(mockSources), Optional.of(mockLevelsId), Optional.of(mockSdgCodes),
-        Optional.of(mockCrsCodes));
+    List<Indicator> result = indicatorService.getIndicators(Optional.of(mockSectors),
+        Optional.of(mockSources.stream().map(Source::getId).collect(Collectors.toList())),
+        Optional.of(mockLevelsId), Optional.of(mockSdgCodes.stream().map(SDGCode::getId).collect(Collectors.toList())),
+        Optional.of(mockCrsCodes.stream().map(CRSCode::getId).collect(Collectors.toList())));
     verify(indicatorRepository).findAll(any(Specification.class));
     verify(indicatorRepository, times(0)).findAll();
     assertEquals(expectedResult, result);
@@ -369,18 +374,18 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
   void getIndicators_someFilters() {
     when(indicatorRepository.findAll(any(Specification.class))).
         thenReturn(mockIndicatorList().stream()
-            .filter(x -> mockThemes.contains(x.getThemes()) && mockLevelsId
-                .contains(x.getLevel().getId()) && mockSources.contains(x.getSource())
+            .filter(x -> mockSectors.contains(x.getSector()) && mockLevelsId
+                .contains(x.getLevel().getId()) && mockSources.containsAll(x.getSource())
             ).collect(Collectors.toList()));
 
     List<Indicator> expectedResult = mockIndicatorList().stream()
         .filter(
-            x -> mockThemes.contains(x.getThemes()) && mockLevelsId.contains(x.getLevel().getId())
-                && mockSources.contains(x.getSource())
+            x -> mockSectors.contains(x.getSector()) && mockLevelsId.contains(x.getLevel().getId())
+                && mockSources.containsAll(x.getSource())
         ).collect(Collectors.toList());
 
-    List<Indicator> result = indicatorService.getIndicators(Optional.of(mockThemes),
-        Optional.of(mockSources), Optional.of(mockLevelsId), Optional.empty(), Optional.empty());
+    List<Indicator> result = indicatorService.getIndicators(Optional.of(mockSectors),
+        Optional.of(mockSources.stream().map(Source::getId).collect(Collectors.toList())), Optional.of(mockLevelsId), Optional.empty(), Optional.empty());
     verify(indicatorRepository).findAll(any(Specification.class));
     verify(indicatorRepository, times(0)).findAll();
     assertEquals(expectedResult, result);

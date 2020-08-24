@@ -21,7 +21,7 @@ import org.springframework.http.ResponseEntity;
 
 public class IndicatorControllerIntegrationTest extends BaseControllerTest {
 
-  private static final int DATABASE_THEMES_SIZE = 42;
+  private static final int DATABASE_SECTOR_SIZE = 42;
   private static final int DATABASE_CRS_CODE_SIZE = 76;
   private static final int DATABASE_SOURCE_SIZE = 26;
   private static final int DATABASE_SDG_CODE_SIZE = 168;
@@ -54,7 +54,7 @@ public class IndicatorControllerIntegrationTest extends BaseControllerTest {
 
     assertAll(
         () -> assertThat(filters.getStatusCode(), is(HttpStatus.OK)),
-        () -> assertThat(filtersDto.getThemes().size(), is(DATABASE_THEMES_SIZE)),
+        () -> assertThat(filtersDto.getSectors().size(), is(DATABASE_SECTORS_SIZE)),
         () -> assertThat(filtersDto.getCrsCode().size(), is(DATABASE_CRS_CODE_SIZE)),
         () -> assertThat(filtersDto.getSource().size(), is(DATABASE_SOURCE_SIZE)),
         () -> assertThat(filtersDto.getSdgCode().size(), is(DATABASE_SDG_CODE_SIZE)),

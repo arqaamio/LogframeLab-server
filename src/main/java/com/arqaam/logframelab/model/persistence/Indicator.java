@@ -9,6 +9,7 @@ import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 @Entity(name = "Indicator")
 @Table(name = "IND_INDICATOR")
@@ -35,20 +36,29 @@ public class Indicator {
     @JoinColumn(name="Level")
     private Level level;
 
-    @Column(name = "THEMES")
-    private String themes;
+    @Column(name = "SECTOR")
+    private String sector;
 
-    @Column(name = "SOURCE")
-    private String source;
+    @ManyToMany
+    @JoinTable(name = "INDICATOR_SOURCE")
+    private Set<Source> source;
 
     @Column(name = "DISAGGREGATION")
     private Boolean disaggregation;
 
-    @Column(name = "CRS_CODE")
-    private String crsCode;
+    @ManyToMany
+    @JoinTable(
+            name = "INDICATOR_CRS_CODE",
+            inverseJoinColumns = @JoinColumn(name = "CRS_CODE_ID")
+    )
+    private Set<CRSCode> crsCode;
 
-    @Column(name = "SDG_CODE")
-    private String sdgCode;
+    @ManyToMany
+    @JoinTable(
+        name = "INDICATOR_SDG_CODE",
+        inverseJoinColumns = @JoinColumn(name = "SDG_CODE_ID")
+    )
+    private Set<SDGCode> sdgCode;
 
     @Column(name = "SOURCE_VERIFICATION")
     private String sourceVerification;

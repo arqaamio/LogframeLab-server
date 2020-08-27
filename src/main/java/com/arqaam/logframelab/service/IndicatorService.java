@@ -525,6 +525,7 @@ public class IndicatorService implements Logging {
    Specification<Indicator> getIndicatorSpecification(Optional<List<String>> sector,
       Optional<List<Long>> sources, Optional<List<Long>> levels, Optional<List<Long>> sdgCodes,
       Optional<List<Long>> crsCodes, boolean temp) {
+        logger().info("---------------: sector", sector);
     return (root, criteriaQuery, criteriaBuilder) -> {
         List<Predicate> predicates = new ArrayList<>();
 

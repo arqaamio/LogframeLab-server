@@ -86,6 +86,8 @@ public class WebSecurityConfiguration  extends WebSecurityConfigurerAdapter  {
         .sessionManagement()
         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         .and()
+        .headers()
+        .and()
         .authorizeRequests()
             .antMatchers("/indicator/**", "/worldbank/**", "/auth/login", "/indicators/**", "/stomp")
         .permitAll()

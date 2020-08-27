@@ -1,18 +1,19 @@
 package com.arqaam.logframelab.configuration;
 
 import com.arqaam.logframelab.model.properties.SwaggerProperties;
-import org.springframework.beans.factory.annotation.Autowired;
+import io.swagger.models.auth.In;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.client.RestTemplate;
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
-import springfox.documentation.service.ApiInfo;
-import springfox.documentation.service.Contact;
+import springfox.documentation.service.*;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 @Configuration
 public class GlobalConfiguration {
@@ -32,7 +33,8 @@ public class GlobalConfiguration {
                 .select()
                 .apis(RequestHandlerSelectors.basePackage(swaggerProperties.getBasePackage()))
                 .paths(PathSelectors.any())
-                .build();
+                .build()
+                .securitySchemes(Collections.singletonList(new ApiKey("jwtToken", HttpHeaders.AUTHORIZATION, In.HEADER.name())));
     }
     @Bean
     public RestTemplate restTemplate() {

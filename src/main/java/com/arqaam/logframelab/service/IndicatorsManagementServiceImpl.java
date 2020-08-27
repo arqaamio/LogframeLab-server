@@ -5,6 +5,7 @@ import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto.FilterRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto.Approval;
+import com.arqaam.logframelab.exception.IndicatorNotFoundException;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
@@ -13,6 +14,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.arqaam.logframelab.util.Logging;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.data.domain.Page;
@@ -76,7 +78,13 @@ public class IndicatorsManagementServiceImpl implements IndicatorsManagementServ
 
   @Override
   public void deleteIndicator(Long id) {
-    indicatorRepository.deleteById(id);
+    logger().info("Deleting indicator with id: {}", id);
+    try {
+      indicatorRepository.deleteById(id);
+    } catch (EmptyResultDataAccessException e) {
+      logger().error("Failed to delete indicator, because it was not found. id: {}", id);
+      throw new IndicatorNotFoundException();
+    }
   }
 
   @Override

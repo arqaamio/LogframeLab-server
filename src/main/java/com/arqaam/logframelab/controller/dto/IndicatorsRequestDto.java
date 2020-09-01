@@ -1,15 +1,12 @@
 package com.arqaam.logframelab.controller.dto;
 
-import java.util.Collection;
+import lombok.Data;
+import lombok.Getter;
+
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
-
-import com.arqaam.logframelab.model.persistence.CRSCode;
-import com.arqaam.logframelab.model.persistence.SDGCode;
-import com.arqaam.logframelab.model.persistence.Source;
-import lombok.Data;
-import lombok.Getter;
+import java.util.Collection;
 
 @Data
 public class IndicatorsRequestDto {
@@ -34,6 +31,8 @@ public class IndicatorsRequestDto {
     @Getter
     private Collection<String> sectors;
 
+    private String indicatorName;
+
     @Getter
     private Collection<Long> sourceIds;
 
@@ -47,6 +46,7 @@ public class IndicatorsRequestDto {
     public Collection<Long> getCrsCodeIds() {
       return crs_code;
     }
+
   }
 }
 

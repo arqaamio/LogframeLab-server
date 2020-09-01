@@ -1,18 +1,14 @@
 package com.arqaam.logframelab.service;
 
+import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto;
+import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto.Approval;
 import com.arqaam.logframelab.controller.dto.IndicatorRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto.FilterRequestDto;
-import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto;
-import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto.Approval;
 import com.arqaam.logframelab.exception.IndicatorNotFoundException;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 import com.arqaam.logframelab.util.Logging;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Example;
@@ -24,6 +20,10 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class IndicatorsManagementServiceImpl implements IndicatorsManagementService, Logging {

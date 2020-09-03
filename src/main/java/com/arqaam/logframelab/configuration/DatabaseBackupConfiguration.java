@@ -36,7 +36,7 @@ public class DatabaseBackupConfiguration implements Logging {
     @Value("${spring.datasource.password}")
     private String databasePassword;
 
-    @Value("${backup.maximum-file-to-keep}")
+    @Value("${backup.maximum-files-to-keep}")
     private int maxToKeep;
 
     @Scheduled(cron = "${backup.schedule}")

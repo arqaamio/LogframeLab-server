@@ -11,6 +11,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/arqaam?autoReconnect=true&useSSL=false
     ports:
       - 8080:8080
+      - 5005:5005
     depends_on:
       - db
       - phpmyadmin

@@ -9,6 +9,8 @@ services:
     build: ./
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/arqaam?autoReconnect=true&useSSL=false
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
     ports:
       - 8080:8080
       - 5005:5005

@@ -4,8 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 
 import com.arqaam.logframelab.model.IndicatorResponse;
-import com.arqaam.logframelab.model.persistence.Indicator;
-import com.arqaam.logframelab.model.persistence.Level;
+import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
 import java.util.ArrayList;
@@ -28,18 +27,25 @@ public abstract class BaseIndicatorServiceTest  {
       new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange", 4),
       new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple", 1)
   };
-  final static List<String> mockThemes = Arrays.asList("Digitalisation", "Education", "Poverty",
+  final static List<String> mockSectors = Arrays.asList("Digitalisation", "Education", "Poverty",
       "Nutrition", "Agriculture", "Health", "WASH", "Electricity", "Private Sector",
       "Infrastructure", "Migration", "Climate Change", "Environment", "Public Sector",
       "Human Rights", "Conflict", "Food Security", "Equality", "Water and Sanitation");
-  final static List<String> mockSources = Arrays
-      .asList("Capacity4Dev", "EU", "WFP", "ECHO", "ECHO,WFP",
-          "ECHO,WHO", "FAO", "FAO,WHO", "WHO", "FANTA", "IPA", "WHO,FAO", "ACF",
-          "Nutrition Cluster", "Freendom House", "CyberGreen", "ITU",
-          "UN Sustainable Development Goals", "World Bank", "UNDP", "ILO", "IMF");
-  final static List<String> mockSdgCodes = Arrays.asList("8.2", "7.1", "4.1", "1.a", "1.b");
-  final static List<String> mockCrsCodes = Arrays
-      .asList("99810.0", "15160.0", "24010.0", "15190.0", "43010.0", "24050.0", "43030.0");
+  final static List<Source> mockSources = Arrays.asList(
+          new Source(1L, "Capacity4Dev"),new Source(1L, "EU"),new Source(2L, "WFP"),new Source(3L, "ECHO"),
+          new Source(4L,"FAO"), new Source(5L,"WHO"), new Source(6L,"FANTA"), new Source(7L,"IPA"), new Source(8L, "ACF"),
+          new Source(9L,"Nutrition Cluster"), new Source(10L,"Freedom House"), new Source(11L,"CyberGreen"), new Source(12L,"ITU"),
+          new Source(13L,"UN Sustainable Development Goals"), new Source(14L,"World Bank"), new Source(15L,"UNDP"), new Source(16L,"ILO"),
+          new Source(7L,"IMF"));
+  final static List<SDGCode> mockSdgCodes =  Arrays.asList(
+          new SDGCode(1L,"End poverty in all its forms everywhere"),
+          new SDGCode(2L,"End hunger, achieve food security and improved nutrition and promote sustainable agriculture"),
+          new SDGCode(3L,"Ensure healthy lives and promote well-being for all at all ages"),
+          new SDGCode(4L,"Ensure inclusive and equitable quality education and promote lifelong learning opportunities for all"),
+          new SDGCode(5L,"Achieve gender equality and empower all women and girls"));
+  final static List<CRSCode> mockCrsCodes = Arrays
+          .asList(new CRSCode(998L,"Unallocated / Unspecified"),new CRSCode(151L, "Government & Civil Society-general"),
+                  new CRSCode(240L, "Banking & Financial Services"), new CRSCode(112L, "Basic Education"));
   final static List<Long> mockLevelsId = Arrays.stream(mockLevels).map(Level::getId)
       .collect(Collectors.toList());
   final static List<String> mockSourceVerification = Arrays
@@ -69,9 +75,9 @@ public abstract class BaseIndicatorServiceTest  {
     lenient().when(indicatorRepository.findAllById(any())).thenReturn(mockIndicatorList());
     lenient().when(indicatorRepository.findAll(any(Specification.class))).
         thenReturn(mockIndicatorList().stream()
-            .filter(x -> mockThemes.contains(x.getThemes()) && mockLevelsId
-                .contains(x.getLevel().getId()) && mockSources.contains(x.getSource())
-                && mockSdgCodes.contains(x.getSdgCode()) && mockCrsCodes.contains(x.getCrsCode()))
+            .filter(x -> mockSectors.contains(x.getSector()) && mockLevelsId
+                .contains(x.getLevel().getId()) && mockSources.containsAll(x.getSource())
+                && mockSdgCodes.containsAll(x.getSdgCode()) && mockCrsCodes.containsAll(x.getCrsCode()))
             .collect(Collectors.toList()));
   }
 

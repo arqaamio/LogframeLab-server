@@ -2,6 +2,7 @@ package com.arqaam.logframelab.repository;
 
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.projection.IndicatorFilters;
+import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.Collection;
@@ -23,11 +24,11 @@ public interface IndicatorRepository extends JpaRepository<Indicator, Long>, Jpa
 
   List<Indicator> findIndicatorByIdIn(Collection<Long> id);
 
-  @Query(value = "select * from IND_INDICATOR where THEMES in (:themes)", nativeQuery = true)
-  List<Indicator> getIndicatorsByThemes(@Param("themes") List<String> themesList);
+  @Query(value = "select * from IND_INDICATOR where SECTOR in (:sector)", nativeQuery = true)
+  List<Indicator> getIndicatorsBySectors(@Param("sector") List<String> sectorsList);
 
-  @Query(value = "select distinct(THEMES) from IND_INDICATOR where THEMES <> ''", nativeQuery = true)
-  List<String> getThemes();
+  @Query(value = "select distinct(SECTOR) from IND_INDICATOR where SECTOR <> ''", nativeQuery = true)
+  List<String> getSectors();
 
   List<IndicatorFilters> getAllBy();
 
@@ -56,4 +57,14 @@ public interface IndicatorRepository extends JpaRepository<Indicator, Long>, Jpa
   @Modifying
   @Query(value = "UPDATE Indicator ind set ind.temp = false WHERE ind.id in :ids")
   void updateToApproved(@Param("ids") Collection<Long> ids);
+
+  @Override
+  <S extends Indicator> boolean exists(Example<S> example);
+
+  /**
+   * Returns all indicators that have a name in the iterable
+   * @param names Names to be searched
+   * @return Indicators that have the names searched
+   */
+  List<Indicator> findAllByNameIn(Iterable<String> names);
 }

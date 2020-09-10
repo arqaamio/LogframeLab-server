@@ -573,6 +573,59 @@ public class IndicatorService implements Logging {
     }
 
     /**
+     * Get indicator with name. If none are found IndicatorNotFoundException
+     * @param indicatorName Names of the indicators
+     * @return List of Indicators
+     */
+    public List<Indicator> getIndicatorWithName(List<String> indicatorName){
+        logger().info("Searching for indicator with names: {}", indicatorName);
+        List<Indicator> indicators = indicatorRepository.findAllByNameIn(indicatorName);
+        if(indicators.isEmpty()) {
+            logger().info("Failed to find indicators with names");
+            throw new IndicatorNotFoundException();
+        }
+        return indicators;
+    }
+
+    /**
+     * Get indicator with ids. If none are found throws IndicatorNotFoundException
+     * @param ids Ids of the indicators
+     * @return List of Indicators
+     */
+    public List<Indicator> getIndicatorWithId(List<Long> ids){
+        logger().info("Searching for indicator with ids: {}", ids);
+        List<Indicator> indicators = indicatorRepository.findAllByIdIn(ids);
+        if(indicators.isEmpty()) {
+            logger().info("Failed to find indicators with ids: {}", ids);
+            throw new IndicatorNotFoundException();
+        }
+        return indicators;
+    }
+
+    /**
+     * Get indicators with similarity unchecked or checked
+     * @param checked Similarity status
+     * @return List of Indicators
+     */
+    public List<Indicator> getIndicatorsWithSimilarity(Boolean checked){
+        logger().info("Searching for indicators with similarity: {}", checked);
+        return indicatorRepository.findFirst50BySimilarityCheckEquals(checked);
+    }
+
+    /**
+     * Updating indicator's similarity check
+     * @param id Id of the indicator
+     * @param checked Whether to get it checked or unchecked
+     * @return Indicator that was updated
+     */
+    public Indicator updateSimilarityCheck(Long id, Boolean checked){
+        logger().info("Updating similarity check with check: {} and id: {}", checked, id);
+        Indicator ind = indicatorRepository.findById(id).orElseThrow(IndicatorNotFoundException::new);
+        ind.setSimilarityCheck(checked);
+        return indicatorRepository.save(ind);
+    }
+
+    /**
      * Converts Indicator to Indicator response
      * @param indicator Indicator to be converted
      * @return IndicatorResponse

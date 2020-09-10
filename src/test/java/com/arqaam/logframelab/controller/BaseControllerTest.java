@@ -36,8 +36,8 @@ public class BaseControllerTest {
     assertEquals(exception.getSimpleName(), response.getBody().getException());
   }
 
-  protected void generateAuthToken() {
-    bearerToken = token();
+  protected void generateAuthToken(String... credentials) {
+    bearerToken = token(credentials);
   }
 
   protected String token(String... credentials) {
@@ -53,7 +53,7 @@ public class BaseControllerTest {
     assert tokenResponse != null;
 
     HttpHeaders httpHeaders = new HttpHeaders();
-    httpHeaders.setBearerAuth(bearerToken);
+    httpHeaders.setBearerAuth(tokenResponse.getToken());
     defaultHttpEntity = new HttpEntity<>(httpHeaders);
     return tokenResponse.getToken();
   }

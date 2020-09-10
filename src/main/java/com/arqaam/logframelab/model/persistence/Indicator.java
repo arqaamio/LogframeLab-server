@@ -1,9 +1,6 @@
 package com.arqaam.logframelab.model.persistence;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 import java.util.ArrayList;
@@ -17,6 +14,7 @@ import java.util.Set;
 @Builder
 @Data
 @NoArgsConstructor
+@EqualsAndHashCode
 public class Indicator {
 
     @Id
@@ -68,6 +66,9 @@ public class Indicator {
 
     @Column(name = "TEMP")
     private boolean temp;
+
+    @Column(name = "SIMILARITY_CHECK")
+    private Boolean similarityCheck;
 
     @Transient
     private List<String> keywordsList;

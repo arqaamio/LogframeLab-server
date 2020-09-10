@@ -8,7 +8,9 @@ import com.arqaam.logframelab.exception.IndicatorNotFoundException;
 import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
+import com.arqaam.logframelab.service.IndicatorService;
 import com.arqaam.logframelab.service.IndicatorsManagementService;
+import com.arqaam.logframelab.util.Logging;
 import io.swagger.annotations.*;
 
 import java.util.Optional;
@@ -18,16 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @CrossOrigin(origins = "*")
@@ -35,12 +28,15 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("indicators")
 @Api(tags = "Indicators Management")
 @PreAuthorize("hasAuthority('CRUD_INDICATOR')")
-public class IndicatorsManagementController {
+public class IndicatorsManagementController implements Logging {
 
   private final IndicatorsManagementService indicatorsManagementService;
 
-  public IndicatorsManagementController(IndicatorsManagementService indicatorsManagementService) {
+  private final IndicatorService indicatorService;
+
+  public IndicatorsManagementController(IndicatorsManagementService indicatorsManagementService, IndicatorService indicatorService) {
     this.indicatorsManagementService = indicatorsManagementService;
+    this.indicatorService = indicatorService;
   }
 
   @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -142,6 +138,17 @@ public class IndicatorsManagementController {
   public ResponseEntity<?> approvalStatusUpdate(@RequestBody IndicatorApprovalRequestDto approvalRequest) {
     indicatorsManagementService.processTempIndicatorsApproval(approvalRequest);
     return ResponseEntity.ok().build();
+  }
+
+  @PutMapping(value = "similarity/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+  @ApiOperation(value = "${IndicatorManagementController.similarityCheckUpdate.value}", nickname = "similarityCheckUpdate", authorizations = { @Authorization(value="jwtToken") })
+  @ApiResponses({
+          @ApiResponse(code = 200, message = "The indicators were updated for similarity", response = IndicatorResponse.class),
+          @ApiResponse(code = 404, message = "The indicators with id was not found", response = Error.class),
+  })
+  public ResponseEntity<Indicator> similarityCheckUpdate(@PathVariable String id) {
+    logger().info("Starting to update the similarity check for the indicator with id: {}", id);
+    return ResponseEntity.ok(indicatorService.updateSimilarityCheck(Long.valueOf(id), true));
   }
 
 }

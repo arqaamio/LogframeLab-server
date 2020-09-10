@@ -7,7 +7,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.arqaam.logframelab.controller.dto.IndicatorRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto;
@@ -221,6 +221,30 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
                 .findAllById(approvals.stream().map(Approval::getId).collect(Collectors.toList())).stream().map(Indicator::isTemp).collect(
                 Collectors.toList()), everyItem(is(false)))
     );
+  }
+
+  @Test
+  void similarityCheckUpdate() {
+    Long INDICATOR_ID = 1L;
+    Indicator ind = getIndicator(INDICATOR_ID);
+    assertFalse(ind.getSimilarityCheck());
+
+    ResponseEntity<Indicator> response = testRestTemplate
+            .exchange("/indicators/similarity/"+INDICATOR_ID, HttpMethod.PUT,
+                    defaultHttpEntity, Indicator.class);
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+
+    ind = getIndicator(INDICATOR_ID);
+    assertTrue(ind.getSimilarityCheck());
+  }
+
+  private Indicator getIndicator(Long id) {
+    ResponseEntity<Indicator> response = testRestTemplate
+            .exchange("/indicators/"+id, HttpMethod.GET, defaultHttpEntity, Indicator.class);
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    return response.getBody();
   }
 
   private ResponseEntity<Void> uploadIndicatorsForApproval() {

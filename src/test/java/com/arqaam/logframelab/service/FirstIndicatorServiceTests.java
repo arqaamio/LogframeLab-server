@@ -4,6 +4,7 @@ import static java.util.Objects.isNull;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.arqaam.logframelab.exception.IndicatorNotFoundException;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.CRSCode;
 import com.arqaam.logframelab.model.persistence.Indicator;
@@ -400,6 +401,61 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     verify(indicatorRepository, times(0)).findAll(any(Specification.class));
     verify(indicatorRepository).findAll();
     assertEquals(expectedResult, result);
+  }
+
+  @Test
+  void getIndicatorWithName() {
+    List<Indicator> indicators = mockIndicatorList();
+    when(indicatorRepository.findAllByNameIn(any())).thenReturn(indicators);
+    List<Indicator> result = indicatorService.getIndicatorWithName(mockIndicatorList().stream().map(Indicator::getName).collect(Collectors.toList()));
+    assertEquals(indicators, result);
+  }
+
+  @Test
+  void getIndicatorWithName_noIndicatorsFound() {
+    when(indicatorRepository.findAllByNameIn(any())).thenReturn(Collections.emptyList());
+    assertThrows(IndicatorNotFoundException.class, () ->
+            indicatorService.getIndicatorWithName(mockIndicatorList().stream().map(Indicator::getName).collect(Collectors.toList())));
+  }
+
+
+  @Test
+  void getIndicatorWithId() {
+    List<Indicator> indicators = mockIndicatorList();
+    when(indicatorRepository.findAllByIdIn(any())).thenReturn(indicators);
+    List<Indicator> result = indicatorService.getIndicatorWithId(mockIndicatorList().stream().map(Indicator::getId).collect(Collectors.toList()));
+    assertEquals(indicators, result);
+  }
+
+  @Test
+  void getIndicatorWithId_noIndicatorsFound() {
+    when(indicatorRepository.findAllByIdIn(any())).thenReturn(Collections.emptyList());
+    assertThrows(IndicatorNotFoundException.class, () ->
+            indicatorService.getIndicatorWithId(mockIndicatorList().stream().map(Indicator::getId).collect(Collectors.toList())));
+  }
+
+  @Test
+  void getIndicatorsWithSimilarity() {
+    List<Indicator> indicators = mockIndicatorList();
+    when(indicatorRepository.findFirst50BySimilarityCheckEquals(any())).thenReturn(indicators);
+    List<Indicator> result = indicatorService.getIndicatorsWithSimilarity(false);
+    assertEquals(indicators, result);
+  }
+
+  @Test
+  void updateSimilarityCheck() {
+    Optional<Indicator> ind = mockIndicatorList().stream().filter(x->x.getId()==1L).findFirst();
+    when(indicatorRepository.findById(any())).thenReturn(ind);
+    when(indicatorRepository.save(any())).thenReturn(ind.get());
+    Indicator result = indicatorService.updateSimilarityCheck(43L, true);
+    assertEquals(ind.get(), result);
+  }
+
+  @Test
+  void updateSimilarityCheck_noIndicatorsFound() {
+    when(indicatorRepository.findById(any())).thenReturn(Optional.empty());
+    assertThrows(IndicatorNotFoundException.class, () ->
+            indicatorService.updateSimilarityCheck(0L, true));
   }
 
   Integer validateWordTemplateLevel(XWPFTable table, List<Indicator> indicators, List<IndicatorResponse> indicatorResponses, Integer rowIndex){

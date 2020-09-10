@@ -15,15 +15,4 @@ public class MLSimilarIndicatorResponse {
     private String indicator;
     @JsonProperty("semantic-similarity")
     private Double similarity;
-
-//    private List<MLSimilarIndicator> results;
-//
-//    @Data
-//    @NoArgsConstructor
-//    @AllArgsConstructor
-//    public static class MLSimilarIndicator {
-//        private String indicator;
-//        @JsonProperty("semantic-similarity")
-//        private Double similarity;
-//    }
 }

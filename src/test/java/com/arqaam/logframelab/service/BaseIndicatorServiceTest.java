@@ -65,7 +65,6 @@ public abstract class BaseIndicatorServiceTest  {
   IndicatorService indicatorService;
 
   @BeforeEach
-  @SuppressWarnings("unchecked")
   void setup() {
 
     lenient().when(levelRepository.findAll()).thenReturn(Arrays.asList(mockLevels));

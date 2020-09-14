@@ -48,7 +48,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
-public class IndicatorsManagementControllerIntegrationTest extends BaseControllerTest {
+public class IndicatorsManagementControllerTest extends BaseControllerTest {
 
   public static final int INDICATOR_ADMIN_GROUP_ID = 3;
   public static final String INDICATOR_USERNAME = "indicator";

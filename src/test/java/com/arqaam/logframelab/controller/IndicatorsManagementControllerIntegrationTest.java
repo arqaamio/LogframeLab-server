@@ -7,7 +7,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.arqaam.logframelab.controller.dto.IndicatorRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto;
@@ -48,7 +48,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
-public class IndicatorsManagementControllerTest extends BaseControllerTest {
+public class IndicatorsManagementControllerIntegrationTest extends BaseControllerTest {
 
   public static final int INDICATOR_ADMIN_GROUP_ID = 3;
   public static final String INDICATOR_USERNAME = "indicator";
@@ -221,6 +221,42 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
                 .findAllById(approvals.stream().map(Approval::getId).collect(Collectors.toList())).stream().map(Indicator::isTemp).collect(
                 Collectors.toList()), everyItem(is(false)))
     );
+  }
+
+  @Test
+  void getIndicators() {
+    ResponseEntity<ResponsePage<Indicator>> response = testRestTemplate
+            .exchange("/indicators?filters.indicatorName=NUMBER&filters.sectors=Poverty&page=1&pageSize=10", HttpMethod.GET,
+                    defaultHttpEntity, new ParameterizedTypeReference<>() {});
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(5,response.getBody().getTotalElements());
+    assertEquals(5,response.getBody().getContent().size());
+    assertTrue(response.getBody().getContent().stream().anyMatch(i -> i.getName().contains("Number")));
+    assertTrue(response.getBody().getContent().stream().allMatch(i -> i.getName().toLowerCase().contains("number")));
+    assertTrue(response.getBody().getContent().stream().allMatch(i -> i.getSector().toLowerCase().contains("poverty")));
+  }
+
+  @Test
+  void getIndicator() {
+    ResponseEntity<Indicator> response = testRestTemplate
+            .exchange("/indicators/47", HttpMethod.GET,
+                    defaultHttpEntity, Indicator.class);
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+
+    assertEquals(47, response.getBody().getId());
+    assertEquals("Adequacy of social protection and labor programs (% of total welfare of beneficiary households)", response.getBody().getName());
+    assertEquals("https://data.worldbank.org/indicator/per_allsp.adq_pop_tot?view=chart", response.getBody().getDataSource());
+    assertEquals("social security,social protection,social insurance,labor,labour,labor protection,labour protection,social welfare", response.getBody().getKeywords());
+    assertEquals("Social Protection & Labour", response.getBody().getSector());
+    assertEquals("World Bank Data", response.getBody().getSourceVerification());
+    assertTrue(response.getBody().getSource().stream().allMatch(x->x.getName().equals("World Bank")));
+    assertEquals(false, response.getBody().getDisaggregation());
+    assertEquals(4, response.getBody().getLevel().getId());
+    assertTrue(response.getBody().getCrsCode().isEmpty());
+    assertTrue(response.getBody().getSdgCode().isEmpty());
+    assertEquals("", response.getBody().getDescription());
   }
 
   private ResponseEntity<Void> uploadIndicatorsForApproval() {

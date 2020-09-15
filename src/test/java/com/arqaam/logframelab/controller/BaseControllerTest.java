@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles(profiles = "integration")
+@ActiveProfiles(profiles = "test")
 public class BaseControllerTest {
 
   private static final String SEC_ADMIN_USERNAME = "secadmin";

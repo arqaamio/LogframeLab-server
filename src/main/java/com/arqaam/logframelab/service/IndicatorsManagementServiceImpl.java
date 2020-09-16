@@ -7,8 +7,8 @@ import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto.Approval;
 import com.arqaam.logframelab.exception.IndicatorNotFoundException;
 import com.arqaam.logframelab.model.persistence.Indicator;
-import com.arqaam.logframelab.repository.IndicatorRepository;
-import com.arqaam.logframelab.repository.LevelRepository;
+import com.arqaam.logframelab.repository.*;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -30,13 +30,19 @@ public class IndicatorsManagementServiceImpl implements IndicatorsManagementServ
 
   private final IndicatorRepository indicatorRepository;
   private final LevelRepository levelRepository;
+  private final SourceRepository sourceRepository;
+  private final SDGCodeRepository sdgCodeRepository;
+  private final CRSCodeRepository crsCodeRepository;
   private final IndicatorService indicatorService;
 
   public IndicatorsManagementServiceImpl(IndicatorRepository indicatorRepository,
-      LevelRepository levelRepository,
-      IndicatorService indicatorService) {
+      LevelRepository levelRepository, SourceRepository sourceRepository, SDGCodeRepository sdgCodeRepository,
+      CRSCodeRepository crsCodeRepository, IndicatorService indicatorService) {
     this.indicatorRepository = indicatorRepository;
     this.levelRepository = levelRepository;
+    this.sourceRepository = sourceRepository;
+    this.sdgCodeRepository = sdgCodeRepository;
+    this.crsCodeRepository = crsCodeRepository;
     this.indicatorService = indicatorService;
   }
 
@@ -60,15 +66,16 @@ public class IndicatorsManagementServiceImpl implements IndicatorsManagementServ
 
   @Override
   public Indicator saveIndicator(IndicatorRequestDto indicatorRequest) {
+    logger().info("Starting to update indicator: {}", indicatorRequest);
     return indicatorRepository.save(
         Indicator.builder().id(indicatorRequest.getId())
             .description(indicatorRequest.getDescription())
             .name(indicatorRequest.getName())
             .level(levelRepository.findById(indicatorRequest.getLevelId()).orElse(null))
             .keywords(indicatorRequest.getKeywords())
-            .crsCode(indicatorRequest.getCrsCode())
-            .sdgCode(indicatorRequest.getSdgCode())
-            .source(indicatorRequest.getSource())
+            .crsCode(crsCodeRepository.findByIdIn(indicatorRequest.getCrsCode()))
+            .sdgCode(sdgCodeRepository.findByIdIn(indicatorRequest.getSdgCode()))
+            .source(sourceRepository.findByIdIn(indicatorRequest.getSource()))
             .sector(indicatorRequest.getSector())
             .sourceVerification(indicatorRequest.getSourceVerification())
             .dataSource(indicatorRequest.getDataSource())

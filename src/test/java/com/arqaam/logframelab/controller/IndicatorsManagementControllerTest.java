@@ -133,15 +133,15 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
 
   @Test
   void whenNewIndicatorSaved_thenVerifyAdded() {
-    IndicatorRequestDto request = IndicatorRequestDto.builder().crsCode(Collections.singleton(new CRSCode(112L, "99810.0")))
+    IndicatorRequestDto request = IndicatorRequestDto.builder().crsCode(Collections.singleton(112L))
         .dataSource("https://data.worldbank.org/indicator/FB.ATM.TOTL.P5?view=chart")
         .keywords(
             "household expenditure per capita,family income,family expenditure,domestic household")
         .disaggregation(true)
         .levelId(3L)
         .name("Proportion of population reporting having personally felt discriminated against")
-        .sdgCode(Collections.singleton(new SDGCode(1L, "10.4")))
-        .source(Collections.singleton(new Source(1L,"UN Sustainable Development Goals")))
+        .sdgCode(Collections.singleton(1L))
+        .source(Collections.singleton(1L))
         .sourceVerification("Project's M&E system")
         .sector("Inequality")
         .build();

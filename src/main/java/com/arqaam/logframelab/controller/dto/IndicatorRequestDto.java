@@ -13,14 +13,14 @@ import java.util.Set;
 public class IndicatorRequestDto {
 
   private Long id;
-  private Set<CRSCode> crsCode;
+  private Set<Long> crsCode;
   private String dataSource;
   private String description;
   private Boolean disaggregation;
   private String keywords;
   private String name;
-  private Set<SDGCode> sdgCode;
-  private Set<Source> source;
+  private Set<Long> sdgCode;
+  private Set<Long> source;
   private String sourceVerification;
   private String sector;
   private Long levelId;

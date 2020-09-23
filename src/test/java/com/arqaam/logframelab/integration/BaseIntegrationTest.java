@@ -20,8 +20,6 @@ public class BaseIntegrationTest {
 
   protected String bearerToken;
 
-  protected HttpEntity<?> defaultHttpEntity;
-
   @Autowired
   protected TestRestTemplate testRestTemplate;
 
@@ -48,9 +46,6 @@ public class BaseIntegrationTest {
     JwtAuthenticationTokenResponse tokenResponse = tokenResponseEntity.getBody();
     assert tokenResponse != null;
 
-    HttpHeaders httpHeaders = new HttpHeaders();
-    httpHeaders.setBearerAuth(bearerToken);
-    defaultHttpEntity = new HttpEntity<>(httpHeaders);
     return tokenResponse.getToken();
   }
 

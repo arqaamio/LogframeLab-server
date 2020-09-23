@@ -22,7 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
 
-public class IndicatorControllerIntegrationTest extends BaseIntegrationTest {
+public class IndicatorIntegrationTest extends BaseIntegrationTest {
 
   private static final int DATABASE_SECTOR_SIZE = 42;
   private static final int DATABASE_CRS_CODE_SIZE = 26;

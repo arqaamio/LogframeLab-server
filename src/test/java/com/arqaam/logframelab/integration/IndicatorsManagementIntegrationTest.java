@@ -9,11 +9,9 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.arqaam.logframelab.controller.BaseControllerTest;
 import com.arqaam.logframelab.controller.dto.IndicatorRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto.Approval;
-import com.arqaam.logframelab.controller.dto.IndicatorRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.UserDto;
 import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningResponseDto;
@@ -42,11 +40,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
-public class IndicatorsManagementControllerTest extends BaseControllerTest {
+public class IndicatorsManagementIntegrationTest extends BaseIntegrationTest {
 
   public static final int INDICATOR_ADMIN_GROUP_ID = 3;
   public static final String INDICATOR_USERNAME = "indicator";
@@ -225,7 +221,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
   void getIndicators() {
     ResponseEntity<ResponsePage<Indicator>> response = testRestTemplate
             .exchange("/indicators?filters.indicatorName=NUMBER&filters.sectors=Poverty&page=1&pageSize=10", HttpMethod.GET,
-                    defaultHttpEntity, new ParameterizedTypeReference<>() {});
+                    new HttpEntity<>(headersWithAuth()), new ParameterizedTypeReference<>() {});
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
     assertEquals(5,response.getBody().getTotalElements());
@@ -239,7 +235,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
   void getIndicator() {
     ResponseEntity<Indicator> response = testRestTemplate
             .exchange("/indicators/47", HttpMethod.GET,
-                    defaultHttpEntity, Indicator.class);
+                    new HttpEntity<>(headersWithAuth()), Indicator.class);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
 

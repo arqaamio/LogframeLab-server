@@ -30,7 +30,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 phpmyadmin: http://127.0.0.1:8080/
 
 ## Swagger
-You can find the API documentation at http://127.0.0.1:8080/swagger-ui/
+You can find the API documentation at http://127.0.0.1:8080/swagger-ui.html
 # How to contribute
 
 ## 1- Fork the project

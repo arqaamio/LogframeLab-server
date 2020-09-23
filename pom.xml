@@ -31,7 +31,7 @@
     <javaxb.version>2.1</javaxb.version>
     <lombok.version>1.18.12</lombok.version>
     <poi.version>4.1.2</poi.version>
-    <swagger.version>3.0.0</swagger.version>
+    <swagger.version>2.9.2</swagger.version>
     <flyway.version>6.3.3</flyway.version>
     <mapstruct.version>1.4.0.CR1</mapstruct.version>
     <testcontainer.version>1.14.1</testcontainer.version>
@@ -58,7 +58,13 @@
     </dependency>
     <dependency>
       <groupId>io.springfox</groupId>
-      <artifactId>springfox-boot-starter</artifactId>
+      <artifactId>springfox-swagger2</artifactId>
+      <version>${swagger.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.springfox</groupId>
+      <artifactId>springfox-swagger-ui</artifactId>
       <version>${swagger.version}</version>
     </dependency>
 

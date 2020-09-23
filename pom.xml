@@ -37,7 +37,20 @@
     <testcontainer.version>1.14.1</testcontainer.version>
     <mockito.junit.jupiter.version>3.3.3</mockito.junit.jupiter.version>
     <h2.version>1.4.200</h2.version>
+    <aws.java.sdk.version>2.14.3</aws.java.sdk.version>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${aws.java.sdk.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <dependency>
@@ -140,6 +153,10 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-configuration-processor</artifactId>
       <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
     </dependency>
 
     <!-- Test dependencies -->

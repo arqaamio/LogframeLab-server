@@ -318,6 +318,26 @@ class IndicatorControllerTest extends BaseControllerTest {
     assertEqualsIndicator(expectedResult, response.getBody());
   }
 
+  @Test
+  void getTemplate() {
+    List<IndicatorResponse> expectedResult = getExpectedResult();
+    ResponseEntity<Resource> response = testRestTemplate
+        .exchange("/indicator/template/dfid", HttpMethod.GET,new HttpEntity<>(new HttpHeaders()), Resource.class);
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+  }
+
+  @Test
+  void getTemplate_xlsxFormat() {
+    List<IndicatorResponse> expectedResult = getExpectedResult();
+    ResponseEntity<Resource> response = testRestTemplate
+        .exchange("/indicator/template/xlsx", HttpMethod.GET,new HttpEntity<>(new HttpHeaders()), Resource.class);
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+  }
+
   private List<Indicator> mockIndicatorList() {
     String keyword = "food insecurity,agriculture";
     List<Indicator> list = new ArrayList<>();

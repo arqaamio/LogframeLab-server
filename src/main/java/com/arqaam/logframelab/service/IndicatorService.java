@@ -7,6 +7,7 @@ import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.model.projection.IndicatorFilters;
 import com.arqaam.logframelab.repository.*;
+import com.arqaam.logframelab.util.Constants;
 import com.arqaam.logframelab.util.DocManipulationUtil;
 import com.arqaam.logframelab.util.Logging;
 import com.arqaam.logframelab.util.Utils;
@@ -244,7 +245,7 @@ public class IndicatorService implements Logging {
                     outputIndicators.add(indicator);
                 }
             }
-            XWPFDocument document = new XWPFDocument(new ClassPathResource("indicatorsExportTemplate.docx").getInputStream());
+            XWPFDocument document = new XWPFDocument(new ClassPathResource(Constants.WORD_FORMAT+ "_Template" + Constants.WORD_FILE_EXTENSION).getInputStream());
             XWPFTable table = document.getTableArray(0);
             Integer rowIndex = 1;
             rowIndex = fillWordTableByLevel(impactIndicators, table, rowIndex, true);
@@ -609,7 +610,7 @@ public class IndicatorService implements Logging {
         try {
             logger().info("Start exporting Indicators in DFID format");
             ByteArrayOutputStream output = new ByteArrayOutputStream();
-            XSSFWorkbook wk = new XSSFWorkbook(new ClassPathResource("RF_Template.xlsx").getInputStream());
+            XSSFWorkbook wk = new XSSFWorkbook(new ClassPathResource(Constants.DFID_FORMAT+"_Template" +Constants.WORKSHEET_FILE_EXTENSION).getInputStream());
             XSSFSheet sheet  = wk.getSheetAt(0);
             List<Level> levels = levelRepository.findAllByOrderByPriority();
             List<Indicator> indicatorList = indicatorRepository.findAllById(indicatorResponse.stream()
@@ -755,7 +756,7 @@ public class IndicatorService implements Logging {
         }
 
         try {
-            XWPFDocument document = new XWPFDocument(new ClassPathResource("PRM_Template.docx").getInputStream());
+            XWPFDocument document = new XWPFDocument(new ClassPathResource(Constants.PRM_FORMAT + "_Template" + Constants.WORD_FILE_EXTENSION).getInputStream());
             XWPFTable impactTable = document.getTableArray(0);
             XWPFTable outcomeTable = document.getTableArray(1);
             XWPFTable outputTable = document.getTableArray(2);

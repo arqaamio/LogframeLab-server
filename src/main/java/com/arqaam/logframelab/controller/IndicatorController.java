@@ -167,13 +167,14 @@ public class IndicatorController implements Logging {
                                                                  @RequestParam(required = false) List<Long> sources,
                                                                  @RequestParam(required = false) List<Long> levels,
                                                                  @RequestParam(required = false) List<Long> sdgCodes,
-                                                                 @RequestParam(required = false) List<Long> crsCodes) {
+                                                                 @RequestParam(required = false) List<Long> crsCodes,
+                                                                 @RequestParam(required = false) String name) {
 
-        logger().info("Retrieving Indicators with sectors: {}, sources: {}, levels: {}, sdgCodes: {}, crsCodes: {}",
-                sectors, sources, levels, sdgCodes, crsCodes);
+        logger().info("Retrieving Indicators with sectors: {}, sources: {}, levels: {}, sdgCodes: {}, crsCodes: {}, name: {}",
+                sectors, sources, levels, sdgCodes, crsCodes, name);
 
         return ResponseEntity.ok(indicatorService.getIndicators(Optional.ofNullable(sectors), Optional.ofNullable(sources),
-                Optional.ofNullable(levels), Optional.ofNullable(sdgCodes), Optional.ofNullable(crsCodes))
+                Optional.ofNullable(levels), Optional.ofNullable(sdgCodes), Optional.ofNullable(crsCodes), name)
                 .stream().map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList()));
     }
 }

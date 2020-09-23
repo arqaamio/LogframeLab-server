@@ -1,5 +1,16 @@
 package com.arqaam.logframelab.integration;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.*;
+
+import com.arqaam.logframelab.controller.BaseControllerTest;
+import com.arqaam.logframelab.controller.dto.IndicatorRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto.Approval;
 import com.arqaam.logframelab.controller.dto.IndicatorRequestDto;
@@ -35,7 +46,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
-public class IndicatorsManagementControllerTest extends BaseIntegrationTest {
+public class IndicatorsManagementControllerTest extends BaseControllerTest {
 
   public static final int INDICATOR_ADMIN_GROUP_ID = 3;
   public static final String INDICATOR_USERNAME = "indicator";
@@ -210,6 +221,42 @@ public class IndicatorsManagementControllerTest extends BaseIntegrationTest {
     );
   }
 
+  @Test
+  void getIndicators() {
+    ResponseEntity<ResponsePage<Indicator>> response = testRestTemplate
+            .exchange("/indicators?filters.indicatorName=NUMBER&filters.sectors=Poverty&page=1&pageSize=10", HttpMethod.GET,
+                    defaultHttpEntity, new ParameterizedTypeReference<>() {});
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(5,response.getBody().getTotalElements());
+    assertEquals(5,response.getBody().getContent().size());
+    assertTrue(response.getBody().getContent().stream().anyMatch(i -> i.getName().contains("Number")));
+    assertTrue(response.getBody().getContent().stream().allMatch(i -> i.getName().toLowerCase().contains("number")));
+    assertTrue(response.getBody().getContent().stream().allMatch(i -> i.getSector().toLowerCase().contains("poverty")));
+  }
+
+  @Test
+  void getIndicator() {
+    ResponseEntity<Indicator> response = testRestTemplate
+            .exchange("/indicators/47", HttpMethod.GET,
+                    defaultHttpEntity, Indicator.class);
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+
+    assertEquals(47, response.getBody().getId());
+    assertEquals("Adequacy of social protection and labor programs (% of total welfare of beneficiary households)", response.getBody().getName());
+    assertEquals("https://data.worldbank.org/indicator/per_allsp.adq_pop_tot?view=chart", response.getBody().getDataSource());
+    assertEquals("social security,social protection,social insurance,labor,labour,labor protection,labour protection,social welfare", response.getBody().getKeywords());
+    assertEquals("Social Protection & Labour", response.getBody().getSector());
+    assertEquals("World Bank Data", response.getBody().getSourceVerification());
+    assertTrue(response.getBody().getSource().stream().allMatch(x->x.getName().equals("World Bank")));
+    assertEquals(false, response.getBody().getDisaggregation());
+    assertEquals(4, response.getBody().getLevel().getId());
+    assertTrue(response.getBody().getCrsCode().isEmpty());
+    assertTrue(response.getBody().getSdgCode().isEmpty());
+    assertEquals("", response.getBody().getDescription());
+  }
+
   private ResponseEntity<Void> uploadIndicatorsForApproval() {
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("file", new ClassPathResource("Clusters.xlsx"));
@@ -263,12 +310,12 @@ class ResponsePage<T> extends PageImpl<T> {
 
   @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
   public ResponsePage(@JsonProperty("content") List<T> content, @JsonProperty("number") int number,
-      @JsonProperty("size") int size,
-      @JsonProperty("totalElements") Long totalElements,
-      @JsonProperty("pageable") JsonNode pageable, @JsonProperty("last") boolean last,
-      @JsonProperty("totalPages") int totalPages, @JsonProperty("sort") JsonNode sort,
-      @JsonProperty("first") boolean first,
-      @JsonProperty("numberOfElements") int numberOfElements) {
+                      @JsonProperty("size") int size,
+                      @JsonProperty("totalElements") Long totalElements,
+                      @JsonProperty("pageable") JsonNode pageable, @JsonProperty("last") boolean last,
+                      @JsonProperty("totalPages") int totalPages, @JsonProperty("sort") JsonNode sort,
+                      @JsonProperty("first") boolean first,
+                      @JsonProperty("numberOfElements") int numberOfElements) {
     super(content, PageRequest.of(number, size), totalElements);
   }
 

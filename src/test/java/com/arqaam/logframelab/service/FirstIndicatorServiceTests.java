@@ -361,7 +361,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     List<Indicator> result = indicatorService.getIndicators(Optional.of(mockSectors),
         Optional.of(mockSources.stream().map(Source::getId).collect(Collectors.toList())),
         Optional.of(mockLevelsId), Optional.of(mockSdgCodes.stream().map(SDGCode::getId).collect(Collectors.toList())),
-        Optional.of(mockCrsCodes.stream().map(CRSCode::getId).collect(Collectors.toList())));
+        Optional.of(mockCrsCodes.stream().map(CRSCode::getId).collect(Collectors.toList())), null);
     verify(indicatorRepository).findAll(any(Specification.class));
     verify(indicatorRepository, times(0)).findAll();
     assertEquals(expectedResult, result);
@@ -382,7 +382,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         ).collect(Collectors.toList());
 
     List<Indicator> result = indicatorService.getIndicators(Optional.of(mockSectors),
-        Optional.of(mockSources.stream().map(Source::getId).collect(Collectors.toList())), Optional.of(mockLevelsId), Optional.empty(), Optional.empty());
+        Optional.of(mockSources.stream().map(Source::getId).collect(Collectors.toList())), Optional.of(mockLevelsId), Optional.empty(), Optional.empty(), null);
     verify(indicatorRepository).findAll(any(Specification.class));
     verify(indicatorRepository, times(0)).findAll();
     assertEquals(expectedResult, result);
@@ -393,7 +393,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     List<Indicator> expectedResult = mockIndicatorList();
     List<Indicator> result = indicatorService
         .getIndicators(Optional.empty(), Optional.empty(), Optional.empty(),
-            Optional.empty(), Optional.empty());
+            Optional.empty(), Optional.empty(), null);
     verify(indicatorRepository, times(0)).findAll(any(Specification.class));
     verify(indicatorRepository).findAll();
     assertEquals(expectedResult, result);

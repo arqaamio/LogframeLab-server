@@ -31,7 +31,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class AuthIntegrationTest extends BaseIntegrationTest {
-  private static final String TOKEN_TYPE = "Bearer";
+  private static final String TOKEN_TYPE = "Bearer ";
   private static final String APP_USER_USERNAME = "user";
   private static final String APP_USER_PASSWORD = "Password";
   private static final Collection<Integer> APP_USER_GROUP_IDS = Collections.singleton(2);

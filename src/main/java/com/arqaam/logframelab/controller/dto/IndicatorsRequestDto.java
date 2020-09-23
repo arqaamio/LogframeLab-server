@@ -31,6 +31,8 @@ public class IndicatorsRequestDto {
     @Getter
     private Collection<String> sectors;
 
+    private String indicatorName;
+
     @Getter
     private Collection<Long> sourceIds;
 
@@ -44,6 +46,7 @@ public class IndicatorsRequestDto {
     public Collection<Long> getCrsCodeIds() {
       return crs_code;
     }
+
   }
 }
 

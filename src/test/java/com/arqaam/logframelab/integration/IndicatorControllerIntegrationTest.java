@@ -1,26 +1,33 @@
 package com.arqaam.logframelab.integration;
 
+import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.model.IndicatorResponse;
+import com.arqaam.logframelab.model.persistence.CRSCode;
+import com.arqaam.logframelab.model.persistence.Level;
+import com.arqaam.logframelab.model.persistence.SDGCode;
+import com.arqaam.logframelab.model.persistence.Source;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class IndicatorControllerIntegrationTest extends BaseIntegrationTest {
 
   private static final int DATABASE_SECTOR_SIZE = 42;
-  private static final int DATABASE_CRS_CODE_SIZE = 76;
-  private static final int DATABASE_SOURCE_SIZE = 26;
-  private static final int DATABASE_SDG_CODE_SIZE = 168;
+  private static final int DATABASE_CRS_CODE_SIZE = 26;
+  private static final int DATABASE_SOURCE_SIZE = 8;
+  private static final int DATABASE_SDG_CODE_SIZE = 17;
   private static final int DATABASE_LEVEL_SIZE = 3;
 
   @BeforeEach
@@ -39,8 +46,20 @@ public class IndicatorControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
+  void getIndicators() {
+    ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
+            .exchange("/indicator?name=NUMBER&sectors=Poverty", HttpMethod.GET,
+                    new HttpEntity<>(new HttpHeaders()), new ParameterizedTypeReference<>() {});
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertTrue(response.getBody().stream().anyMatch(indicatorResponse -> indicatorResponse.getName().contains("Number")));
+    assertTrue(response.getBody().stream().allMatch(indicatorResponse -> indicatorResponse.getName().toLowerCase().contains("number")));
+    assertTrue(response.getBody().stream().allMatch(indicatorResponse -> indicatorResponse.getSector().toLowerCase().contains("poverty")));
+  }
+
+  @Test
   void whenFiltersRequested_ThenFiltersReturned() {
-  /*  HttpHeaders headers = new HttpHeaders();
+    HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(bearerToken);
 
     ResponseEntity<FiltersDto> filters =
@@ -50,11 +69,17 @@ public class IndicatorControllerIntegrationTest extends BaseIntegrationTest {
 
     assertAll(
         () -> assertThat(filters.getStatusCode(), is(HttpStatus.OK)),
-        () -> assertThat(filtersDto.getSectors().size(), is(DATABASE_SECTORS_SIZE)),
+        () -> assertThat(filtersDto.getSector().size(), is(DATABASE_SECTOR_SIZE)),
         () -> assertThat(filtersDto.getCrsCode().size(), is(DATABASE_CRS_CODE_SIZE)),
         () -> assertThat(filtersDto.getSource().size(), is(DATABASE_SOURCE_SIZE)),
         () -> assertThat(filtersDto.getSdgCode().size(), is(DATABASE_SDG_CODE_SIZE)),
-        () -> assertThat(filtersDto.getLevel().size(), is(DATABASE_LEVEL_SIZE)));*/
+        () -> assertThat(filtersDto.getLevel().size(), is(DATABASE_LEVEL_SIZE)),
+        () -> assertTrue(testSortAscending(new ArrayList<>(filtersDto.getSector()))),
+        () -> assertTrue(testSortAscending(filtersDto.getCrsCode().stream().map(CRSCode::getName).collect(Collectors.toList()))),
+        () -> assertTrue(testSortAscending(filtersDto.getSource().stream().map(Source::getName).collect(Collectors.toList()))),
+        () -> assertTrue(testSortAscending(filtersDto.getSdgCode().stream().map(SDGCode::getName).collect(Collectors.toList()))),
+        () -> assertTrue(testSortAscending(filtersDto.getLevel().stream().map(Level::getName).collect(Collectors.toList())))
+    );
   }
 
   List<IndicatorResponse> sampleIndicatorResponse() {
@@ -62,5 +87,11 @@ public class IndicatorControllerIntegrationTest extends BaseIntegrationTest {
     list.add(IndicatorResponse.builder().id(1L).build());
     list.add(IndicatorResponse.builder().id(42L).date("1980").value("100").build());
     return list;
+  }
+  private boolean testSortAscending(List<String> list) {
+    for (int i = 0; i < list.size() - 1; i++) {
+      if(list.get(i).compareTo(list.get(i+1))>0) return false;
+    }
+    return true;
   }
 }

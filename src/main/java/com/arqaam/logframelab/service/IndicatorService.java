@@ -476,11 +476,15 @@ public class IndicatorService implements Logging {
 
         FiltersDto filters = new FiltersDto();
 
-        filters.getSector().addAll(filtersResult.stream().map(IndicatorFilters::getSector).filter(f -> !f.isEmpty()).collect(Collectors.toList()));
-        filters.getSource().addAll(filtersResult.stream().map(IndicatorFilters::getSource).filter(f -> !f.isEmpty()).flatMap(Collection::stream).collect(Collectors.toSet()));
-        filters.getLevel().addAll(filtersResult.stream().map(IndicatorFilters::getLevel).collect(Collectors.toList()));
-        filters.getSdgCode().addAll(filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty()).flatMap(Collection::stream).collect(Collectors.toSet()));
-        filters.getCrsCode().addAll(filtersResult.stream().map(IndicatorFilters::getCrsCode).filter(f -> !f.isEmpty()).flatMap(Collection::stream).collect(Collectors.toSet()));
+        filters.getSector().addAll(filtersResult.stream().map(IndicatorFilters::getSector).filter(f -> !f.isEmpty())
+                .sorted().collect(Collectors.toList()));
+        filters.getSource().addAll(filtersResult.stream().map(IndicatorFilters::getSource).filter(f -> !f.isEmpty()).flatMap(Collection::stream)
+                .sorted(Comparator.comparing(Source::getName)).collect(Collectors.toCollection(LinkedHashSet::new)));
+        filters.getLevel().addAll(filtersResult.stream().map(IndicatorFilters::getLevel).sorted().collect(Collectors.toList()));
+        filters.getSdgCode().addAll(filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty())
+                .flatMap(Collection::stream).sorted(Comparator.comparing(SDGCode::getName)).collect(Collectors.toCollection(LinkedHashSet::new)));
+        filters.getCrsCode().addAll(filtersResult.stream().map(IndicatorFilters::getCrsCode).filter(f -> !f.isEmpty())
+                .flatMap(Collection::stream).sorted(Comparator.comparing(CRSCode::getName)).collect(Collectors.toCollection(LinkedHashSet::new)));
 
         return filters;
     }
@@ -495,19 +499,19 @@ public class IndicatorService implements Logging {
      * @return List of IndicatorResponse
      */
     public List<Indicator> getIndicators(Optional<List<String>> sector, Optional<List<Long>> sources, Optional<List<Long>> levels,
-                                                 Optional<List<Long>> sdgCodes, Optional<List<Long>> crsCodes) {
-        logger().info("Starting repository call with with sector: {}, sources: {}, levels: {}, sdgCodes: {}, crsCodes: {}",
-                sector, sources, levels, sdgCodes, crsCodes);
-        return sector.isEmpty() && sources.isEmpty() && levels.isEmpty() && sdgCodes.isEmpty() && crsCodes.isEmpty() ?
+                                                 Optional<List<Long>> sdgCodes, Optional<List<Long>> crsCodes, String indicatorName) {
+        logger().info("Starting repository call with with sector: {}, sources: {}, levels: {}, sdgCodes: {}, crsCodes: {}, indicatorName: {}",
+                sector, sources, levels, sdgCodes, crsCodes, indicatorName);
+        return sector.isEmpty() && sources.isEmpty() && levels.isEmpty() && sdgCodes.isEmpty() && crsCodes.isEmpty()
+                && (indicatorName == null || indicatorName.isEmpty())?
             indicatorRepository.findAll() :
             indicatorRepository.findAll(
-                getIndicatorSpecification(sector, sources, levels, sdgCodes, crsCodes, false));
+                getIndicatorSpecification(sector, sources, levels, sdgCodes, crsCodes, indicatorName,false));
     }
 
    Specification<Indicator> getIndicatorSpecification(Optional<List<String>> sector,
       Optional<List<Long>> sources, Optional<List<Long>> levels, Optional<List<Long>> sdgCodes,
-      Optional<List<Long>> crsCodes, boolean temp) {
-        logger().info("---------------: sector", sector);
+      Optional<List<Long>> crsCodes, String indicatorName, boolean temp) {
     return (root, criteriaQuery, criteriaBuilder) -> {
         List<Predicate> predicates = new ArrayList<>();
 
@@ -516,7 +520,8 @@ public class IndicatorService implements Logging {
         levels.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("level").get("id")).value(x))));
         sdgCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.join("sdgCode").get("id")).value(x))));
         crsCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.join("crsCode").get("id")).value(x))));
-
+        if(indicatorName != null && !indicatorName.isEmpty())
+            predicates.add(criteriaBuilder.and(criteriaBuilder.like(root.get("name"), "%"+indicatorName+"%")));
         predicates.add(criteriaBuilder.and(criteriaBuilder.equal(root.get("temp"), temp)));
 
       return criteriaBuilder.and(predicates.toArray(new Predicate[predicates.size()]));
@@ -541,7 +546,7 @@ public class IndicatorService implements Logging {
             : Optional.empty(),
         filters.getCrsCodeIds() != null && !filters.getCrsCodeIds().isEmpty() ? Optional
             .of(new ArrayList<>(filters.getCrsCodeIds()))
-            : Optional.empty(), temp);
+            : Optional.empty(), filters.getIndicatorName(), temp);
   }
 
   /**
@@ -593,7 +598,7 @@ public class IndicatorService implements Logging {
             : Optional.empty(),
         filter.getCrsCode().size() > 0
             ? Optional.of(filter.getCrsCode().stream().map(CRSCode::getId).collect(Collectors.toList()))
-            : Optional.empty());
+            : Optional.empty(), null);
   }
     /**
      * Fills the DFID template with the indicators

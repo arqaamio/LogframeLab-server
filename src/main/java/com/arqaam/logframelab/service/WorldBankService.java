@@ -1,9 +1,11 @@
 package com.arqaam.logframelab.service;
 
+import com.arqaam.logframelab.exception.FailedJsonMappingException;
 import com.arqaam.logframelab.exception.InvalidDataSourceException;
 import com.arqaam.logframelab.exception.WorldBankAPIRequestFailedException;
-import com.arqaam.logframelab.exception.FailedJsonMappingException;
-import com.arqaam.logframelab.model.*;
+import com.arqaam.logframelab.model.WorldBankCountry;
+import com.arqaam.logframelab.model.WorldBankIndicator;
+import com.arqaam.logframelab.model.WorldDevelopmentIndicator;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.util.Logging;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -17,7 +19,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;

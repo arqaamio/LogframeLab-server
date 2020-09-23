@@ -1,17 +1,8 @@
-package com.arqaam.logframelab.controller;
+package com.arqaam.logframelab.integration;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.everyItem;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertAll;
-
-import com.arqaam.logframelab.controller.dto.IndicatorRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto.Approval;
+import com.arqaam.logframelab.controller.dto.IndicatorRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.UserDto;
 import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningResponseDto;
@@ -24,12 +15,6 @@ import com.arqaam.logframelab.service.IndicatorMapper;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Random;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,17 +23,19 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
-public class IndicatorsManagementControllerTest extends BaseControllerTest {
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
+
+public class IndicatorsManagementControllerTest extends BaseIntegrationTest {
 
   public static final int INDICATOR_ADMIN_GROUP_ID = 3;
   public static final String INDICATOR_USERNAME = "indicator";

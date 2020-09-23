@@ -1,8 +1,7 @@
 package com.arqaam.logframelab.configuration.security.jwt;
 
+import com.arqaam.logframelab.util.Logging;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,19 +17,17 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 @Component
-public class JwtAuthFilter extends OncePerRequestFilter {
+public class JwtAuthFilter extends OncePerRequestFilter implements Logging {
 
-  private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
+    private final JwtTokenProvider jwtTokenProvider;
 
-  private final JwtTokenProvider jwtTokenProvider;
+    private final UserDetailsService userDetailsService;
 
-  private final UserDetailsService userDetailsService;
-
-  public JwtAuthFilter(
-      JwtTokenProvider jwtTokenProvider,
-      @Qualifier("arqaamUserDetailsService") UserDetailsService userDetailsService) {
-    this.jwtTokenProvider = jwtTokenProvider;
-    this.userDetailsService = userDetailsService;
+    public JwtAuthFilter(
+            JwtTokenProvider jwtTokenProvider,
+            @Qualifier("arqaamUserDetailsService") UserDetailsService userDetailsService) {
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.userDetailsService = userDetailsService;
   }
 
   @Override
@@ -52,7 +49,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
       }
     } catch (Exception ex) {
-      logger.error("Failed to set user authentication in security context: ", ex);
+        logger().error("Failed to set user authentication in security context: ", ex);
       throw ex;
     }
 

@@ -1,15 +1,8 @@
 package com.arqaam.logframelab.service;
 
-import static java.util.Objects.isNull;
-
 import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto.FilterRequestDto;
-import com.arqaam.logframelab.exception.FailedToCloseFileException;
-import com.arqaam.logframelab.exception.FailedToOpenFileException;
-import com.arqaam.logframelab.exception.FailedToOpenWorksheetException;
-import com.arqaam.logframelab.exception.IndicatorNotFoundException;
-import com.arqaam.logframelab.exception.TemplateNotFoundException;
-import com.arqaam.logframelab.exception.WordFileLoadFailedException;
+import com.arqaam.logframelab.exception.*;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.model.projection.IndicatorFilters;
@@ -17,34 +10,16 @@ import com.arqaam.logframelab.repository.*;
 import com.arqaam.logframelab.util.DocManipulationUtil;
 import com.arqaam.logframelab.util.Logging;
 import com.arqaam.logframelab.util.Utils;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.extractor.WordExtractor;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellCopyPolicy;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.FillPatternType;
-import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.IndexedColors;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
-import org.apache.poi.xwpf.usermodel.*;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -52,7 +27,14 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.criteria.Predicate;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.isNull;
 
 @Service
 public class IndicatorService implements Logging {

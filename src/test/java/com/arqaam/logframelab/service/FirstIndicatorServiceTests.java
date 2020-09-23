@@ -1,20 +1,7 @@
 package com.arqaam.logframelab.service;
 
-import static java.util.Objects.isNull;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
 import com.arqaam.logframelab.model.IndicatorResponse;
-import com.arqaam.logframelab.model.persistence.CRSCode;
-import com.arqaam.logframelab.model.persistence.Indicator;
-
-import java.io.*;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import com.arqaam.logframelab.model.persistence.SDGCode;
-import com.arqaam.logframelab.model.persistence.Source;
-import com.arqaam.logframelab.model.persistence.Level;
+import com.arqaam.logframelab.model.persistence.*;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -30,15 +17,25 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.isNull;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 @ExtendWith(MockitoExtension.class)
 public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
 
-  @Test
-  void extractIndicatorsFromWordFile() throws IOException {
-    when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
-    List<IndicatorResponse> expectedResult = getExpectedResult(false);
-    MultipartFile file = new MockMultipartFile("test_doc.docx", "test_doc.docx",
-        MediaType.APPLICATION_OCTET_STREAM.toString(),
+    @Test
+    void extractIndicatorsFromWordFile() throws IOException {
+        when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
+        List<IndicatorResponse> expectedResult = getExpectedResult(false);
+        MultipartFile file = new MockMultipartFile("test_doc.docx", "test_doc.docx",
+                MediaType.APPLICATION_OCTET_STREAM.toString(),
         new ClassPathResource("test_doc.docx").getInputStream());
     List<IndicatorResponse> result = indicatorService.extractIndicatorsFromWordFile(file, null);
     assertNotNull(result);

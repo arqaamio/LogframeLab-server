@@ -1,25 +1,21 @@
-package com.arqaam.logframelab.controller;
+package com.arqaam.logframelab.integration;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.*;
-
-import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.model.IndicatorResponse;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-public class IndicatorControllerIntegrationTest extends BaseControllerTest {
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+public class IndicatorControllerIntegrationTest extends BaseIntegrationTest {
 
   private static final int DATABASE_SECTOR_SIZE = 42;
   private static final int DATABASE_CRS_CODE_SIZE = 76;

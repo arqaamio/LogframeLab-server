@@ -7,8 +7,6 @@ import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTHMerge;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTVMerge;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
-import org.springframework.lang.Nullable;
-import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 

@@ -1,20 +1,16 @@
 package com.arqaam.logframelab.service;
 
-import com.arqaam.logframelab.controller.BaseControllerTest;
 import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorRequestDto;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
-import org.aspectj.lang.annotation.Before;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
@@ -23,12 +19,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class IndicatorsManagementServiceImplTest {
+class IndicatorsManagementServiceTest {
 
     @Mock
     IndicatorService indicatorService;
@@ -40,7 +35,7 @@ class IndicatorsManagementServiceImplTest {
     IndicatorRepository indicatorRepository;
 
     @InjectMocks
-    IndicatorsManagementServiceImpl service;
+    IndicatorsManagementService service;
 
     @BeforeEach
     void setup (){

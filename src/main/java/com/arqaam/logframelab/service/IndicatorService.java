@@ -45,6 +45,7 @@ public class IndicatorService implements Logging {
   protected static final Integer IMPACT_NUM_TEMP_INDIC = 1,
       OUTCOME_NUM_TEMP_INDIC = 3,
       OUTPUT_NUM_TEMP_INDIC = 2;
+  private static final Integer TOTAL_PERCENTAGE = 100;
   private static final Integer TOTAL_PERCENTAGE_OF_SCANNING = 70;
   private static final Integer TOTAL_PERCENTAGE_OF_SMALL_TASKS = 5;
   private final IndicatorRepository indicatorRepository;
@@ -138,8 +139,8 @@ public class IndicatorService implements Logging {
         throw new WordFileLoadFailedException();
       }
     }
-    logger().info("Successfuly scanner the file for "+ result.size() +" indicators");
-    utils.sendProgressMessage(progress+TOTAL_PERCENTAGE_OF_SMALL_TASKS*2);
+    logger().info("Successfuly scanned the file for "+ result.size() +" indicators");
+    utils.sendProgressMessage(TOTAL_PERCENTAGE);
     return result;
   }
 

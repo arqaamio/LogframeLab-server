@@ -25,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URLConnection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -172,7 +173,9 @@ public class IndicatorController implements Logging {
 
         return ResponseEntity.ok(indicatorService.getIndicators(Optional.ofNullable(sectors), Optional.ofNullable(sources),
                 Optional.ofNullable(levels), Optional.ofNullable(sdgCodes), Optional.ofNullable(crsCodes), name)
-                .stream().map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList()));
+                .stream()
+                .sorted(Comparator.comparing(Indicator::getLevel))
+                .map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList()));
     }
 
     @GetMapping(value = "template/{name}", produces = MediaType.APPLICATION_JSON_VALUE)

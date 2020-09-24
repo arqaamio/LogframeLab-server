@@ -279,9 +279,7 @@ class IndicatorControllerTest extends BaseControllerTest {
     assertEquals(HttpStatus.OK, response.getStatusCode());
     verify(indicatorRepositoryMock).findAll(any(Specification.class));
     verify(indicatorRepositoryMock, times(0)).findAll();
-    assertEqualsIndicator(Arrays
-        .asList(expectedResult.get(3), expectedResult.get(1), expectedResult.get(0),
-            expectedResult.get(2)), response.getBody());
+    assertEqualsIndicator(expectedResult, response.getBody());
   }
 
   @Test
@@ -298,14 +296,12 @@ class IndicatorControllerTest extends BaseControllerTest {
     assertEquals(HttpStatus.OK, response.getStatusCode());
     verify(indicatorRepositoryMock).findAll(any(Specification.class));
     verify(indicatorRepositoryMock, times(0)).findAll();
-    assertEqualsIndicator(Arrays
-        .asList(expectedResult.get(3), expectedResult.get(1), expectedResult.get(0),
-            expectedResult.get(2)), response.getBody());
+    assertEqualsIndicator(expectedResult, response.getBody());
   }
 
   @Test
   void getIndicators_noFilters() {
-    List<IndicatorResponse> expectedResult = mockIndicatorList().stream()
+    List<IndicatorResponse> expectedResult = mockIndicatorList().stream().sorted(Comparator.comparing(Indicator::getLevel))
         .map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList());
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
         .exchange("/indicator", HttpMethod.GET,

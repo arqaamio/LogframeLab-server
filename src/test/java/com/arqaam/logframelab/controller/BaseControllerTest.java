@@ -6,7 +6,6 @@ import com.arqaam.logframelab.model.Error;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,7 +27,7 @@ public class BaseControllerTest {
   protected TestRestTemplate testRestTemplate;
 
   void assertEqualsException(ResponseEntity<Error> response, HttpStatus httpStatus, Integer code,
-                             Class exception) {
+                             Class<?> exception) {
     assertEquals(httpStatus, response.getStatusCode());
     assertEquals(code, response.getBody().getCode());
     assertEquals(exception.getSimpleName(), response.getBody().getException());

@@ -116,7 +116,7 @@ public class IndicatorService implements Logging {
         }
         if(!mapResult.isEmpty()) {
           List<Level> levelsList = levelRepository.findAllByOrderByPriority();
-          logger().info("Starting the sort of the indicators {}", mapResult);
+          logger().info("Starting the sort of the indicators");
           // Sort by Level and then by number of times a keyword was tricked
           result = mapResult.values().stream().sorted((o1, o2) -> {
             if (o1.getLevel().getId().equals(o2.getLevel().getId())){
@@ -138,6 +138,7 @@ public class IndicatorService implements Logging {
         throw new WordFileLoadFailedException();
       }
     }
+    logger().info("Successfuly scanner the file for "+ result.size() +" indicators");
     utils.sendProgressMessage(progress+TOTAL_PERCENTAGE_OF_SMALL_TASKS*2);
     return result;
   }

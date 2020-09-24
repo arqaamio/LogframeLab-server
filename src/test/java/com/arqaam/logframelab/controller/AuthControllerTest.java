@@ -1,26 +1,19 @@
 package com.arqaam.logframelab.controller;
 
 import com.arqaam.logframelab.configuration.security.ContextRefreshEventListener;
-import com.arqaam.logframelab.configuration.security.jwt.JwtTokenProvider;
-import com.arqaam.logframelab.controller.dto.auth.UserDto;
 import com.arqaam.logframelab.controller.dto.auth.login.AuthenticateUserRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.login.JwtAuthenticationTokenResponse;
-import com.arqaam.logframelab.model.persistence.auth.Group;
 import com.arqaam.logframelab.model.persistence.auth.User;
-import com.arqaam.logframelab.service.UserDetailsServiceImpl;
 import com.arqaam.logframelab.service.auth.AuthService;
 import com.arqaam.logframelab.service.auth.GroupService;
 import com.arqaam.logframelab.service.auth.UserService;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.*;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

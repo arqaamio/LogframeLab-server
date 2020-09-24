@@ -51,7 +51,7 @@ public class GlobalExceptionHandler implements Logging {
 
     }
 
-    private ErrorProperties.ErrorProp getError(Class _class) {
+    private ErrorProperties.ErrorProp getError(Class<?> _class) {
 
         ErrorProperties.ErrorProp errorProp;
 

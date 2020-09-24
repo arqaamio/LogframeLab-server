@@ -2,6 +2,7 @@ package com.arqaam.logframelab.configuration;
 
 import com.arqaam.logframelab.util.Logging;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 
 @Configuration
 @EnableScheduling
+@ConditionalOnProperty(prefix = "backup", name="enabled", havingValue="true", matchIfMissing = true)
 public class DatabaseBackupConfiguration implements Logging {
 
 	private static final SimpleDateFormat fileDateFormatter = new SimpleDateFormat("dd-MM-yyyy_hh:mm");

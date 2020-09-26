@@ -11,7 +11,7 @@
   </parent>
   <groupId>com.arqaam</groupId>
   <artifactId>LogframeLab-server</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0</version>
   <name>LogframeLab-server</name>
   <description>LogFrameLab API</description>
   <organization>
@@ -199,7 +199,6 @@
           <source>11</source>
           <target>11</target>
           <annotationProcessorPaths>
-
             <path>
               <groupId>org.projectlombok</groupId>
               <artifactId>lombok</artifactId>

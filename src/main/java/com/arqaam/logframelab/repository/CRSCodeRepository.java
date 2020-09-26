@@ -7,6 +7,5 @@ import java.util.Collection;
 import java.util.Set;
 
 public interface CRSCodeRepository extends JpaRepository<CRSCode, Long> {
-
     public Set<CRSCode> findByIdIn(Collection<Long> ids);
 }

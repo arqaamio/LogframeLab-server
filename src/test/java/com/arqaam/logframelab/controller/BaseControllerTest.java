@@ -5,9 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.arqaam.logframelab.controller.dto.auth.login.AuthenticateUserRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.login.JwtAuthenticationTokenResponse;
 import com.arqaam.logframelab.model.Error;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -15,8 +21,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles(profiles = "integration")
+@ActiveProfiles(profiles = "test")
 public class BaseControllerTest {
 
   private static final String SEC_ADMIN_USERNAME = "secadmin";
@@ -25,6 +34,8 @@ public class BaseControllerTest {
   protected String bearerToken;
 
   protected HttpEntity defaultHttpEntity;
+
+  private HttpHeaders httpHeaders;
 
   @Autowired
   protected TestRestTemplate testRestTemplate;
@@ -36,8 +47,8 @@ public class BaseControllerTest {
     assertEquals(exception.getSimpleName(), response.getBody().getException());
   }
 
-  protected void generateAuthToken() {
-    bearerToken = token();
+  protected void generateAuthToken(String... credentials) {
+    bearerToken = token(credentials);
   }
 
   protected String token(String... credentials) {
@@ -53,7 +64,7 @@ public class BaseControllerTest {
     assert tokenResponse != null;
 
     HttpHeaders httpHeaders = new HttpHeaders();
-    httpHeaders.setBearerAuth(bearerToken);
+    httpHeaders.setBearerAuth(tokenResponse.getToken());
     defaultHttpEntity = new HttpEntity<>(httpHeaders);
     return tokenResponse.getToken();
   }

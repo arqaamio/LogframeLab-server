@@ -15,7 +15,10 @@ import com.arqaam.logframelab.controller.dto.IndicatorApprovalRequestDto.Approva
 import com.arqaam.logframelab.controller.dto.auth.UserDto;
 import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningResponseDto;
+import com.arqaam.logframelab.model.persistence.CRSCode;
 import com.arqaam.logframelab.model.persistence.Indicator;
+import com.arqaam.logframelab.model.persistence.SDGCode;
+import com.arqaam.logframelab.model.persistence.Source;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -112,7 +115,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
     indicator.setDisaggregation(!disaggregationBeforeUpdate);
 
     HttpEntity<IndicatorRequestDto> httpEntity = new HttpEntity<>(
-        indicatorMapper.indicatorToIndicatorRequestDto(indicator), headersWithAuth());
+        indicatorToIndicatorRequestDto(indicator), headersWithAuth());
 
     ResponseEntity<Indicator> updatedIndicatorResponse = testRestTemplate
         .exchange(INDICATORS_URI, HttpMethod.PUT, httpEntity, Indicator.class);
@@ -296,6 +299,22 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
     headers.setContentType(MediaType.APPLICATION_JSON);
     headers.set("Content-Type", MediaType.APPLICATION_JSON_VALUE);
     return headers;
+  }
+
+  private IndicatorRequestDto indicatorToIndicatorRequestDto(Indicator indicator){
+    return IndicatorRequestDto.builder()
+          .id(indicator.getId())
+          .crsCode(indicator.getCrsCode().stream().map(CRSCode::getId).collect(Collectors.toSet()))
+          .dataSource(indicator.getDataSource())
+          .description(indicator.getDescription())
+          .keywords(indicator.getKeywords())
+          .name(indicator.getName())
+          .sdgCode(indicator.getSdgCode().stream().map(SDGCode::getId).collect(Collectors.toSet()))
+          .source(indicator.getSource().stream().map(Source::getId).collect(Collectors.toSet()))
+          .sourceVerification(indicator.getSourceVerification())
+          .sector(indicator.getSector())
+          .levelId(indicator.getLevel().getId())
+          .build();
   }
 }
 

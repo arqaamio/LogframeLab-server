@@ -60,7 +60,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
   private static final String APPROVALS_URI = INDICATORS_URI + "approvals";
   //@Autowired
   //private IndicatorMapper indicatorMapper;
-  @Autowired
+  /*@Autowired
   private IndicatorRepository indicatorRepository;
 
   private String indicatorsManagerToken;
@@ -315,7 +315,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
           .sector(indicator.getSector())
           .levelId(indicator.getLevel().getId())
           .build();
-  }
+  }*/
 }
 
 /*
@@ -323,7 +323,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
  * to serialize the default PageImpl.
  * Solution found at https://stackoverflow.com/a/52509886/2211446
  */
-class ResponsePage<T> extends PageImpl<T> {
+/*class ResponsePage<T> extends PageImpl<T> {
 
   @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
   public ResponsePage(@JsonProperty("content") List<T> content, @JsonProperty("number") int number,
@@ -347,4 +347,4 @@ class ResponsePage<T> extends PageImpl<T> {
   public ResponsePage() {
     super(new ArrayList<T>());
   }
-}
+}*/

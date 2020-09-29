@@ -8,9 +8,12 @@ import com.arqaam.logframelab.model.persistence.Source;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+import org.mapstruct.factory.Mappers;
 
 @Mapper(componentModel = "spring")
 public interface IndicatorMapper {
+
+  IndicatorMapper INSTANCE = Mappers.getMapper(IndicatorMapper.class);
 
   @Mapping(source = "level.id", target = "levelId")
   @Mapping(target = "source", qualifiedByName = "mapSourceId")

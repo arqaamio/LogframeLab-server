@@ -59,8 +59,8 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
   private final static int DEFAULT_PAGE_INDEX = DEFAULT_PAGE - 1;
   private static final String INDICATORS_URI = "/indicators/";
   private static final String APPROVALS_URI = INDICATORS_URI + "approvals";
-  @Autowired
-  private IndicatorMapper indicatorMapper;
+  //@Autowired
+  //private IndicatorMapper indicatorMapper;
   @Autowired
   private IndicatorRepository indicatorRepository;
 
@@ -102,7 +102,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
     );
   }
 
-  @Test
+  /*@Test
   void whenExistingIndicatorUpdated_thenVerifyChanges() {
     ResponseEntity<ResponsePage<Indicator>> indicatorsPerPageResponse = getPageOfIndicators();
 
@@ -129,7 +129,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
             Objects.requireNonNull(updatedIndicatorResponse.getBody()).getDisaggregation(),
             not(disaggregationBeforeUpdate))
     );
-  }
+  }*/
 
   @Test
   void whenNewIndicatorSaved_thenVerifyAdded() {

@@ -81,7 +81,7 @@ public class IndicatorControllerIntegrationTest extends BaseControllerTest {
         () -> assertTrue(testSortAscending(filtersDto.getSdgCode().stream().map(SDGCode::getName).collect(Collectors.toList()))),
         () -> assertTrue(testSortAscending(filtersDto.getLevel().stream().map(Level::getName).collect(Collectors.toList())))
     );
-  }
+  }*/
 
   List<IndicatorResponse> sampleIndicatorResponse() {
     List<IndicatorResponse> list = new ArrayList<>();
@@ -94,5 +94,5 @@ public class IndicatorControllerIntegrationTest extends BaseControllerTest {
       if(list.get(i).compareTo(list.get(i+1))>0) return false;
     }
     return true;
-  }*/
+  }
 }

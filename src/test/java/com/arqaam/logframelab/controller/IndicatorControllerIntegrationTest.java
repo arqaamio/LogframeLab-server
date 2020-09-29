@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @ActiveProfiles(profiles = "integration")
 public class IndicatorControllerIntegrationTest extends BaseControllerTest {
 
-/*  private static final int DATABASE_SECTOR_SIZE = 42;
+  private static final int DATABASE_SECTOR_SIZE = 42;
   private static final int DATABASE_CRS_CODE_SIZE = 26;
   private static final int DATABASE_SOURCE_SIZE = 8;
   private static final int DATABASE_SDG_CODE_SIZE = 17;
@@ -46,7 +46,7 @@ public class IndicatorControllerIntegrationTest extends BaseControllerTest {
     assertNotNull(response.getBody());
   }
 
-  @Test
+  /*@Test
   void getIndicators() {
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
             .exchange("/indicator?name=NUMBER&sectors=Poverty", HttpMethod.GET,

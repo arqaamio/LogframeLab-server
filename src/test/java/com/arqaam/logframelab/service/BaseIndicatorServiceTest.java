@@ -17,6 +17,7 @@ import com.arqaam.logframelab.util.Utils;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.springframework.data.domain.Example;
 import org.springframework.data.jpa.domain.Specification;
 
 public abstract class BaseIndicatorServiceTest  {

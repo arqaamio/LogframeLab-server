@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping(
         value = "auth",
-        consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE)
 @Api(tags = "Authentication")
 public class AuthController implements Logging {
@@ -48,7 +47,7 @@ public class AuthController implements Logging {
     this.groupService = groupService;
   }
 
-  @PostMapping(value = "login")
+  @PostMapping(value = "login", consumes = MediaType.APPLICATION_JSON_VALUE)
   @PreAuthorize("isAnonymous()")
   @ApiOperation(value = "${AuthController.authenticateUser.value}", nickname = "authenticateUser", response = JwtAuthenticationTokenResponse.class)
   @ApiResponses({
@@ -70,7 +69,7 @@ public class AuthController implements Logging {
                     Collectors.toSet())).build());
   }
 
-  @PostMapping("logout")
+  @PostMapping(value = "logout", consumes = MediaType.APPLICATION_JSON_VALUE)
   @PreAuthorize("isAuthenticated()")
   @ApiOperation(value = "${AuthController.userLogout.value}", nickname = "userLogout",
           response = LogoutUserResponseDto.class, authorizations = {@Authorization(value = "jwtToken")})
@@ -86,7 +85,7 @@ public class AuthController implements Logging {
   }
 
 
-  @PostMapping("users")
+  @PostMapping(value = "users", consumes = MediaType.APPLICATION_JSON_VALUE)
   @PreAuthorize("hasAnyAuthority('CRUD_ADMIN', 'CRUD_APP_USER')")
   @ApiOperation(value = "${AuthController.createUser.value}", nickname = "createUser",
           response = UserAuthProvisioningResponseDto.class, authorizations = {@Authorization(value = "jwtToken")})

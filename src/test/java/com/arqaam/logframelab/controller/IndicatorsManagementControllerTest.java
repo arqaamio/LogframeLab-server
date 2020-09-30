@@ -227,8 +227,8 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
     String uri = UriComponentsBuilder.fromUriString(INDICATORS_URI)
                   .queryParam("page", 1)
                   .queryParam("pageSize", 10)
-                  .queryParam("filters.sectors", "Poverty")
-                  .queryParam("filters.indicatorName", "NUMBER")
+//                  .queryParam("filters.sectors", "Poverty")
+//                  .queryParam("filters.indicatorName", "NUMBER")
                   .toUriString();
     ResponseEntity<ResponsePage<Indicator>> response = testRestTemplate
             .exchange(uri, HttpMethod.GET, new HttpEntity<>(headersWithAuth()), new ParameterizedTypeReference<>() {});

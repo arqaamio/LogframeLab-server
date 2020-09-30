@@ -12,6 +12,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.Resource;
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +50,7 @@ public class IndicatorIntegrationTest extends BaseIntegrationTest {
   void getIndicators() {
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
             .exchange("/indicator?name=NUMBER&sectors=Poverty", HttpMethod.GET,
-                    new HttpEntity<>(new HttpHeaders()), new ParameterizedTypeReference<>() {});
+                    new HttpEntity<>(new HttpHeaders()), new ParameterizedTypeReference<List<IndicatorResponse>>() {});
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
     assertTrue(response.getBody().stream().anyMatch(indicatorResponse -> indicatorResponse.getName().contains("Number")));

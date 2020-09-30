@@ -1,4 +1,4 @@
-package com.arqaam.logframelab.integration;
+package com.arqaam.logframelab.controller;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.everyItem;
@@ -20,7 +20,6 @@ import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.SDGCode;
 import com.arqaam.logframelab.model.persistence.Source;
 import com.arqaam.logframelab.repository.IndicatorRepository;
-import com.arqaam.logframelab.service.IndicatorMapper;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -53,8 +52,6 @@ public class IndicatorsManagementIntegrationTest extends BaseIntegrationTest {
   private final static int DEFAULT_PAGE_INDEX = DEFAULT_PAGE - 1;
   private static final String INDICATORS_URI = "/indicators/";
   private static final String APPROVALS_URI = INDICATORS_URI + "approvals";
-  @Autowired
-  private IndicatorMapper indicatorMapper;
   @Autowired
   private IndicatorRepository indicatorRepository;
 
@@ -110,7 +107,7 @@ public class IndicatorsManagementIntegrationTest extends BaseIntegrationTest {
     indicator.setDisaggregation(!disaggregationBeforeUpdate);
 
     HttpEntity<IndicatorRequestDto> httpEntity = new HttpEntity<>(
-        indicatorMapper.indicatorToIndicatorRequestDto(indicator), headersWithAuth());
+        indicatorToIndicatorRequestDto(indicator), headersWithAuth());
 
     ResponseEntity<Indicator> updatedIndicatorResponse = testRestTemplate
         .exchange(INDICATORS_URI, HttpMethod.PUT, httpEntity, Indicator.class);
@@ -127,15 +124,15 @@ public class IndicatorsManagementIntegrationTest extends BaseIntegrationTest {
 
   @Test
   void whenNewIndicatorSaved_thenVerifyAdded() {
-    IndicatorRequestDto request = IndicatorRequestDto.builder().crsCode(Collections.singleton(new CRSCode(112L, "99810.0")))
+    IndicatorRequestDto request = IndicatorRequestDto.builder().crsCode(Collections.singleton(112L))
         .dataSource("https://data.worldbank.org/indicator/FB.ATM.TOTL.P5?view=chart")
         .keywords(
             "household expenditure per capita,family income,family expenditure,domestic household")
         .disaggregation(true)
         .levelId(3L)
         .name("Proportion of population reporting having personally felt discriminated against")
-        .sdgCode(Collections.singleton(new SDGCode(1L, "10.4")))
-        .source(Collections.singleton(new Source(1L,"UN Sustainable Development Goals")))
+        .sdgCode(Collections.singleton(1L))
+        .source(Collections.singleton(1L))
         .sourceVerification("Project's M&E system")
         .sector("Inequality")
         .build();
@@ -219,9 +216,15 @@ public class IndicatorsManagementIntegrationTest extends BaseIntegrationTest {
 
   @Test
   void getIndicators() {
+    String uri = UriComponentsBuilder.fromUriString(INDICATORS_URI)
+                  .queryParam("page", 1)
+                  .queryParam("pageSize", 10)
+                  .queryParam("filters.sectors", "Poverty")
+                  .queryParam("filters.indicatorName", "NUMBER")
+                  .toUriString();
     ResponseEntity<ResponsePage<Indicator>> response = testRestTemplate
-            .exchange("/indicators?filters.indicatorName=NUMBER&filters.sectors=Poverty&page=1&pageSize=10", HttpMethod.GET,
-                    new HttpEntity<>(headersWithAuth()), new ParameterizedTypeReference<>() {});
+            .exchange(uri, HttpMethod.GET, new HttpEntity<>(headersWithAuth()), new ParameterizedTypeReference<ResponsePage<Indicator>>() {});
+
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
     assertEquals(5,response.getBody().getTotalElements());
@@ -294,6 +297,22 @@ public class IndicatorsManagementIntegrationTest extends BaseIntegrationTest {
     headers.setContentType(MediaType.APPLICATION_JSON);
     headers.set("Content-Type", MediaType.APPLICATION_JSON_VALUE);
     return headers;
+  }
+
+  private IndicatorRequestDto indicatorToIndicatorRequestDto(Indicator indicator){
+    return IndicatorRequestDto.builder()
+          .id(indicator.getId())
+          .crsCode(indicator.getCrsCode().stream().map(CRSCode::getId).collect(Collectors.toSet()))
+          .dataSource(indicator.getDataSource())
+          .description(indicator.getDescription())
+          .keywords(indicator.getKeywords())
+          .name(indicator.getName())
+          .sdgCode(indicator.getSdgCode().stream().map(SDGCode::getId).collect(Collectors.toSet()))
+          .source(indicator.getSource().stream().map(Source::getId).collect(Collectors.toSet()))
+          .sourceVerification(indicator.getSourceVerification())
+          .sector(indicator.getSector())
+          .levelId(indicator.getLevel().getId())
+          .build();
   }
 }
 

@@ -5,6 +5,8 @@ import com.arqaam.logframelab.controller.dto.IndicatorRequestDto;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
+import com.arqaam.logframelab.repository.*;
+import org.aspectj.lang.annotation.Before;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +32,13 @@ class IndicatorsManagementServiceTest {
 
     @Mock
     LevelRepository levelRepository;
+
+    @Mock
+    CRSCodeRepository crsCodeRepository;
+    @Mock
+    SDGCodeRepository sdgCodeRepository;
+    @Mock
+    SourceRepository sourceRepository;
 
     @Mock
     IndicatorRepository indicatorRepository;

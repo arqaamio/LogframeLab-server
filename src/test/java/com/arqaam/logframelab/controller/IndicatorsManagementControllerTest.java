@@ -101,7 +101,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
     );
   }
 
-  /*@Test
+  @Test
   void whenExistingIndicatorUpdated_thenVerifyChanges() {
     ResponseEntity<ResponsePage<Indicator>> indicatorsPerPageResponse = getPageOfIndicators();
 
@@ -221,7 +221,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
                 Collectors.toList()), everyItem(is(false)))
     );
   }
-
+  /*
   @Test
   void getIndicators() {
     ResponseEntity<ResponsePage<Indicator>> response = testRestTemplate

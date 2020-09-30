@@ -46,7 +46,7 @@ public class IndicatorControllerIntegrationTest extends BaseControllerTest {
     assertNotNull(response.getBody());
   }
 
-  @Test
+  /*@Test
   void getIndicators() {
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
             .exchange("/indicator?name=NUMBER&sectors=Poverty", HttpMethod.GET,
@@ -56,9 +56,9 @@ public class IndicatorControllerIntegrationTest extends BaseControllerTest {
     assertTrue(response.getBody().stream().anyMatch(indicatorResponse -> indicatorResponse.getName().contains("Number")));
     assertTrue(response.getBody().stream().allMatch(indicatorResponse -> indicatorResponse.getName().toLowerCase().contains("number")));
     assertTrue(response.getBody().stream().allMatch(indicatorResponse -> indicatorResponse.getSector().toLowerCase().contains("poverty")));
-  }
+  }*/
 
-  /*@Test
+  @Test
   void whenFiltersRequested_ThenFiltersReturned() {
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(bearerToken);
@@ -81,7 +81,7 @@ public class IndicatorControllerIntegrationTest extends BaseControllerTest {
         () -> assertTrue(testSortAscending(filtersDto.getSdgCode().stream().map(SDGCode::getName).collect(Collectors.toList()))),
         () -> assertTrue(testSortAscending(filtersDto.getLevel().stream().map(Level::getName).collect(Collectors.toList())))
     );
-  }*/
+  }
 
   List<IndicatorResponse> sampleIndicatorResponse() {
     List<IndicatorResponse> list = new ArrayList<>();

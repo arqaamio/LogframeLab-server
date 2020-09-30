@@ -46,7 +46,7 @@ public class IndicatorControllerIntegrationTest extends BaseControllerTest {
     assertNotNull(response.getBody());
   }
 
-  /*@Test
+  @Test
   void getIndicators() {
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
             .exchange("/indicator?name=NUMBER&sectors=Poverty", HttpMethod.GET,
@@ -58,7 +58,7 @@ public class IndicatorControllerIntegrationTest extends BaseControllerTest {
     assertTrue(response.getBody().stream().allMatch(indicatorResponse -> indicatorResponse.getSector().toLowerCase().contains("poverty")));
   }
 
-  @Test
+  /*@Test
   void whenFiltersRequested_ThenFiltersReturned() {
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(bearerToken);

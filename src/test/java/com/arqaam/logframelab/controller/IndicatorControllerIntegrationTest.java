@@ -55,11 +55,11 @@ public class IndicatorControllerIntegrationTest extends BaseControllerTest {
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
             .exchange(builder.build().encode().toUri(), HttpMethod.GET,
                     new HttpEntity<>(new HttpHeaders()), new ParameterizedTypeReference<>() {});
-   /* assertEquals(HttpStatus.OK, response.getStatusCode());
+   assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
     assertTrue(response.getBody().stream().anyMatch(indicatorResponse -> indicatorResponse.getName().contains("Number")));
     assertTrue(response.getBody().stream().allMatch(indicatorResponse -> indicatorResponse.getName().toLowerCase().contains("number")));
-    assertTrue(response.getBody().stream().allMatch(indicatorResponse -> indicatorResponse.getSector().toLowerCase().contains("poverty")));*/
+    assertTrue(response.getBody().stream().allMatch(indicatorResponse -> indicatorResponse.getSector().toLowerCase().contains("poverty")));
   }
 
   @Test

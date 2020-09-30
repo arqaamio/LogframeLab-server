@@ -49,11 +49,11 @@ public class IndicatorControllerIntegrationTest extends BaseControllerTest {
 
   @Test
   void getIndicators() {
-    UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl("/indicator")
+    String uriString = UriComponentsBuilder.fromUriString("/indicator")
         .queryParam("name", "NUMBER")
-        .queryParam("sectors", "Poverty");
+        .queryParam("sectors", "Poverty").toUriString();
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
-            .exchange(builder.build().encode().toUri(), HttpMethod.GET,
+            .exchange(uriString, HttpMethod.GET,
                     new HttpEntity<>(new HttpHeaders()), new ParameterizedTypeReference<>() {});
    assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());

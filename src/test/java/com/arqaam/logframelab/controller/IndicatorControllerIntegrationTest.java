@@ -12,6 +12,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.Resource;
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,8 +49,11 @@ public class IndicatorControllerIntegrationTest extends BaseControllerTest {
 
   @Test
   void getIndicators() {
+    UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl("/indicator")
+        .queryParam("name", "NUMBER")
+        .queryParam("sectors", "Poverty");
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
-            .exchange("/indicator?name=NUMBER&sectors=Poverty", HttpMethod.GET,
+            .exchange(builder.build().encode().toUri(), HttpMethod.GET,
                     new HttpEntity<>(new HttpHeaders()), new ParameterizedTypeReference<>() {});
    /* assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());

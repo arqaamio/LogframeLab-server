@@ -224,9 +224,14 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
   
   @Test
   void getIndicators() {
-    /*ResponseEntity<ResponsePage<Indicator>> response = testRestTemplate
-            .exchange("/indicators?filters.indicatorName=NUMBER&filters.sectors=Poverty&page=1&pageSize=10", HttpMethod.GET,
-                    defaultHttpEntity, new ParameterizedTypeReference<>() {});
+    String uri = UriComponentsBuilder.fromUriString(INDICATORS_URI)
+                  .queryParam("page", 1)
+                  .queryParam("pageSize", 10)
+                  .queryParam("filters.sectors", "Poverty")
+                  .queryParam("filters.indicatorName", "NUMBER")
+                  .toUriString();
+    ResponseEntity<ResponsePage<Indicator>> response = testRestTemplate
+            .exchange(uri, HttpMethod.GET, new HttpEntity<>(headersWithAuth()), new ParameterizedTypeReference<>() {});
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
     assertEquals(5,response.getBody().getTotalElements());
@@ -234,14 +239,12 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
     assertTrue(response.getBody().getContent().stream().anyMatch(i -> i.getName().contains("Number")));
     assertTrue(response.getBody().getContent().stream().allMatch(i -> i.getName().toLowerCase().contains("number")));
     assertTrue(response.getBody().getContent().stream().allMatch(i -> i.getSector().toLowerCase().contains("poverty")));
-    */
   }
 
   @Test
   void getIndicator() {
     ResponseEntity<Indicator> response = testRestTemplate
-            .exchange("/indicators/47", HttpMethod.GET,
-                    defaultHttpEntity, Indicator.class);
+            .exchange("/indicators/47", HttpMethod.GET, new HttpEntity<>(headersWithAuth()), Indicator.class);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
 

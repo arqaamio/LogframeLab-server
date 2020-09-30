@@ -7,8 +7,7 @@ import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto;
 import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto.FilterRequestDto;
 import com.arqaam.logframelab.exception.IndicatorNotFoundException;
 import com.arqaam.logframelab.model.persistence.Indicator;
-import com.arqaam.logframelab.repository.IndicatorRepository;
-import com.arqaam.logframelab.repository.LevelRepository;
+import com.arqaam.logframelab.repository.*;
 import com.arqaam.logframelab.util.Logging;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Example;
@@ -30,13 +29,19 @@ public class IndicatorsManagementService implements Logging {
 
     private final IndicatorRepository indicatorRepository;
     private final LevelRepository levelRepository;
+    private final SourceRepository sourceRepository;
+    private final SDGCodeRepository sdgCodeRepository;
+    private final CRSCodeRepository crsCodeRepository;
     private final IndicatorService indicatorService;
 
     public IndicatorsManagementService(IndicatorRepository indicatorRepository,
-                                       LevelRepository levelRepository,
-                                       IndicatorService indicatorService) {
+                                           LevelRepository levelRepository, SourceRepository sourceRepository, SDGCodeRepository sdgCodeRepository,
+                                           CRSCodeRepository crsCodeRepository, IndicatorService indicatorService) {
         this.indicatorRepository = indicatorRepository;
         this.levelRepository = levelRepository;
+        this.sourceRepository = sourceRepository;
+        this.sdgCodeRepository = sdgCodeRepository;
+        this.crsCodeRepository = crsCodeRepository;
         this.indicatorService = indicatorService;
     }
 
@@ -64,9 +69,9 @@ public class IndicatorsManagementService implements Logging {
                         .name(indicatorRequest.getName())
                         .level(levelRepository.findById(indicatorRequest.getLevelId()).orElse(null))
                         .keywords(indicatorRequest.getKeywords())
-                        .crsCode(indicatorRequest.getCrsCode())
-                        .sdgCode(indicatorRequest.getSdgCode())
-                        .source(indicatorRequest.getSource())
+                        .crsCode(crsCodeRepository.findByIdIn(indicatorRequest.getCrsCode()))
+                        .sdgCode(sdgCodeRepository.findByIdIn(indicatorRequest.getSdgCode()))
+                        .source(sourceRepository.findByIdIn(indicatorRequest.getSource()))
                         .sector(indicatorRequest.getSector())
                         .sourceVerification(indicatorRequest.getSourceVerification())
                         .dataSource(indicatorRequest.getDataSource())

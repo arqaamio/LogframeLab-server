@@ -1,4 +1,4 @@
-package com.arqaam.logframelab.controller;
+package com.arqaam.logframelab.integration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.everyItem;

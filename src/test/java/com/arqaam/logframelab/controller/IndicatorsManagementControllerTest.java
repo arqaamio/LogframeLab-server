@@ -221,7 +221,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
                 Collectors.toList()), everyItem(is(false)))
     );
   }
-  /*
+  
   @Test
   void getIndicators() {
     ResponseEntity<ResponsePage<Indicator>> response = testRestTemplate
@@ -234,7 +234,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
     assertTrue(response.getBody().getContent().stream().anyMatch(i -> i.getName().contains("Number")));
     assertTrue(response.getBody().getContent().stream().allMatch(i -> i.getName().toLowerCase().contains("number")));
     assertTrue(response.getBody().getContent().stream().allMatch(i -> i.getSector().toLowerCase().contains("poverty")));
-  }*/
+  }
 
   @Test
   void getIndicator() {

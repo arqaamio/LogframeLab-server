@@ -7,6 +7,7 @@ import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.model.projection.IndicatorFilters;
 import com.arqaam.logframelab.repository.*;
+import com.arqaam.logframelab.util.Constants;
 import com.arqaam.logframelab.util.DocManipulationUtil;
 import com.arqaam.logframelab.util.Logging;
 import com.arqaam.logframelab.util.Utils;
@@ -44,6 +45,7 @@ public class IndicatorService implements Logging {
   protected static final Integer IMPACT_NUM_TEMP_INDIC = 1,
       OUTCOME_NUM_TEMP_INDIC = 3,
       OUTPUT_NUM_TEMP_INDIC = 2;
+  private static final Integer TOTAL_PERCENTAGE = 100;
   private static final Integer TOTAL_PERCENTAGE_OF_SCANNING = 70;
   private static final Integer TOTAL_PERCENTAGE_OF_SMALL_TASKS = 5;
   private final IndicatorRepository indicatorRepository;
@@ -115,7 +117,7 @@ public class IndicatorService implements Logging {
         }
         if(!mapResult.isEmpty()) {
           List<Level> levelsList = levelRepository.findAllByOrderByPriority();
-          logger().info("Starting the sort of the indicators {}", mapResult);
+          logger().info("Starting the sort of the indicators");
           // Sort by Level and then by number of times a keyword was tricked
           result = mapResult.values().stream().sorted((o1, o2) -> {
             if (o1.getLevel().getId().equals(o2.getLevel().getId())){
@@ -137,7 +139,8 @@ public class IndicatorService implements Logging {
         throw new WordFileLoadFailedException();
       }
     }
-    utils.sendProgressMessage(progress+TOTAL_PERCENTAGE_OF_SMALL_TASKS*2);
+    logger().info("Successfuly scanned the file for "+ result.size() +" indicators");
+    utils.sendProgressMessage(TOTAL_PERCENTAGE);
     return result;
   }
 
@@ -244,7 +247,7 @@ public class IndicatorService implements Logging {
                     outputIndicators.add(indicator);
                 }
             }
-            XWPFDocument document = new XWPFDocument(new ClassPathResource("indicatorsExportTemplate.docx").getInputStream());
+            XWPFDocument document = new XWPFDocument(new ClassPathResource(Constants.WORD_FORMAT+ "_Template" + Constants.WORD_FILE_EXTENSION).getInputStream());
             XWPFTable table = document.getTableArray(0);
             Integer rowIndex = 1;
             rowIndex = fillWordTableByLevel(impactIndicators, table, rowIndex, true);
@@ -662,7 +665,7 @@ public class IndicatorService implements Logging {
         try {
             logger().info("Start exporting Indicators in DFID format");
             ByteArrayOutputStream output = new ByteArrayOutputStream();
-            XSSFWorkbook wk = new XSSFWorkbook(new ClassPathResource("RF_Template.xlsx").getInputStream());
+            XSSFWorkbook wk = new XSSFWorkbook(new ClassPathResource(Constants.DFID_FORMAT+"_Template" +Constants.WORKSHEET_FILE_EXTENSION).getInputStream());
             XSSFSheet sheet  = wk.getSheetAt(0);
             List<Level> levels = levelRepository.findAllByOrderByPriority();
             List<Indicator> indicatorList = indicatorRepository.findAllById(indicatorResponse.stream()
@@ -808,7 +811,7 @@ public class IndicatorService implements Logging {
         }
 
         try {
-            XWPFDocument document = new XWPFDocument(new ClassPathResource("PRM_Template.docx").getInputStream());
+            XWPFDocument document = new XWPFDocument(new ClassPathResource(Constants.PRM_FORMAT + "_Template" + Constants.WORD_FILE_EXTENSION).getInputStream());
             XWPFTable impactTable = document.getTableArray(0);
             XWPFTable outcomeTable = document.getTableArray(1);
             XWPFTable outputTable = document.getTableArray(2);

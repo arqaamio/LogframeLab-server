@@ -1,7 +1,10 @@
 package com.arqaam.logframelab.model.persistence.auth;
 
 import com.arqaam.logframelab.model.persistence.AuditableEntity;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 import java.io.Serializable;

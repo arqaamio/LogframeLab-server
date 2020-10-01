@@ -1,7 +1,7 @@
 package com.arqaam.logframelab.controller;
 
-import com.arqaam.logframelab.model.*;
 import com.arqaam.logframelab.model.Error;
+import com.arqaam.logframelab.model.WorldBankIndicator;
 import com.arqaam.logframelab.service.IndicatorService;
 import com.arqaam.logframelab.service.WorldBankService;
 import com.arqaam.logframelab.util.Logging;

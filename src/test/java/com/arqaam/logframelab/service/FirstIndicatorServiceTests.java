@@ -35,12 +35,12 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
 
-  @Test
-  void extractIndicatorsFromWordFile() throws IOException {
-    when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
-    List<IndicatorResponse> expectedResult = getExpectedResult(false);
-    MultipartFile file = new MockMultipartFile("test_doc.docx", "test_doc.docx",
-        MediaType.APPLICATION_OCTET_STREAM.toString(),
+    @Test
+    void extractIndicatorsFromWordFile() throws IOException {
+        when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
+        List<IndicatorResponse> expectedResult = getExpectedResult(false);
+        MultipartFile file = new MockMultipartFile("test_doc.docx", "test_doc.docx",
+                MediaType.APPLICATION_OCTET_STREAM.toString(),
         new ClassPathResource("test_doc.docx").getInputStream());
     List<IndicatorResponse> result = indicatorService.extractIndicatorsFromWordFile(file, null);
     assertNotNull(result);

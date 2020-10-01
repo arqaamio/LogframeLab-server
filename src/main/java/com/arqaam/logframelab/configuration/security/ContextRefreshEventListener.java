@@ -3,13 +3,12 @@ package com.arqaam.logframelab.configuration.security;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import com.arqaam.logframelab.service.auth.GroupService;
 import com.arqaam.logframelab.service.auth.UserService;
-import java.util.List;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.util.Optional;
+import java.util.List;
 
 @Component
 public class ContextRefreshEventListener {
@@ -33,7 +32,7 @@ public class ContextRefreshEventListener {
 
   @EventListener
   public void initSecurityAdminUser(ContextRefreshedEvent event) {
-    List<User> usersByGroupName = userService.getFirstUserByGroupName(SEC_ADMIN_GROUP_NAME);
+    List<User> usersByGroupName = userService.getUserByGroupName(SEC_ADMIN_GROUP_NAME);
 
     if (usersByGroupName.isEmpty()) {
       User secAdminUser =
@@ -45,7 +44,7 @@ public class ContextRefreshEventListener {
               .build();
       secAdminUser.addGroup(groupService.findByGroupName(SEC_ADMIN_GROUP_NAME));
 
-      userService.save(secAdminUser);
+      userService.createOrUpdateUser(secAdminUser);
     }
   }
 

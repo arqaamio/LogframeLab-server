@@ -3,11 +3,10 @@ package com.arqaam.logframelab.controller;
 import com.arqaam.logframelab.exception.IndicatorNotFoundException;
 import com.arqaam.logframelab.exception.InvalidDataSourceException;
 import com.arqaam.logframelab.exception.WorldBankAPIRequestFailedException;
+import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.WorldBankIndicator;
 import com.arqaam.logframelab.model.persistence.Indicator;
-import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.repository.IndicatorRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.ParameterizedTypeReference;
@@ -27,11 +26,6 @@ class WorldBankControllerTest extends BaseControllerTest {
 
     @MockBean
     private IndicatorRepository indicatorRepository;
-
-    @BeforeEach
-    void setup() {
-        generateAuthToken();
-    }
 
     @Test
     void getCountry() {

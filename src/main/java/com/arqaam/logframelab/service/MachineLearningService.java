@@ -42,7 +42,7 @@ public class MachineLearningService implements Logging {
         logger().info("Started to retrieve similar indicators to: {} with threshold: {}", name, threshold);
         MLSimilarIndicatorRequest body = new MLSimilarIndicatorRequest(name, threshold);
         ResponseEntity<List<MLSimilarIndicatorResponse>> responseEntity = restTemplate.exchange(URL+"/indicators/similarity-check",
-                HttpMethod.POST, new HttpEntity<>(body), new ParameterizedTypeReference<>() {});
+                HttpMethod.POST, new HttpEntity<>(body), new ParameterizedTypeReference<List<MLSimilarIndicatorResponse>>() {});
         if(responseEntity.getStatusCode()!= HttpStatus.OK || responseEntity.getBody() == null){
             logger().error("Failed to retrieve similar indicators from the Machine Learning API. Response: {}", responseEntity);
             throw new MLAPIRequestFailedException();

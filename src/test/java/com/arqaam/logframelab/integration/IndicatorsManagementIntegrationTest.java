@@ -1,4 +1,4 @@
-package com.arqaam.logframelab.controller;
+package com.arqaam.logframelab.integration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.everyItem;
@@ -20,16 +20,9 @@ import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.SDGCode;
 import com.arqaam.logframelab.model.persistence.Source;
 import com.arqaam.logframelab.repository.IndicatorRepository;
-import com.arqaam.logframelab.service.IndicatorMapper;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Random;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,17 +31,19 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
-public class IndicatorsManagementControllerTest extends BaseControllerTest {
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertAll;
+
+@ActiveProfiles(profiles = "management")
+public class IndicatorsManagementIntegrationTest extends BaseIntegrationTest {
 
   public static final int INDICATOR_ADMIN_GROUP_ID = 3;
   public static final String INDICATOR_USERNAME = "indicator";
@@ -59,8 +54,6 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
   private final static int DEFAULT_PAGE_INDEX = DEFAULT_PAGE - 1;
   private static final String INDICATORS_URI = "/indicators/";
   private static final String APPROVALS_URI = INDICATORS_URI + "approvals";
-  @Autowired
-  private IndicatorMapper indicatorMapper;
   @Autowired
   private IndicatorRepository indicatorRepository;
 
@@ -116,7 +109,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
     indicator.setDisaggregation(!disaggregationBeforeUpdate);
 
     HttpEntity<IndicatorRequestDto> httpEntity = new HttpEntity<>(
-        indicatorMapper.indicatorToIndicatorRequestDto(indicator), headersWithAuth());
+        indicatorToIndicatorRequestDto(indicator), headersWithAuth());
 
     ResponseEntity<Indicator> updatedIndicatorResponse = testRestTemplate
         .exchange(INDICATORS_URI, HttpMethod.PUT, httpEntity, Indicator.class);
@@ -133,15 +126,15 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
 
   @Test
   void whenNewIndicatorSaved_thenVerifyAdded() {
-    IndicatorRequestDto request = IndicatorRequestDto.builder().crsCode(Collections.singleton(new CRSCode(112L, "99810.0")))
+    IndicatorRequestDto request = IndicatorRequestDto.builder().crsCode(Collections.singleton(112L))
         .dataSource("https://data.worldbank.org/indicator/FB.ATM.TOTL.P5?view=chart")
         .keywords(
             "household expenditure per capita,family income,family expenditure,domestic household")
         .disaggregation(true)
         .levelId(3L)
         .name("Proportion of population reporting having personally felt discriminated against")
-        .sdgCode(Collections.singleton(new SDGCode(1L, "10.4")))
-        .source(Collections.singleton(new Source(1L,"UN Sustainable Development Goals")))
+        .sdgCode(Collections.singleton(1L))
+        .source(Collections.singleton(1L))
         .sourceVerification("Project's M&E system")
         .sector("Inequality")
         .build();
@@ -225,9 +218,15 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
 
   @Test
   void getIndicators() {
+    String uri = UriComponentsBuilder.fromUriString(INDICATORS_URI)
+                  .queryParam("page", 1)
+                  .queryParam("pageSize", 10)
+                  .queryParam("filters.sectors", "Poverty")
+                  .queryParam("filters.indicatorName", "NUMBER")
+                  .toUriString();
     ResponseEntity<ResponsePage<Indicator>> response = testRestTemplate
-            .exchange("/indicators?filters.indicatorName=NUMBER&filters.sectors=Poverty&page=1&pageSize=10", HttpMethod.GET,
-                    defaultHttpEntity, new ParameterizedTypeReference<>() {});
+            .exchange(uri, HttpMethod.GET, new HttpEntity<>(headersWithAuth()), new ParameterizedTypeReference<ResponsePage<Indicator>>() {});
+
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
     assertEquals(5,response.getBody().getTotalElements());
@@ -241,7 +240,7 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
   void getIndicator() {
     ResponseEntity<Indicator> response = testRestTemplate
             .exchange("/indicators/47", HttpMethod.GET,
-                    defaultHttpEntity, Indicator.class);
+                    new HttpEntity<>(headersWithAuth()), Indicator.class);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
 
@@ -300,6 +299,22 @@ public class IndicatorsManagementControllerTest extends BaseControllerTest {
     headers.setContentType(MediaType.APPLICATION_JSON);
     headers.set("Content-Type", MediaType.APPLICATION_JSON_VALUE);
     return headers;
+  }
+
+  private IndicatorRequestDto indicatorToIndicatorRequestDto(Indicator indicator){
+    return IndicatorRequestDto.builder()
+          .id(indicator.getId())
+          .crsCode(indicator.getCrsCode().stream().map(CRSCode::getId).collect(Collectors.toSet()))
+          .dataSource(indicator.getDataSource())
+          .description(indicator.getDescription())
+          .keywords(indicator.getKeywords())
+          .name(indicator.getName())
+          .sdgCode(indicator.getSdgCode().stream().map(SDGCode::getId).collect(Collectors.toSet()))
+          .source(indicator.getSource().stream().map(Source::getId).collect(Collectors.toSet()))
+          .sourceVerification(indicator.getSourceVerification())
+          .sector(indicator.getSector())
+          .levelId(indicator.getLevel().getId())
+          .build();
   }
 }
 

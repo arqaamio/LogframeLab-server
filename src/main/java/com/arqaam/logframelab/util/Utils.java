@@ -20,7 +20,7 @@ public class Utils implements Logging {
      * @param value Percentage value of the progress
      */
     public void sendProgressMessage(float value){
-        logger().debug("Preparing to send message through web socket. Value {}", value);
+        logger().info("Preparing to send message through web socket. Value {}", value);
         messageSendingOperations.convertAndSend(webSocketURI, new Progress((int)value));
     }
 }

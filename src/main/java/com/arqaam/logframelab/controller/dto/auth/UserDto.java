@@ -1,12 +1,11 @@
 package com.arqaam.logframelab.controller.dto.auth;
 
-import java.util.Collection;
-import lombok.Builder;
 import lombok.Value;
 
+import java.util.Collection;
+
 @Value
-@Builder
 public class UserDto {
-  String username;
-  Collection<String> groups;
+    String username;
+    Collection<String> groups;
 }

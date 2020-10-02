@@ -1,4 +1,4 @@
-package com.arqaam.logframelab.controller;
+package com.arqaam.logframelab.integration;
 
 import com.arqaam.logframelab.controller.dto.auth.login.AuthenticateUserRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.login.JwtAuthenticationTokenResponse;
@@ -6,20 +6,17 @@ import com.arqaam.logframelab.model.Error;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles(profiles = "test")
-public class BaseControllerTest {
+@ActiveProfiles(profiles = "integration")
+public class BaseIntegrationTest {
 
-  private static final String SEC_ADMIN_USERNAME = "secadmin";
-  private static final String SEC_ADMIN_PASSWORD = "Passw0rdArqaam1234@";
+  protected static final String SEC_ADMIN_USERNAME = "secadmin";
+  protected static final String SEC_ADMIN_PASSWORD = "Passw0rdArqaam1234@";
 
   protected String bearerToken;
 
@@ -27,14 +24,14 @@ public class BaseControllerTest {
   protected TestRestTemplate testRestTemplate;
 
   void assertEqualsException(ResponseEntity<Error> response, HttpStatus httpStatus, Integer code,
-                             Class<?> exception) {
+      Class<?> exception) {
     assertEquals(httpStatus, response.getStatusCode());
     assertEquals(code, response.getBody().getCode());
     assertEquals(exception.getSimpleName(), response.getBody().getException());
   }
 
-  protected void generateAuthToken(String... credentials) {
-    bearerToken = token(credentials);
+  protected void generateAuthToken() {
+    bearerToken = token();
   }
 
   protected String token(String... credentials) {

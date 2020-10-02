@@ -2,11 +2,26 @@ package com.arqaam.logframelab.service.auth;
 
 import com.arqaam.logframelab.controller.dto.auth.GroupDto;
 import com.arqaam.logframelab.model.persistence.auth.Group;
+import com.arqaam.logframelab.repository.GroupRepository;
+import org.springframework.stereotype.Service;
+
 import java.util.Set;
 
-public interface GroupService {
+@Service
+public class GroupService {
 
-  Group findByGroupName(String groupName);
+  private final GroupRepository groupRepository;
 
-  Set<GroupDto> getAllGroups();
+  public GroupService(GroupRepository groupRepository) {
+    this.groupRepository = groupRepository;
+  }
+
+  public Group findByGroupName(String groupName) {
+    return groupRepository.findByName(groupName);
+  }
+
+  public Set<GroupDto> getAllGroups() {
+    return groupRepository.findAllGroupsBy();
+  }
+
 }

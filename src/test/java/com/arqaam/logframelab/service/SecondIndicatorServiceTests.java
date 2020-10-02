@@ -1,17 +1,6 @@
 package com.arqaam.logframelab.service;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-
 import com.arqaam.logframelab.model.persistence.Indicator;
-
-import java.io.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -20,6 +9,18 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.util.StringUtils;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
 @ExtendWith(MockitoExtension.class)
 public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
 
@@ -27,7 +28,7 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
   void exportIndicatorsDFIDFormat() throws IOException {
     when(indicatorRepository.findAllById(any())).thenReturn(mockIndicatorList());
     List<Indicator> impactIndicators = mockIndicatorList().stream()
-        .filter(x -> x.getLevel().equals(mockLevels[3])).collect(Collectors.toList());
+            .filter(x -> x.getLevel().equals(mockLevels[3])).collect(Collectors.toList());
     List<Indicator> outcomeIndicators = mockIndicatorList().stream()
         .filter(x -> x.getLevel().equals(mockLevels[1])).collect(Collectors.toList());
     List<Indicator> outputIndicators = mockIndicatorList().stream()

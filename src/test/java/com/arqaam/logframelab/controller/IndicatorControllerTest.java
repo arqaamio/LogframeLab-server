@@ -1,14 +1,5 @@
 package com.arqaam.logframelab.controller;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
 import com.arqaam.logframelab.model.Error;
@@ -17,13 +8,6 @@ import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
 import com.arqaam.logframelab.service.IndicatorService;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +21,14 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 class IndicatorControllerTest extends BaseControllerTest {
 
@@ -98,14 +90,13 @@ class IndicatorControllerTest extends BaseControllerTest {
 
     when(indicatorRepositoryMock.findAll()).thenReturn(mockIndicatorList());
 
-    generateAuthToken();
+    // generateAuthToken();
   }
 
   @Test
   void handleFileUpload() {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-    headers.setBearerAuth(bearerToken);
     FiltersDto filters = getSampleFilter();
 
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
@@ -150,7 +141,6 @@ class IndicatorControllerTest extends BaseControllerTest {
     when(indicatorRepositoryMock.findAll()).thenReturn(indicators);
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-    headers.setBearerAuth(bearerToken);
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("file", new ClassPathResource("test_doc.docx"));
     body.add("filter", EMPTY_FILTER);
@@ -192,7 +182,6 @@ class IndicatorControllerTest extends BaseControllerTest {
     when(indicatorRepositoryMock.findAll()).thenReturn(indicators);
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-    headers.setBearerAuth(bearerToken);
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("file", new ClassPathResource("test_doc.docx"));
     body.add("filter", EMPTY_FILTER);
@@ -210,7 +199,6 @@ class IndicatorControllerTest extends BaseControllerTest {
   void handleFileUpload_wrongFileFormat() {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-    headers.setBearerAuth(bearerToken);
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("file", new ClassPathResource("application.properties"));
     body.add("filter", getSampleFilter());
@@ -234,8 +222,8 @@ class IndicatorControllerTest extends BaseControllerTest {
     List<IndicatorResponse> indicators = getExpectedResult();
     when(indicatorRepositoryMock.findAllById(any())).thenReturn(mockIndicatorList());
     ResponseEntity<Resource> response = testRestTemplate
-        .exchange("/indicator/download?format=dfid", HttpMethod.POST,
-            new HttpEntity<>(indicators, headersWithAuth()), Resource.class);
+            .exchange("/indicator/download?format=dfid", HttpMethod.POST,
+                    new HttpEntity<>(indicators), Resource.class);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
   }
@@ -246,7 +234,7 @@ class IndicatorControllerTest extends BaseControllerTest {
     when(indicatorRepositoryMock.findAllById(any())).thenReturn(mockIndicatorList());
     ResponseEntity<Resource> response = testRestTemplate
             .exchange("/indicator/download?format=prm", HttpMethod.POST,
-                    new HttpEntity<>(indicators, headersWithAuth()), Resource.class);
+                    new HttpEntity<>(indicators), Resource.class);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
   }
@@ -255,8 +243,8 @@ class IndicatorControllerTest extends BaseControllerTest {
   void downloadIndicators_emptyIndicators() {
     List<IndicatorResponse> indicators = new ArrayList<>();
     ResponseEntity<Error> response =
-        testRestTemplate.exchange(
-            "/indicator/download", HttpMethod.POST, new HttpEntity<>(indicators, headersWithAuth()), Error.class);
+            testRestTemplate.exchange(
+                    "/indicator/download", HttpMethod.POST, new HttpEntity<>(indicators), Error.class);
     assertEqualsException(response, HttpStatus.CONFLICT, 6, IllegalArgumentException.class);
   }
 
@@ -265,7 +253,6 @@ class IndicatorControllerTest extends BaseControllerTest {
     List<IndicatorResponse> expectedResult = getExpectedResult();
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-    headers.setBearerAuth(bearerToken);
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("filter", getSampleFilter());
 
@@ -282,19 +269,17 @@ class IndicatorControllerTest extends BaseControllerTest {
     List<IndicatorResponse> expectedResult = getExpectedResult();
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
         .exchange("/indicator?sector=" + String.join(",", mockSectors) +
-                "&levels=" + mockLevelsId.stream().map(String::valueOf).collect(Collectors.joining(","))
-                + "&sources=" + mockSources.stream().map(x-> String.valueOf(x.getId())).collect(Collectors.joining(",")) +
-                "&sdgCodes=" + mockSdgCodes.stream().map(x-> String.valueOf(x.getId())).collect(Collectors.joining(",")) +
-                "&crsCodes=" + mockCrsCodes.stream().map(x-> String.valueOf(x.getId())).collect(Collectors.joining(",")), HttpMethod.GET,
-            new HttpEntity<>(headersWithAuth()), new ParameterizedTypeReference<List<IndicatorResponse>>() {
-            });
+                        "&levels=" + mockLevelsId.stream().map(String::valueOf).collect(Collectors.joining(","))
+                        + "&sources=" + mockSources.stream().map(x -> String.valueOf(x.getId())).collect(Collectors.joining(",")) +
+                        "&sdgCodes=" + mockSdgCodes.stream().map(x -> String.valueOf(x.getId())).collect(Collectors.joining(",")) +
+                        "&crsCodes=" + mockCrsCodes.stream().map(x -> String.valueOf(x.getId())).collect(Collectors.joining(",")), HttpMethod.GET,
+                new HttpEntity<>(new HttpHeaders()), new ParameterizedTypeReference<List<IndicatorResponse>>() {
+                });
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     verify(indicatorRepositoryMock).findAll(any(Specification.class));
     verify(indicatorRepositoryMock, times(0)).findAll();
-    assertEqualsIndicator(Arrays
-        .asList(expectedResult.get(3), expectedResult.get(1), expectedResult.get(0),
-            expectedResult.get(2)), response.getBody());
+    assertEqualsIndicator(expectedResult, response.getBody());
   }
 
   @Test
@@ -302,33 +287,51 @@ class IndicatorControllerTest extends BaseControllerTest {
     List<IndicatorResponse> expectedResult = getExpectedResult();
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
         .exchange("/indicator?sector=" + String.join(",", mockSectors) +
-                "&levels=" + mockLevelsId.stream().map(String::valueOf).collect(Collectors.joining(","))
-                + "&sources=" + mockSources.stream().map(x-> String.valueOf(x.getId())).collect(Collectors.joining(",")),
-            HttpMethod.GET, new HttpEntity<>(headersWithAuth()),
-            new ParameterizedTypeReference<List<IndicatorResponse>>() {
-            });
+                        "&levels=" + mockLevelsId.stream().map(String::valueOf).collect(Collectors.joining(","))
+                        + "&sources=" + mockSources.stream().map(x -> String.valueOf(x.getId())).collect(Collectors.joining(",")),
+                HttpMethod.GET, new HttpEntity<>(new HttpHeaders()),
+                new ParameterizedTypeReference<List<IndicatorResponse>>() {
+                });
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     verify(indicatorRepositoryMock).findAll(any(Specification.class));
     verify(indicatorRepositoryMock, times(0)).findAll();
-    assertEqualsIndicator(Arrays
-        .asList(expectedResult.get(3), expectedResult.get(1), expectedResult.get(0),
-            expectedResult.get(2)), response.getBody());
+    assertEqualsIndicator(expectedResult, response.getBody());
   }
 
   @Test
   void getIndicators_noFilters() {
-    List<IndicatorResponse> expectedResult = mockIndicatorList().stream()
+    List<IndicatorResponse> expectedResult = mockIndicatorList().stream().sorted(Comparator.comparing(Indicator::getLevel))
         .map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList());
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
         .exchange("/indicator", HttpMethod.GET,
-            new HttpEntity<>(headersWithAuth()), new ParameterizedTypeReference<List<IndicatorResponse>>() {
-            });
+                new HttpEntity<>(new HttpHeaders()), new ParameterizedTypeReference<List<IndicatorResponse>>() {
+                });
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     verify(indicatorRepositoryMock, times(0)).findAll(any(Specification.class));
     verify(indicatorRepositoryMock).findAll();
     assertEqualsIndicator(expectedResult, response.getBody());
+  }
+
+  @Test
+  void getTemplate() {
+    List<IndicatorResponse> expectedResult = getExpectedResult();
+    ResponseEntity<Resource> response = testRestTemplate
+        .exchange("/indicator/template/dfid", HttpMethod.GET,new HttpEntity<>(new HttpHeaders()), Resource.class);
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+  }
+
+  @Test
+  void getTemplate_xlsxFormat() {
+    List<IndicatorResponse> expectedResult = getExpectedResult();
+    ResponseEntity<Resource> response = testRestTemplate
+        .exchange("/indicator/template/xlsx", HttpMethod.GET,new HttpEntity<>(new HttpHeaders()), Resource.class);
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
   }
 
   private List<Indicator> mockIndicatorList() {

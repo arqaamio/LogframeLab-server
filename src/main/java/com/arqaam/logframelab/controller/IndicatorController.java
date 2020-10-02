@@ -1,17 +1,20 @@
 package com.arqaam.logframelab.controller;
 
 import com.arqaam.logframelab.controller.dto.FiltersDto;
+import com.arqaam.logframelab.exception.TemplateNotFoundException;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
 import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.service.IndicatorService;
+import com.arqaam.logframelab.util.Constants;
 import com.arqaam.logframelab.util.Logging;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -20,7 +23,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.URLConnection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -30,13 +35,6 @@ import java.util.stream.Collectors;
 @RequestMapping("indicator")
 @Api(tags = "Indicator")
 public class IndicatorController implements Logging {
-
-    private static final String WORD_FILE_EXTENSION = ".docx";
-    private static final String WORKSHEET_FILE_EXTENSION = ".xlsx";
-    private static final String WORKSHEET_DEFAULT_FORMAT = "xlsx";
-    private static final String WORD_FORMAT = "word";
-    private static final String DFID_FORMAT = "dfid";
-    private static final String PRM_FORMAT = "prm";
 
     private final IndicatorService indicatorService;
 
@@ -69,7 +67,7 @@ public class IndicatorController implements Logging {
             @ApiResponse(code = 500, message = "Unexpected Error", response = Error.class)
     })
     public ResponseEntity<Resource> downloadIndicators(@RequestBody List<IndicatorResponse> indicators,
-                                                       @RequestParam(value = "format", defaultValue = WORD_FILE_EXTENSION) String format) {
+                                                       @RequestParam(value = "format", defaultValue = Constants.WORD_FILE_EXTENSION) String format) {
 
         logger().info("Downloading indicators. format {}, Indicators: {}", format, indicators);
         if(indicators.isEmpty()){
@@ -78,20 +76,20 @@ public class IndicatorController implements Logging {
             throw new IllegalArgumentException(msg);
         }
         ByteArrayOutputStream outputStream;
-        String extension = WORD_FILE_EXTENSION;
-        switch (format) {
-            case WORKSHEET_DEFAULT_FORMAT:
+        String extension = Constants.WORD_FILE_EXTENSION;
+        switch (format.toUpperCase()) {
+            case Constants.XLSX_FORMAT:
                 outputStream = indicatorService.exportIndicatorsInWorksheet(indicators);
-                extension = WORKSHEET_FILE_EXTENSION;
+                extension = Constants.WORKSHEET_FILE_EXTENSION;
                 break;
-            case DFID_FORMAT:
+            case Constants.DFID_FORMAT:
                 outputStream = indicatorService.exportIndicatorsDFIDFormat(indicators);
-                extension = WORKSHEET_FILE_EXTENSION;
+                extension = Constants.WORKSHEET_FILE_EXTENSION;
                 break;
-            case PRM_FORMAT:
+            case Constants.PRM_FORMAT:
                 outputStream = indicatorService.exportIndicatorsPRMFormat(indicators);
                 break;
-            case WORD_FORMAT:
+            case Constants.WORD_FORMAT:
             default:
                 outputStream = indicatorService.exportIndicatorsInWordFile(indicators);
                 break;
@@ -145,7 +143,7 @@ public class IndicatorController implements Logging {
     public ResponseEntity<List<Indicator>> importIndicatorFile(@RequestParam("file") MultipartFile file) {
 
         logger().info("Import Indicators from a worksheet File. File Name: {}", file.getOriginalFilename());
-        if(!file.getOriginalFilename().endsWith(WORKSHEET_FILE_EXTENSION)){
+        if(!file.getOriginalFilename().endsWith(Constants.WORKSHEET_FILE_EXTENSION)){
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
             throw new WrongFileExtensionException();
         }
@@ -175,6 +173,53 @@ public class IndicatorController implements Logging {
 
         return ResponseEntity.ok(indicatorService.getIndicators(Optional.ofNullable(sectors), Optional.ofNullable(sources),
                 Optional.ofNullable(levels), Optional.ofNullable(sdgCodes), Optional.ofNullable(crsCodes), name)
-                .stream().map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList()));
+                .stream()
+                .sorted(Comparator.comparing(Indicator::getLevel))
+                .map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList()));
+    }
+
+    @GetMapping(value = "template/{name}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ApiOperation(value = "${IndicatorController.getTemplate.value}", nickname = "getTemplate", response = Resource.class)
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "Template was downloaded", response = Resource.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred", response = Error.class)
+    })
+    public ResponseEntity<Resource> getTemplate(@PathVariable(value = "name") String name) {
+
+        logger().info("Retrieving template with name {}", name);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        String extension = Constants.WORD_FILE_EXTENSION;
+        name = name.toUpperCase();
+
+        switch (name) {
+            case Constants.XLSX_FORMAT:
+            case Constants.DFID_FORMAT:
+                extension = Constants.WORKSHEET_FILE_EXTENSION;
+                break;
+        }
+
+        try {
+            outputStream.write(new ClassPathResource(name+"_Template"+ extension).getInputStream().readAllBytes());
+        } catch (IOException e) {
+            logger().error("Failed to retrieve template since it was not found with name: {} and extension: {}", name, extension);
+            throw new TemplateNotFoundException();
+        }
+
+        String fileName = "logframe_template_"+name+extension;
+        //get the mimetype
+        String mimeType = URLConnection.guessContentTypeFromName(fileName);
+        if (mimeType == null) {
+            //unknown mimetype so set the mimetype to application/octet-stream
+            mimeType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+            //  mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        }
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.set("filename", fileName);
+        httpHeaders.set("Access-Control-Expose-Headers", "*");
+        httpHeaders.set("Content-Disposition", "inline; filename=\""+ fileName +"\"");
+
+        return ResponseEntity.ok().headers(httpHeaders).contentLength(outputStream.size())
+                .contentType(MediaType.parseMediaType(mimeType))
+                .body(new ByteArrayResource(outputStream.toByteArray()));
     }
 }

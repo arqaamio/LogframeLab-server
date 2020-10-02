@@ -1,4 +1,4 @@
-package com.arqaam.logframelab.controller;
+package com.arqaam.logframelab.integration;
 
 import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.model.IndicatorResponse;
@@ -12,6 +12,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.Resource;
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,8 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
 
-@ActiveProfiles(profiles = "integration")
-public class IndicatorControllerIntegrationTest extends BaseControllerTest {
+public class IndicatorIntegrationTest extends BaseIntegrationTest {
 
   private static final int DATABASE_SECTOR_SIZE = 42;
   private static final int DATABASE_CRS_CODE_SIZE = 26;
@@ -50,7 +50,7 @@ public class IndicatorControllerIntegrationTest extends BaseControllerTest {
   void getIndicators() {
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
             .exchange("/indicator?name=NUMBER&sectors=Poverty", HttpMethod.GET,
-                    new HttpEntity<>(new HttpHeaders()), new ParameterizedTypeReference<>() {});
+                    new HttpEntity<>(new HttpHeaders()), new ParameterizedTypeReference<List<IndicatorResponse>>() {});
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
     assertTrue(response.getBody().stream().anyMatch(indicatorResponse -> indicatorResponse.getName().contains("Number")));

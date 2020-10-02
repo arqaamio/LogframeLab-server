@@ -1,27 +1,15 @@
 package com.arqaam.logframelab.model.persistence.auth;
 
 import com.arqaam.logframelab.model.persistence.AuditableEntity;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+
+import javax.persistence.*;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Data
 @Entity(name = "User")
@@ -31,7 +19,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 @SuperBuilder
 public class User extends AuditableEntity<String> implements UserDetails {
 
-  @Id
+    @Id
   @Column(name = "USERNAME")
   private String username;
   @Column(name = "PASSWORD")

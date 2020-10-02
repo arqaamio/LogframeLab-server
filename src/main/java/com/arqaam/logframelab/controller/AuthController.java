@@ -8,53 +8,46 @@ import com.arqaam.logframelab.controller.dto.auth.login.AuthenticateUserRequestD
 import com.arqaam.logframelab.controller.dto.auth.login.JwtAuthenticationTokenResponse;
 import com.arqaam.logframelab.controller.dto.auth.logout.LogoutUserRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.logout.LogoutUserResponseDto;
-import com.arqaam.logframelab.exception.UnauthorizedException;
+import com.arqaam.logframelab.exception.UserNotFoundException;
 import com.arqaam.logframelab.model.Error;
-import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import com.arqaam.logframelab.service.auth.AuthService;
 import com.arqaam.logframelab.service.auth.GroupService;
-import com.arqaam.logframelab.service.usermanager.UserManager;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-import javax.validation.Valid;
-
+import com.arqaam.logframelab.service.auth.UserService;
+import com.arqaam.logframelab.util.Logging;
 import io.swagger.annotations.*;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @CrossOrigin("*")
 @RestController
 @RequestMapping(
-    value = "auth",
-    consumes = MediaType.APPLICATION_JSON_VALUE,
-    produces = MediaType.APPLICATION_JSON_VALUE)
+        value = "auth",
+        produces = MediaType.APPLICATION_JSON_VALUE)
 @Api(tags = "Authentication")
-public class AuthController {
+public class AuthController implements Logging {
 
   private final AuthService authService;
-  private final UserManager userManager;
+  private final UserService userService;
   private final GroupService groupService;
 
-  public AuthController(AuthService authService, UserManager userManager, GroupService groupService) {
+  public AuthController(AuthService authService, UserService userService, GroupService groupService) {
     this.authService = authService;
-    this.userManager = userManager;
+    this.userService = userService;
     this.groupService = groupService;
   }
 
-  @PostMapping(value = "login")
+  @PostMapping(value = "login", consumes = MediaType.APPLICATION_JSON_VALUE)
   @PreAuthorize("isAnonymous()")
   @ApiOperation(value = "${AuthController.authenticateUser.value}", nickname = "authenticateUser", response = JwtAuthenticationTokenResponse.class)
   @ApiResponses({
@@ -62,65 +55,66 @@ public class AuthController {
           @ApiResponse(code = 500, message = "Failed to authenticate the user", response = Error.class)
   })
   public ResponseEntity<JwtAuthenticationTokenResponse> authenticateUser(
-      @Valid @RequestBody AuthenticateUserRequestDto authenticateUserRequest) {
-    Authentication authentication =
-        authService
-            .authenticateUser(authenticateUserRequest.getUsername(),
-                authenticateUserRequest.getPassword())
-            .orElseThrow(() -> new UnauthorizedException("Unable to authenticate user"));
+          @Valid @RequestBody AuthenticateUserRequestDto request) {
+    logger().info("Starting to authenticate user with username: {}", request.getUsername());
+    Authentication authentication = authService.authenticateUser(request.getUsername(), request.getPassword());
 
     User user = (User) authentication.getPrincipal();
     SecurityContextHolder.getContext().setAuthentication(authentication);
 
     String token = authService.generateToken(user);
     return ResponseEntity.ok(JwtAuthenticationTokenResponse.builder().token(token)
-        .tokenType(authService.getTokenType())
-        .groups(user.getGroupMembership().stream().map(m -> m.getGroup().getName()).collect(
-            Collectors.toSet())).build());
+            .tokenType(authService.getTokenType())
+            .groups(user.getGroupMembership().stream().map(m -> m.getGroup().getName()).collect(
+                    Collectors.toSet())).build());
   }
 
-  @PostMapping("logout")
+  @PostMapping(value = "logout", consumes = MediaType.APPLICATION_JSON_VALUE)
   @PreAuthorize("isAuthenticated()")
   @ApiOperation(value = "${AuthController.userLogout.value}", nickname = "userLogout",
-          response = LogoutUserResponseDto.class, authorizations = { @Authorization(value="jwtToken") })
+          response = LogoutUserResponseDto.class, authorizations = {@Authorization(value = "jwtToken")})
   @ApiResponses({
           @ApiResponse(code = 200, message = "The user was logged out", response = LogoutUserResponseDto.class),
           @ApiResponse(code = 500, message = "Failed to log out the user", response = Error.class)
   })
   public ResponseEntity<LogoutUserResponseDto> userLogout(
-      @Valid @RequestBody LogoutUserRequestDto logoutUserRequest) {
-    authService.logout(logoutUserRequest.getUsername());
+          @Valid @RequestBody LogoutUserRequestDto request) {
+    logger().info("Starting to log out user with username: {}", request.getUsername());
+    authService.logout(request.getUsername());
     return ResponseEntity.ok(new LogoutUserResponseDto(true));
   }
 
 
-  @PostMapping("users")
+  @PostMapping(value = "users", consumes = MediaType.APPLICATION_JSON_VALUE)
   @PreAuthorize("hasAnyAuthority('CRUD_ADMIN', 'CRUD_APP_USER')")
   @ApiOperation(value = "${AuthController.createUser.value}", nickname = "createUser",
-          response = UserAuthProvisioningResponseDto.class, authorizations = { @Authorization(value="jwtToken") })
+          response = UserAuthProvisioningResponseDto.class, authorizations = {@Authorization(value = "jwtToken")})
   @ApiResponses({
           @ApiResponse(code = 200, message = "The user was created", response = UserAuthProvisioningResponseDto.class),
           @ApiResponse(code = 500, message = "Failed to create a user", response = Error.class)
   })
   public ResponseEntity<UserAuthProvisioningResponseDto> createUser(
-      @Valid @RequestBody UserAuthProvisioningRequestDto authProvisioningRequest) {
-    User user = userManager.provisionUser(authProvisioningRequest);
+          @Valid @RequestBody UserAuthProvisioningRequestDto request) {
+    logger().info("Starting to create a new user with username: {} and groupIds: {}",
+            request.getUsername(), request.getGroupIds());
+    User user = userService.provisionUser(request);
 
     return ResponseEntity.ok(new UserAuthProvisioningResponseDto(user.getUsername(),
-        user.getGroupMembership().stream().map(m -> m.getGroup().getName())
-            .collect(Collectors.toSet())));
+            user.getGroupMembership().stream().map(m -> m.getGroup().getName())
+                    .collect(Collectors.toSet())));
   }
 
   @GetMapping("users")
   @PreAuthorize("hasAnyAuthority('CRUD_ADMIN', 'CRUD_APP_USER')")
   @ApiOperation(value = "${AuthController.getUsers.value}", nickname = "getUsers",
-          response = UserAuthProvisioningResponseDto.class, authorizations = { @Authorization(value="jwtToken") })
+          response = UserDto.class, authorizations = {@Authorization(value = "jwtToken")}, responseContainer = "List")
   @ApiResponses({
-          @ApiResponse(code = 200, message = "Retrieved all users", response = UserAuthProvisioningResponseDto.class),
+          @ApiResponse(code = 200, message = "Retrieved all users", response = UserDto.class, responseContainer = "List"),
           @ApiResponse(code = 500, message = "Failed to retrieve the users", response = Error.class)
   })
   public ResponseEntity<List<UserDto>> getUsers() {
-    return ResponseEntity.ok(userManager.getUsers());
+    logger().info("Starting to retrieve all users");
+    return ResponseEntity.ok(userService.getUsersAndGroups());
   }
 
   @GetMapping("groups")
@@ -132,6 +126,7 @@ public class AuthController {
           @ApiResponse(code = 500, message = "Failed to retrieve the groups", response = Error.class)
   })
   public ResponseEntity<Set<GroupDto>> getGroups() {
+    logger().info("Starting to retrieve all groups");
     return ResponseEntity.ok(groupService.getAllGroups());
   }
 
@@ -144,8 +139,14 @@ public class AuthController {
           @ApiResponse(code = 500, message = "Failed to retrieve the user", response = Error.class)
   })
   public ResponseEntity<UserDto> getUser(@PathVariable("username") String username) {
-    Optional<UserDto> userDto = userManager.userExistsByUsername(username);
-    return userDto.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    logger().info("Starting to retrieve user with username: {}", username);
+    Optional<User> user = userService.findByUsername(username);
+    if (user.isEmpty()) {
+      logger().error("Failed to find user with username: {}", username);
+      throw new UserNotFoundException();
+    }
+    return ResponseEntity.ok(new UserDto(user.get().getUsername(),
+            user.get().getGroupMembership().stream().map(gm -> gm.getGroup().getName()).collect(Collectors.toList())));
   }
 
 }

@@ -1,19 +1,18 @@
 package com.arqaam.logframelab.controller.dto.auth.login;
 
-import java.util.Collection;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
+import java.util.Collection;
+
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class JwtAuthenticationTokenResponse {
-  private String token;
-  private String tokenType;
-  private Collection<String> groups;
+    private String token;
+    private String tokenType;
+    private Collection<String> groups;
 }

@@ -258,6 +258,30 @@ public class IndicatorsManagementIntegrationTest extends BaseIntegrationTest {
     assertEquals("", response.getBody().getDescription());
   }
 
+  @Test
+  void similarityCheckUpdate() {
+    Long INDICATOR_ID = 1L;
+    Indicator ind = getIndicator(INDICATOR_ID);
+    assertFalse(ind.getSimilarityCheck());
+
+    ResponseEntity<Indicator> response = testRestTemplate
+            .exchange("/indicators/similarity/"+INDICATOR_ID, HttpMethod.PUT,
+                    new HttpEntity<>(headersWithAuth()), Indicator.class);
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+
+    ind = getIndicator(INDICATOR_ID);
+    assertTrue(ind.getSimilarityCheck());
+  }
+
+  private Indicator getIndicator(Long id) {
+    ResponseEntity<Indicator> response = testRestTemplate
+            .exchange("/indicators/"+id, HttpMethod.GET, new HttpEntity<>(headersWithAuth()), Indicator.class);
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    return response.getBody();
+  }
+
   private ResponseEntity<Void> uploadIndicatorsForApproval() {
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("file", new ClassPathResource("Clusters.xlsx"));

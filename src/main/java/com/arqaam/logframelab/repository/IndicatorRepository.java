@@ -23,7 +23,14 @@ public interface IndicatorRepository extends JpaRepository<Indicator, Long>, Jpa
 
   List<Indicator> findAllByTempEquals(Boolean temp);
 
-  List<Indicator> findIndicatorByIdIn(Collection<Long> id);
+  /**
+   * Searches for the top 50 indicators with similarity-check given by argument
+   * @param checked Status of similarity-check
+   * @return List of indicators
+   */
+  List<Indicator> findFirst50BySimilarityCheckEquals(Boolean checked);
+
+  List<Indicator> findAllByIdIn(Collection<Long> id);
 
   @Query(value = "select * from IND_INDICATOR where SECTOR in (:sector)", nativeQuery = true)
   List<Indicator> getIndicatorsBySectors(@Param("sector") List<String> sectorsList);

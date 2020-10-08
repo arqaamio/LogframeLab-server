@@ -7,7 +7,9 @@ import com.arqaam.logframelab.exception.IndicatorNotFoundException;
 import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
+import com.arqaam.logframelab.service.IndicatorService;
 import com.arqaam.logframelab.service.IndicatorsManagementService;
+import com.arqaam.logframelab.util.Logging;
 import io.swagger.annotations.*;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
@@ -24,12 +26,14 @@ import java.util.Optional;
 @RequestMapping("indicators")
 @Api(tags = "Indicators Management")
 @PreAuthorize("hasAuthority('CRUD_INDICATOR')")
-public class IndicatorsManagementController {
+public class IndicatorsManagementController implements Logging {
 
-    private final IndicatorsManagementService indicatorsManagementService;
+  private final IndicatorsManagementService indicatorsManagementService;
+  private final IndicatorService indicatorService;
 
-    public IndicatorsManagementController(IndicatorsManagementService indicatorsManagementService) {
+  public IndicatorsManagementController(IndicatorsManagementService indicatorsManagementService, IndicatorService indicatorService) {
     this.indicatorsManagementService = indicatorsManagementService;
+    this.indicatorService = indicatorService;
   }
 
   @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -131,6 +135,17 @@ public class IndicatorsManagementController {
   public ResponseEntity<?> approvalStatusUpdate(@RequestBody IndicatorApprovalRequestDto approvalRequest) {
     indicatorsManagementService.processTempIndicatorsApproval(approvalRequest);
     return ResponseEntity.ok().build();
+  }
+
+  @PutMapping(value = "similarity/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+  @ApiOperation(value = "${IndicatorManagementController.similarityCheckUpdate.value}", nickname = "similarityCheckUpdate", authorizations = { @Authorization(value="jwtToken") })
+  @ApiResponses({
+          @ApiResponse(code = 200, message = "The indicators were updated for similarity", response = IndicatorResponse.class),
+          @ApiResponse(code = 404, message = "The indicators with id was not found", response = Error.class),
+  })
+  public ResponseEntity<Indicator> similarityCheckUpdate(@PathVariable String id) {
+    logger().info("Starting to update the similarity check for the indicator with id: {}", id);
+    return ResponseEntity.ok(indicatorService.updateSimilarityCheck(Long.valueOf(id), true));
   }
 
 }

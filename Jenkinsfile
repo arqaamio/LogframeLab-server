@@ -63,7 +63,7 @@ pipeline {
                 script {
                     if (env.BRANCH_NAME == 'develop') {
                         sh "docker tag ${env.image_name}:${env.image_version}-${env.image_tag} logframelab/${env.image_name}:${env.image_version}-${env.image_tag}"
-                        sh "docker tag ${env.image_name}:${env.image_version}-${env.image_tag} logframelab/${env.image_name}:devlatest"
+                        sh "docker tag ${env.image_name}:${env.image_version}-${env.image_tag} logframelab/${env.image_name}:${env.image_version}-devlatest"
                         withDockerRegistry(url: 'https://index.docker.io/v1/',  credentialsId: 'dockerhub') {
                             sh "docker push logframelab/${env.image_name}:${env.image_version}-${env.image_tag}"
                             sh "docker push logframelab/${env.image_name}:devlatest"
@@ -77,7 +77,7 @@ pipeline {
 
                     if (env.BRANCH_NAME == 'master') {
                         sh "docker tag ${env.image_name}:${env.image_version}-${env.image_tag} logframelab/${env.image_name}:${env.image_version}-${env.image_tag}"
-                        sh "docker tag ${env.image_name}:${env.image_version}-${env.image_tag} logframelab/${env.image_name}:stagelatest"
+                        sh "docker tag ${env.image_name}:${env.image_version}-${env.image_tag} logframelab/${env.image_name}:${env.image_version}-stagelatest"
                         withDockerRegistry(url: 'https://index.docker.io/v1/',  credentialsId: 'dockerhub') {
                             sh "docker push logframelab/${env.image_name}:${env.image_version}-${env.image_tag}"
                             sh "docker push logframelab/${env.image_name}:stagelatest"

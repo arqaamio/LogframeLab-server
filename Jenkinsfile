@@ -46,7 +46,11 @@ pipeline {
                     GIT_HASH = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
                     def commit_id = GIT_HASH
                     env.image_name = 'server'
-                    env.image_tag = "${env.BRANCH_NAME != 'master' || env.BRANCH_NAME != 'develop' ? 'feature-' + commit_id : env.BUILD_NUMBER}"
+                    if (env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master') {
+                        env.image_tag = env.BUILD_NUMBER
+                    } else {
+                        env.image_tag = 'feature-' + commit_id
+                    }
                     sh "docker build -t ${image_name}:${image_version}-${image_tag} --build-arg VERSION=${env.image_version} ."
                 }
             }

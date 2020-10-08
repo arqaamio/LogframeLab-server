@@ -7,6 +7,5 @@ import java.util.Collection;
 import java.util.Set;
 
 public interface SDGCodeRepository extends JpaRepository<SDGCode, Long>{
-
     public Set<SDGCode> findByIdIn(Collection<Long> ids);
 }

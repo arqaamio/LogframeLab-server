@@ -62,7 +62,7 @@ pipeline {
             steps {
                 script {
                     if (env.BRANCH_NAME == 'develop') {
-                        sh "docker tag ${env.image_name}:${env.mage_version}-${env.image_tag} logframelab/${env.image_name}:${env.image_version}-${env.image_tag}"
+                        sh "docker tag ${env.image_name}:${env.image_version}-${env.image_tag} logframelab/${env.image_name}:${env.image_version}-${env.image_tag}"
                         sh "docker tag ${env.image_name}:${env.image_version}-${env.image_tag} logframelab/${env.image_name}:devlatest"
                         withDockerRegistry(url: 'https://index.docker.io/v1/',  credentialsId: 'dockerhub') {
                             sh "docker push logframelab/${env.image_name}:${env.image_version}-${env.image_tag}"

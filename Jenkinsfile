@@ -1,4 +1,4 @@
-def KEEP_IMAGE = true // whether you wnat your iamge to be pushed to Dockerhub or not. Image gets pushed by default for develop and master branches.
+def KEEP_IMAGE = false // whether you wnat your iamge to be pushed to Dockerhub or not. Image gets pushed by default for develop and master branches.
 def devops_repo_branch = "master" // Branch of teh devops repository. Default is master.
 def appName = 'LogframeLab' // Name of the app used in Terraform.
 

@@ -140,10 +140,8 @@ public class IndicatorsManagementService implements Logging {
      */
     private void saveForApproval(List<Indicator> indicators) {
         logger().info("Starting to check for duplicates");
-        ExampleMatcher matcher = ExampleMatcher.matchingAll()
-                .withIgnorePaths("id")
-                .withIgnorePaths("temp")
-                .withIgnoreCase();
+        ExampleMatcher matcher = ExampleMatcher.matching()
+                .withMatcher("name", new ExampleMatcher.GenericPropertyMatcher().ignoreCase());
         // Filter to remove duplicated indicators
         indicators = indicators.stream().filter(x -> !indicatorRepository.exists(Example.of(x, matcher)))
                 .peek(indicator -> indicator.setTemp(true)).collect(Collectors.toList());

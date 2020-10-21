@@ -19,7 +19,9 @@ import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -71,17 +73,23 @@ class IndicatorsManagementServiceTest {
         MockMultipartFile file = new MockMultipartFile("Indicators.xlsx", "Indicators.xlsx",
                 MediaType.APPLICATION_OCTET_STREAM.toString(),
                 new ClassPathResource("Indicators.xlsx").getInputStream());
-        List<Indicator> indicators = new ArrayList<>();
-        indicators.add(Indicator.builder().name("Fake Name").build());
-        indicators.add(Indicator.builder().name("Fake Name 2").build());
+        Indicator indicator2 = Indicator.builder().name("Fake Name 2").build();
+        List<Indicator> extractedIndicators = new ArrayList<>();
+        extractedIndicators.add(Indicator.builder().name("Fake Name").description("New description").build());
+        extractedIndicators.add(indicator2);
 
-        when(indicatorService.extractIndicatorFromFile(file)).thenReturn(indicators);
+        List<Indicator> indicators = Collections.singletonList(Indicator.builder().id(1L).name("Fake Name").description("Old description").build());
+        when(indicatorService.extractIndicatorFromFile(file)).thenReturn(extractedIndicators);
+        when(indicatorRepository.findAllByNameIn(any())).thenReturn(indicators);
         service.processFileWithTempIndicators(file);
 
         verify(indicatorService).extractIndicatorFromFile(file);
         verify(indicatorRepository, times(2)).exists(any());
         verify(indicatorRepository).findAllByNameIn(any());
-        verify(indicatorRepository).saveAll(any());
+        List<Indicator> expected = new ArrayList<>();
+        expected.add(Indicator.builder().id(1L).name("Fake Name").description("New description").temp(true).build());
+        expected.add(indicator2);
+        verify(indicatorRepository).saveAll(expected);
     }
 
     @Test

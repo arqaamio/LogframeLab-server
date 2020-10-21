@@ -2,8 +2,7 @@ package com.arqaam.logframelab.service;
 
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.*;
-import com.arqaam.logframelab.repository.IndicatorRepository;
-import com.arqaam.logframelab.repository.LevelRepository;
+import com.arqaam.logframelab.repository.*;
 import com.arqaam.logframelab.util.DocManipulationUtil;
 import com.arqaam.logframelab.util.Utils;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +36,7 @@ public abstract class BaseIndicatorServiceTest {
           new Source(4L,"FAO"), new Source(5L,"WHO"), new Source(6L,"FANTA"), new Source(7L,"IPA"), new Source(8L, "ACF"),
           new Source(9L,"Nutrition Cluster"), new Source(10L,"Freedom House"), new Source(11L,"CyberGreen"), new Source(12L,"ITU"),
           new Source(13L,"UN Sustainable Development Goals"), new Source(14L,"World Bank"), new Source(15L,"UNDP"), new Source(16L,"ILO"),
-          new Source(7L,"IMF"));
+          new Source(7L,"IMF"), new Source(19L, "OCHA Indicator Registry"));
   final static List<SDGCode> mockSdgCodes =  Arrays.asList(
           new SDGCode(1L,"End poverty in all its forms everywhere"),
           new SDGCode(2L,"End hunger, achieve food security and improved nutrition and promote sustainable agriculture"),
@@ -46,7 +45,7 @@ public abstract class BaseIndicatorServiceTest {
           new SDGCode(5L,"Achieve gender equality and empower all women and girls"));
   final static List<CRSCode> mockCrsCodes = Arrays
           .asList(new CRSCode(998L,"Unallocated / Unspecified"),new CRSCode(151L, "Government & Civil Society-general"),
-                  new CRSCode(240L, "Banking & Financial Services"), new CRSCode(112L, "Basic Education"));
+                  new CRSCode(240L, "Banking & Financial Services"), new CRSCode(112L, "Basic Education"), new CRSCode(720L, "Emergency Response"));
   final static List<Long> mockLevelsId = Arrays.stream(mockLevels).map(Level::getId)
       .collect(Collectors.toList());
   final static List<String> mockSourceVerification = Arrays
@@ -56,6 +55,12 @@ public abstract class BaseIndicatorServiceTest {
   IndicatorRepository indicatorRepository;
   @Mock
   LevelRepository levelRepository;
+  @Mock
+  SourceRepository sourceRepository;
+  @Mock
+  SDGCodeRepository sdgCodeRepository;
+  @Mock
+  CRSCodeRepository crsCodeRepository;
   @Mock
   DocManipulationUtil docManipulationUtil;
   @Mock

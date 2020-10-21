@@ -9,10 +9,11 @@ import com.arqaam.logframelab.model.persistence.Source;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.*;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +35,27 @@ public class IndicatorIntegrationTest extends BaseIntegrationTest {
   @BeforeEach
   void setup() {
     generateAuthToken();
+  }
+
+  @Test
+  void handleFileUpload() {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+    MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+    body.add("file", new ClassPathResource("test_doc.docx"));
+    body.add("filter", new FiltersDto());
+    ResponseEntity<List<IndicatorResponse>> response = testRestTemplate
+            .exchange("/indicator/upload", HttpMethod.POST,
+                    new HttpEntity<>(body, headers), new ParameterizedTypeReference<List<IndicatorResponse>>(){});
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertFalse(response.getBody().isEmpty());
+    for (IndicatorResponse indicator : response.getBody()) {
+      assertNotNull(indicator);
+      assertTrue(indicator.getScore()> -1 && indicator.getScore() <= 100);
+    }
   }
 
   @Test

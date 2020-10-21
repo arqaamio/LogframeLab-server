@@ -15,6 +15,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface IndicatorRepository extends JpaRepository<Indicator, Long>, JpaSpecificationExecutor<Indicator> {
@@ -75,4 +76,11 @@ public interface IndicatorRepository extends JpaRepository<Indicator, Long>, Jpa
    * @return Indicators that have the names searched
    */
   List<Indicator> findAllByNameIn(Iterable<String> names);
+
+  /**
+   * Retrieves indicator with correspondent name
+   * @param name Name of the indicator to be searched
+   * @return Found indicator
+   */
+  Optional<Indicator> findTopByName(String name);
 }

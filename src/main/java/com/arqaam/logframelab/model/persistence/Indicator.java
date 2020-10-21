@@ -81,7 +81,7 @@ public class Indicator {
 
     @Transient
     @Builder.Default
-    private Integer numTimes = 1;
+    private Integer score = 0;
 
     public List<String> getKeywordsList() {
         if(keywordsList == null && keywords != null && !keywords.isEmpty()){

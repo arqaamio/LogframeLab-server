@@ -8,6 +8,8 @@ import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
 import com.arqaam.logframelab.service.IndicatorService;
+import com.arqaam.logframelab.service.MachineLearningService;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,6 +76,9 @@ class IndicatorControllerTest extends BaseControllerTest {
   @MockBean
   private IndicatorRepository indicatorRepositoryMock;
 
+  @MockBean
+  private MachineLearningService machineLearningService;
+
   @Autowired
   private IndicatorService indicatorService;
 
@@ -95,6 +100,16 @@ class IndicatorControllerTest extends BaseControllerTest {
 
   @Test
   void handleFileUpload() {
+    String indicatorName = mockIndicatorList().get(0).getName();
+    String indicatorName2 = mockIndicatorList().get(1).getName();
+    List<List<String>> mlIndicators = new ArrayList<>();
+    mlIndicators.add(Arrays.asList(indicatorName, "38.123456"));
+    mlIndicators.add(Arrays.asList(indicatorName2, "40.123456"));
+    
+    when(machineLearningService.scanForIndicators(any())).thenReturn(mlIndicators);
+    when(indicatorRepositoryMock.findTopByName(indicatorName)).thenReturn(Optional.of(mockIndicatorList().get(0)));
+    when(indicatorRepositoryMock.findTopByName(indicatorName2)).thenReturn(Optional.of(mockIndicatorList().get(1)));
+
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
     FiltersDto filters = getSampleFilter();
@@ -103,6 +118,13 @@ class IndicatorControllerTest extends BaseControllerTest {
     body.add("file", new ClassPathResource("test_doc.docx"));
     body.add("filter", filters);
 
+    List<IndicatorResponse> expected = Arrays.asList(
+      indicatorService.convertIndicatorToIndicatorResponse(mockIndicatorList().get(0)),
+      indicatorService.convertIndicatorToIndicatorResponse(mockIndicatorList().get(1))
+    );
+    expected.get(0).setScore(38);
+    expected.get(1).setScore(40);
+    
     ResponseEntity<List<IndicatorResponse>> response =
         testRestTemplate.exchange(
             "/indicator/upload",
@@ -111,10 +133,11 @@ class IndicatorControllerTest extends BaseControllerTest {
             new ParameterizedTypeReference<List<IndicatorResponse>>() {
             });
 
-    assertThat(response.getStatusCode(), is(HttpStatus.OK));
+    assertEquals(HttpStatus.OK, response.getStatusCode());
 
     Objects.requireNonNull(response.getBody())
         .forEach(resp -> assertAll(
+            () -> assertEqualsIndicator(expected, response.getBody()),
             () -> assertThat(filters.getSector(), hasItem(resp.getSector())),
             () -> assertThat(
                 filters.getLevel().stream().map(Level::getName).collect(Collectors.toSet()),
@@ -124,7 +147,7 @@ class IndicatorControllerTest extends BaseControllerTest {
             () -> assertTrue(filters.getSdgCode().containsAll(resp.getSdgCode()))));
   }
 
-  @Test
+  /*@Test
   void handleFileUpload_indicatorsWithSameId() {
     List<String> keywordsFoodList = new ArrayList<>();
     keywordsFoodList.add("agriculture");
@@ -193,7 +216,7 @@ class IndicatorControllerTest extends BaseControllerTest {
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEqualsIndicator(expectedResult, response.getBody());
-  }
+  }*/
 
   @Test
   void handleFileUpload_wrongFileFormat() {
@@ -250,18 +273,34 @@ class IndicatorControllerTest extends BaseControllerTest {
 
   @Test
   void handleFileUpload_doc() {
-    List<IndicatorResponse> expectedResult = getExpectedResult();
+    String indicatorName = mockIndicatorList().get(0).getName();
+    String indicatorName2 = mockIndicatorList().get(1).getName();
+    List<List<String>> mlIndicators = new ArrayList<>();
+    mlIndicators.add(Arrays.asList(indicatorName, "38.123456"));
+    mlIndicators.add(Arrays.asList(indicatorName2, "40.123456"));
+    
+    when(machineLearningService.scanForIndicators(any())).thenReturn(mlIndicators);
+    when(indicatorRepositoryMock.findTopByName(indicatorName)).thenReturn(Optional.of(mockIndicatorList().get(0)));
+    when(indicatorRepositoryMock.findTopByName(indicatorName2)).thenReturn(Optional.of(mockIndicatorList().get(1)));
+
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+    List<IndicatorResponse> expected = Arrays.asList(
+      indicatorService.convertIndicatorToIndicatorResponse(mockIndicatorList().get(0)),
+      indicatorService.convertIndicatorToIndicatorResponse(mockIndicatorList().get(1))
+    );
+    expected.get(0).setScore(38);
+    expected.get(1).setScore(40);
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("filter", getSampleFilter());
-
     body.add("file", new ClassPathResource("test doc.doc"));
+
     ResponseEntity<List<IndicatorResponse>> response = testRestTemplate.exchange("/indicator/upload", HttpMethod.POST,
         new HttpEntity<>(body, headers), new ParameterizedTypeReference<List<IndicatorResponse>>() {});
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
-    assertEqualsIndicator(expectedResult, response.getBody());
+    assertEqualsIndicator(expected, response.getBody());
   }
 
   @Test

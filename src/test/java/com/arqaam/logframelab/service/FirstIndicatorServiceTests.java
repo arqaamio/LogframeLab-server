@@ -35,7 +35,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
 
-    @Test
+    /*@Test
     void extractIndicatorsFromWordFile() throws IOException {
         when(indicatorRepository.findAll()).thenReturn(mockIndicatorList());
         List<IndicatorResponse> expectedResult = getExpectedResult(false);
@@ -114,7 +114,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     indicatorService.checkIndicators(wordsToScan, indicators, mapResult);
 
     assertTrue(mapResult.isEmpty());
-  }
+  }*/
 
   @Test
   void exportIndicatorsInWordFile() throws IOException {

@@ -25,7 +25,8 @@ public class IndicatorResponse {
     private Set<CRSCode> crsCode;
     private Set<SDGCode> sdgCode;
     @EqualsAndHashCode.Exclude
-    private int numTimes;
+    // private int numTimes;
+    private Integer score;
 
     private String date;
     private String value;

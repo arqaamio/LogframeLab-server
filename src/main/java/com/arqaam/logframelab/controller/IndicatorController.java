@@ -7,8 +7,10 @@ import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.service.IndicatorService;
+import com.arqaam.logframelab.service.MachineLearningService;
 import com.arqaam.logframelab.util.Constants;
 import com.arqaam.logframelab.util.Logging;
+import com.arqaam.logframelab.util.Utils;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -25,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -37,9 +40,13 @@ import java.util.stream.Collectors;
 public class IndicatorController implements Logging {
 
     private final IndicatorService indicatorService;
+    private final MachineLearningService machineLearningService;
+    private final Utils utils;
 
-    public IndicatorController(IndicatorService indicatorService) {
+    public IndicatorController(IndicatorService indicatorService, MachineLearningService machineLearningService, Utils utils) {
         this.indicatorService = indicatorService;
+        this.machineLearningService = machineLearningService;
+        this.utils = utils;
     }
 
     @PostMapping(value = "upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -55,7 +62,16 @@ public class IndicatorController implements Logging {
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
            throw new WrongFileExtensionException();
         }
-        return  ResponseEntity.ok().body(indicatorService.extractIndicatorsFromWordFile(file, filter));
+        List<List<String>> mlIndicators = machineLearningService.scanForIndicators(utils.retrieveTextFromDocument(file));
+        logger().info("Retrieved the indicators and its score found in the text");
+
+        List<IndicatorResponse> response = new ArrayList<>();
+        for (int i = 0; i < mlIndicators.size(); i++) {
+            Indicator ind = indicatorService.getIndicatorByName(mlIndicators.get(i).get(0));
+            ind.setScore((int)Double.parseDouble(mlIndicators.get(i).get(1)));
+            response.add(indicatorService.convertIndicatorToIndicatorResponse(ind));
+        }
+        return  ResponseEntity.ok().body(response);
     }
 
     @PostMapping(value = "download", consumes = MediaType.APPLICATION_JSON_VALUE)

@@ -75,7 +75,7 @@ public class IndicatorService implements Logging {
    * @param filter <code>FilterDto</code>
    * @return List of Indicators
    */
-  public List<IndicatorResponse> extractIndicatorsFromWordFile( MultipartFile file, FiltersDto filter) {
+/*  public List<IndicatorResponse> extractIndicatorsFromWordFile( MultipartFile file, FiltersDto filter) {
     Integer progress = TOTAL_PERCENTAGE_OF_SMALL_TASKS;
     List<IndicatorResponse> result = new ArrayList<>();
     List<Indicator> indicatorsList;
@@ -142,7 +142,7 @@ public class IndicatorService implements Logging {
     logger().info("Successfuly scanned the file for "+ result.size() +" indicators");
     utils.sendProgressMessage(TOTAL_PERCENTAGE);
     return result;
-  }
+  }*/
 
     /**
      * Search for indicators keywords in the given text and return the found indicators
@@ -152,7 +152,7 @@ public class IndicatorService implements Logging {
      * @param indicatorsList List of indicators to be searched
      * @return Map of the with the indicator id as key and indicator as value
      */
-  protected Map<Long, Indicator> searchForIndicatorsInText(String text, Integer maxIndicatorLength, Integer progress, List<Indicator> indicatorsList){
+  /*protected Map<Long, Indicator> searchForIndicatorsInText(String text, Integer maxIndicatorLength, Integer progress, List<Indicator> indicatorsList){
       utils.sendProgressMessage(progress+=TOTAL_PERCENTAGE_OF_SMALL_TASKS);
       Map<Long, Indicator> mapResult = new HashMap<>();
       List<String> wordsToScan = new ArrayList<>();
@@ -185,14 +185,14 @@ public class IndicatorService implements Logging {
           }
       }
       return mapResult;
-  }
+  }*/
   /**
      * Fills a list of indicators that contain certain words
      * @param wordsToScan Words to find in the indicators' keyword list
      * @param indicators Indicators to be analyzed
      * @param mapResult Map Indicators' Id and IndicatorResponses
      */
-    protected void checkIndicators(List<String> wordsToScan, List<Indicator> indicators,
+    /*protected void checkIndicators(List<String> wordsToScan, List<Indicator> indicators,
                                    Map<Long, Indicator> mapResult) {
         logger().debug("Check Indicators with wordsToScan: {}, indicators: {}, mapResult: {}",
                 wordsToScan, indicators, mapResult);
@@ -213,7 +213,7 @@ public class IndicatorService implements Logging {
                 }
             }
         }
-    }
+    }*/
 
     /**
      * Export Indicators in a word template (.docx) file
@@ -578,6 +578,21 @@ public class IndicatorService implements Logging {
     }
 
     /**
+     * Get indicator with name. If none are found IndicatorNotFoundException
+     * @param indicatorName Names of the indicator
+     * @return Indicator with name
+     */
+    public Indicator getIndicatorByName(String indicatorName){
+        logger().info("Searching for indicator with name: {}", indicatorName);
+        Optional<Indicator> indicator = indicatorRepository.findTopByName(indicatorName);
+        if(indicator.isEmpty()) {
+            logger().info("Failed to find indicators with names");
+            throw new IndicatorNotFoundException();
+        }
+        return indicator.get();
+    }
+
+    /**
      * Get indicator with ids. If none are found throws IndicatorNotFoundException
      * @param ids Ids of the indicators
      * @return List of Indicators
@@ -632,7 +647,8 @@ public class IndicatorService implements Logging {
                 .crsCode(indicator.getCrsCode())
                 .sdgCode(indicator.getSdgCode())
                 .source(indicator.getSource())
-                .numTimes(indicator.getNumTimes())
+                // .numTimes(indicator.getNumTimes())
+                .score(indicator.getScore())
                 .value(indicator.getValue())
                 .date(indicator.getDate())
                 .build();

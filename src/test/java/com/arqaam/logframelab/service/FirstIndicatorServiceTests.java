@@ -179,6 +179,35 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
   }
 
   @Test
+  void extractIndicatorFromFile() throws IOException {
+    when(sourceRepository.findAll()).thenReturn(mockSources);
+    when(sdgCodeRepository.findAll()).thenReturn(mockSdgCodes);
+    when(crsCodeRepository.findAll()).thenReturn(mockCrsCodes);
+
+    MockMultipartFile file = new MockMultipartFile("Indicators.xlsx", "Indicators.xlsx",
+      MediaType.APPLICATION_OCTET_STREAM.toString(),
+      new ClassPathResource("Indicators.xlsx").getInputStream());
+    List<Indicator> result = indicatorService.extractIndicatorFromFile(file);
+    for (Indicator ind : result) {
+      assertNotNull(ind);
+      assertNotNull(ind.getLevel());
+      assertFalse(ind.getSector() == null || ind.getSector().isBlank() || ind.getSector().isEmpty());
+      assertFalse(ind.getName() == null || ind.getName().isBlank() || ind.getName().isEmpty());
+      assertNotNull(ind.getSource());
+      assertFalse(ind.getSource().isEmpty());
+      assertFalse(ind.getSource().stream().anyMatch(Objects::isNull));
+
+      assertNotNull(ind.getSdgCode());
+      assertFalse(ind.getSdgCode().isEmpty());
+      assertFalse(ind.getSdgCode().stream().anyMatch(Objects::isNull));
+
+      assertNotNull(ind.getCrsCode());
+      assertFalse(ind.getCrsCode().isEmpty());
+      assertFalse(ind.getCrsCode().stream().anyMatch(Objects::isNull));
+    }
+  }
+
+  @Test
   void exportIndicatorsInWorksheet() throws IOException {
     List<Indicator> expectedResult = mockIndicatorList();
 

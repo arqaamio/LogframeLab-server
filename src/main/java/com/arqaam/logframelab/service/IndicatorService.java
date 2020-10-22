@@ -353,12 +353,12 @@ public class IndicatorService implements Logging {
                 .name(currentRow.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
                 .description(currentRow.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
                 .source(Arrays.stream(currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().split(",")).map(
-                        x-> sources.stream().filter(y->y.getName().equalsIgnoreCase(x)).findFirst().orElse(null)).collect(Collectors.toSet()))
+                        x-> sources.stream().filter(y->y.getName().equalsIgnoreCase(x.trim())).findFirst().orElse(null)).collect(Collectors.toSet()))
                 .disaggregation(currentRow.getCell(6, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().equalsIgnoreCase("yes"))
-                .crsCode(Arrays.stream(((crsCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(crsCodeCell.getNumericCellValue()) : crsCodeCell.getStringCellValue()))
-                        .split(",")).map(x-> crsCodes.stream().filter(y->String.valueOf(y.getId()).equalsIgnoreCase(x)).findFirst().orElse(null)).collect(Collectors.toSet()))
-                .sdgCode(Arrays.stream(((sdgCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf(sdgCodeCell.getNumericCellValue()) : sdgCodeCell.getStringCellValue()))
-                        .split(",")).map(x-> sdgCodes.stream().filter(y->String.valueOf(y.getId()).equalsIgnoreCase(x)).findFirst().orElse(null)).collect(Collectors.toSet()))
+                .crsCode(Arrays.stream(((crsCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf((int)crsCodeCell.getNumericCellValue()) : crsCodeCell.getStringCellValue()))
+                        .split(",")).map(x-> crsCodes.stream().filter(y->String.valueOf(y.getId()).equalsIgnoreCase(x.trim())).findFirst().orElse(null)).collect(Collectors.toSet()))
+                .sdgCode(Arrays.stream(((sdgCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf((int)sdgCodeCell.getNumericCellValue()) : sdgCodeCell.getStringCellValue()))
+                        .split(",")).map(x-> sdgCodes.stream().filter(y->String.valueOf(y.getId()).equalsIgnoreCase(x.trim())).findFirst().orElse(null)).collect(Collectors.toSet()))
                 .sourceVerification(currentRow.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
                 .dataSource(currentRow.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
                 .build();

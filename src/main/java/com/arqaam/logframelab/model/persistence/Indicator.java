@@ -67,8 +67,9 @@ public class Indicator {
     @Column(name = "TEMP")
     private boolean temp;
 
-    @Column(name = "SIMILARITY_CHECK")
-    private Boolean similarityCheck;
+    @Column(name = "SIMILARITY_CHECK", nullable = false)
+    @Builder.Default
+    private Boolean similarityCheck = false;
 
     @Transient
     private List<String> keywordsList;

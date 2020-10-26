@@ -62,15 +62,9 @@ public class IndicatorController implements Logging {
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
            throw new WrongFileExtensionException();
         }
-        List<List<String>> mlIndicators = machineLearningService.scanForIndicators(utils.retrieveTextFromDocument(file));
-        logger().info("Retrieved the indicators and its score found in the text");
 
-        List<IndicatorResponse> response = new ArrayList<>();
-        for (int i = 0; i < mlIndicators.size(); i++) {
-            Indicator ind = indicatorService.getIndicatorByName(mlIndicators.get(i).get(0));
-            ind.setScore((int)Double.parseDouble(mlIndicators.get(i).get(1)));
-            response.add(indicatorService.convertIndicatorToIndicatorResponse(ind));
-        }
+        List<IndicatorResponse> response  = this.indicatorService.scanForIndicators(utils.retrieveTextFromDocument(file));
+
         return  ResponseEntity.ok().body(response);
     }
 

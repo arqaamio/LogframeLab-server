@@ -11,13 +11,10 @@ import com.arqaam.logframelab.util.Constants;
 import com.arqaam.logframelab.util.DocManipulationUtil;
 import com.arqaam.logframelab.util.Logging;
 import com.arqaam.logframelab.util.Utils;
-import org.apache.poi.hwpf.HWPFDocument;
-import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
@@ -31,8 +28,6 @@ import javax.persistence.criteria.Predicate;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.isNull;
@@ -54,18 +49,20 @@ public class IndicatorService implements Logging {
   private final SourceRepository sourceRepository;
   private final SDGCodeRepository sdgCodeRepository;
   private final CRSCodeRepository crsCodeRepository;
+  private final MachineLearningService machineLearningService;
 
   private final Utils utils;
 
   public IndicatorService(IndicatorRepository indicatorRepository, LevelRepository levelRepository,
                           SourceRepository sourceRepository, SDGCodeRepository sdgCodeRepository,
-                          CRSCodeRepository crsCodeRepository, Utils utils) {
+                          CRSCodeRepository crsCodeRepository, MachineLearningService machineLearningService, Utils utils) {
     this.indicatorRepository = indicatorRepository;
     this.levelRepository = levelRepository;
     this.sourceRepository = sourceRepository;
     this.sdgCodeRepository = sdgCodeRepository;
     this.crsCodeRepository = crsCodeRepository;
-    this.utils = utils;
+      this.machineLearningService = machineLearningService;
+      this.utils = utils;
   }
 
   /**
@@ -874,4 +871,37 @@ public class IndicatorService implements Logging {
             DocManipulationUtil.setTextOnCellWithBoldTitle(table.getRow(i*2+3).getCell(0), "NOTES:" ,indicators.get(i).getSourceVerification(), null);
         }
     }
+
+    public List<IndicatorResponse> scanForIndicators(String textToScan) {
+        logger().info("Retrieved the indicators and its score found in the text");
+        List<IndicatorResponse> response = new ArrayList<>();
+        List<List<String>> mlIndicators = machineLearningService.scanForIndicators(textToScan);
+        List<Indicator> indicators = new ArrayList<Indicator>();
+
+        for (int i = 0; i < mlIndicators.size(); i++) {
+            Indicator ind = getIndicatorByName(mlIndicators.get(i).get(0));
+            ind.setScore((int)Double.parseDouble(mlIndicators.get(i).get(1)));
+            indicators.add(ind);
+        }
+        // Sort indicators by Level priority
+        if(!indicators.isEmpty()) {
+            List<Level> levelsList = levelRepository.findAllByOrderByPriority();
+            logger().info("Starting the sort of the indicators");
+            // Sort by Level and then by number of times a keyword was tricked
+            response = indicators.stream().sorted((o1, o2) -> {
+                if (o1.getLevel().getId().equals(o2.getLevel().getId())){
+                    return o1.getScore() > o2.getScore() ? -1 :
+                            (o1.getScore().equals(o2.getScore()) ? 0 : 1);
+                }
+                for (Level level : levelsList) {
+                    if(level.getPriority().equals(o1.getLevel().getPriority())) return -1;
+                    if(level.getPriority().equals(o2.getLevel().getPriority())) return 1;
+                }
+                return 1;
+            }).map(this::convertIndicatorToIndicatorResponse).collect(Collectors.toList());
+       }
+        return response;
+
+    }
+
 }

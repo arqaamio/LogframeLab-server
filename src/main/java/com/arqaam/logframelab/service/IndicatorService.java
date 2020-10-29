@@ -11,6 +11,7 @@ import com.arqaam.logframelab.util.Constants;
 import com.arqaam.logframelab.util.DocManipulationUtil;
 import com.arqaam.logframelab.util.Logging;
 import com.arqaam.logframelab.util.Utils;
+import org.apache.logging.log4j.util.Strings;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -235,6 +236,7 @@ public class IndicatorService implements Logging {
                     indicator.setValue(indicatorResponses.get(i).getValue());
                 if(!StringUtils.isEmpty(indicatorResponses.get(i).getDate()))
                     indicator.setDate(indicatorResponses.get(i).getDate());
+                indicator.setStatement(indicatorResponses.get(i).getStatement());
                 // Can't do switch because the values aren't known before runtime
                 if (levels.get(0).equals(indicator.getLevel())) {
                     impactIndicators.add(indicator);
@@ -247,9 +249,15 @@ public class IndicatorService implements Logging {
             XWPFDocument document = new XWPFDocument(new ClassPathResource(Constants.WORD_FORMAT+ "_Template" + Constants.WORD_FILE_EXTENSION).getInputStream());
             XWPFTable table = document.getTableArray(0);
             Integer rowIndex = 1;
-            rowIndex = fillWordTableByLevel(impactIndicators, table, rowIndex, true);
-            rowIndex = fillWordTableByLevel(outcomeIndicators, table, rowIndex, false);
-            rowIndex = fillWordTableByLevel(otherOutcomeIndicators, table, rowIndex, false);
+            rowIndex = fillWordTableByLevel(impactIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
+                    Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
+                    table, rowIndex, true);
+            rowIndex = fillWordTableByLevel(outcomeIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
+                    Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
+                    table, rowIndex, false);
+            rowIndex = fillWordTableByLevel(otherOutcomeIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
+                    Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
+                    table, rowIndex, false);
             fillWordTableByLevel(outputIndicators, table, rowIndex, false);
 
             document.write(outputStream);
@@ -274,11 +282,19 @@ public class IndicatorService implements Logging {
         Integer initialRow = rowIndex;
         logger().info("Starting to fill the table with the indicators information. RowIndex: {}, fillBaseline: {}", rowIndex, fillBaseline);
         if(indicatorList.size() > 0) {
+            String currentStatement = "";
+            Integer statementRow = rowIndex;
             for (Indicator indicator : indicatorList) {
                 // First fill the template then add new rows
                 if (filledTemplateIndicators) DocManipulationUtil.insertTableRow(table, rowIndex);
                 else filledTemplateIndicators = true;
 
+                if(!Objects.equals(indicator.getStatement(), currentStatement) || rowIndex == initialRow + indicatorList.size() -1 ) {
+                    DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(1), indicator.getStatement(), DEFAULT_FONT_SIZE);
+                    if(!statementRow.equals(rowIndex)) DocManipulationUtil.mergeCellsByColumn(table, statementRow, rowIndex, 1);
+                    currentStatement = indicator.getStatement();
+                    statementRow = rowIndex;
+                }
                 // Set values
                 DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(2), indicator.getName(), DEFAULT_FONT_SIZE);
                 DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(6), Optional.ofNullable(indicator.getSourceVerification()).orElse(""), DEFAULT_FONT_SIZE);
@@ -291,7 +307,6 @@ public class IndicatorService implements Logging {
             }
             // Merge column of level, result and assumption
             DocManipulationUtil.mergeCellsByColumn(table, initialRow, rowIndex - 1, 0);
-            DocManipulationUtil.mergeCellsByColumn(table, initialRow, rowIndex - 1, 1);
             DocManipulationUtil.mergeCellsByColumn(table, initialRow, rowIndex - 1, 7);
         } else {
             // Add template row
@@ -394,7 +409,7 @@ public class IndicatorService implements Logging {
         XSSFWorkbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet();
         String[] columns = new String[]{"Level", "Sector", "Name", "Description", "Source", "Disaggregation", "DAC 5/CRS",
-            "SDG", "Source of Verification", "Data Source", "Baseline Value", "Baseline Date"};
+            "SDG", "Source of Verification", "Data Source", "Baseline Value", "Baseline Date", "Statement"};
 
         // Create a CellStyle with the font
         Font boldFont = workbook.createFont();
@@ -433,6 +448,7 @@ public class IndicatorService implements Logging {
             row.createCell(9).setCellValue(indicator.getDataSource());
             row.createCell(10).setCellValue(response.getValue());
             row.createCell(11).setCellValue(response.getDate());
+            row.createCell(12).setCellValue(response.getStatement());
         }
 
         // Resize all columns to fit the content size
@@ -644,10 +660,10 @@ public class IndicatorService implements Logging {
                 .crsCode(indicator.getCrsCode())
                 .sdgCode(indicator.getSdgCode())
                 .source(indicator.getSource())
-                // .numTimes(indicator.getNumTimes())
                 .score(indicator.getScore())
                 .value(indicator.getValue())
                 .date(indicator.getDate())
+                .statement(indicator.getStatement())
                 .build();
     }
 
@@ -693,7 +709,7 @@ public class IndicatorService implements Logging {
                     indicator.setValue(indicatorResponse.get(i).getValue());
                 if(!StringUtils.isEmpty(indicatorResponse.get(i).getDate()))
                     indicator.setDate(indicatorResponse.get(i).getDate());
-
+                indicator.setStatement(indicatorResponse.get(i).getStatement());
                 // Can't do switch because the values aren't known before runtime
                 if (levels.get(0).equals(indicator.getLevel())) {
                     impactIndicators.add(indicator);
@@ -706,9 +722,15 @@ public class IndicatorService implements Logging {
 
             logger().info("Impact Indicators: {}\nOutcome Indicators: {}\nOutput Indicators: {}", impactIndicators, outcomeIndicators, outputIndicators);
             int startRowNewIndicator = 1;
-            startRowNewIndicator = fillIndicatorsPerLevel(sheet, impactIndicators, startRowNewIndicator, IMPACT_NUM_TEMP_INDIC, true);
-            startRowNewIndicator = fillIndicatorsPerLevel(sheet, outcomeIndicators, startRowNewIndicator, OUTCOME_NUM_TEMP_INDIC, false);
-            fillIndicatorsPerLevel(sheet, outputIndicators, startRowNewIndicator, OUTPUT_NUM_TEMP_INDIC, false);
+            startRowNewIndicator = fillIndicatorsPerLevel(sheet, impactIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
+                    Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
+                    startRowNewIndicator, IMPACT_NUM_TEMP_INDIC, true);
+            startRowNewIndicator = fillIndicatorsPerLevel(sheet, outcomeIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
+                    Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
+                    startRowNewIndicator, OUTCOME_NUM_TEMP_INDIC, false);
+            fillIndicatorsPerLevel(sheet, outputIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
+                    Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
+                    startRowNewIndicator, OUTPUT_NUM_TEMP_INDIC, false);
             wk.write(output);
             wk.close();
             return output;
@@ -728,67 +750,262 @@ public class IndicatorService implements Logging {
      * @return Index of the row where the next template starts
      */
     private Integer fillIndicatorsPerLevel(XSSFSheet sheet, List<Indicator> indicatorList, Integer startRowNewIndicator,
-                                           Integer numberTemplateIndicators, Boolean fillBaseline){
+                                           Integer numberTemplateIndicators, Boolean fillBaseline) {
         Integer initialRow = startRowNewIndicator;
-        int count = 0;
-        logger().info("Starting to fill Indicators. Start Row New Indicator {}, Number of template indicators of level: {}",
-                startRowNewIndicator, numberTemplateIndicators);
-        // Fill the available spaces
-        while(count < indicatorList.size() && count < numberTemplateIndicators) {
-            sheet.getRow(startRowNewIndicator + 1).getCell(2).setCellValue(indicatorList.get(count).getName());
-            sheet.getRow(startRowNewIndicator + 3).getCell(3).setCellValue(indicatorList.get(count).getSourceVerification());
-            if(fillBaseline && !isNull(indicatorList.get(count).getValue()) && !isNull(indicatorList.get(count).getDate()))
-                sheet.getRow(startRowNewIndicator + 1).getCell(3).setCellValue(indicatorList.get(count).getValue() +
-                    " (" + indicatorList.get(count).getDate() + ")");
-            startRowNewIndicator += 4;
-            count++;
-        }
+        if(indicatorList.size() > 0) {
+            Integer count = 0;
+            Integer statementCount = 0;
+            Map<String, List<Indicator>> map = new HashMap<>();
+            for (Indicator ind : indicatorList) {
+                if (map.containsKey(ind.getStatement())) {
+                    map.get(ind.getStatement()).add(ind);
+                } else {
+                    List<Indicator> indicators1 = new ArrayList<>();
+                    indicators1.add(ind);
+                    map.put(ind.getStatement(), indicators1);
+                }
+            }
+            List<Indicator> indicators = map.values().iterator().next();
+            if (map.entrySet().size() == 1 && indicators.size() <= numberTemplateIndicators) {
+                for (Indicator indicator : indicators) {
+                    count++;
+                    fillDFIDIndicatorRows(sheet, indicator, startRowNewIndicator, fillBaseline, count,1, count==1);
+                    startRowNewIndicator += 4;
+                }
+                return initialRow + 4*numberTemplateIndicators;
+            } else {
+                // Remove merge
+                List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();
+                for (int j = 0; j < mergedRegions.size(); j++) {
+                    // Check every first row of template indicators including the last row of the previous template
+                    if (mergedRegions.get(j).getLastColumn() == 0 && mergedRegions.get(j).getLastRow() == startRowNewIndicator+3) {
+                        sheet.removeMergedRegion(j);
+                    }
+                }
+                Iterator<Map.Entry<String, List<Indicator>>> iterator = map.entrySet().iterator();
+                // For all statements
+                while(iterator.hasNext()) {
+                    indicators = iterator.next().getValue();
+                    Integer statementRow = startRowNewIndicator;
+                    statementCount = statementCount + (Strings.isNotEmpty(indicators.get(0).getStatement()) ? 1 : 0);
 
-        // If needs new rows
-        if (indicatorList.size() > numberTemplateIndicators) {
-            logger().info("Adding new rows to worksheet to insert indicators. IndicatorList Size: {}", indicatorList.size());
-            for (int i = numberTemplateIndicators; i < indicatorList.size(); i++) {
-                if (numberTemplateIndicators == i && numberTemplateIndicators.equals(OUTCOME_NUM_TEMP_INDIC)) {
-                    logger().info("Searching for cells needing unmerging in the first column, numberTemplateIndicators: {}", numberTemplateIndicators);
-                    // Unmerge merged on the first column, so it can be merged later
-                    List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();
-                    for (int j = 0; j < mergedRegions.size(); j++) {
-                        // Check every first row of template indicators including the last row of the previous template
-                        if (mergedRegions.get(j).getLastColumn() == 0 && mergedRegions.get(j).getLastRow() == startRowNewIndicator - 1) {
-                            sheet.removeMergedRegion(j);
+                    // Has more statements
+                    if(iterator.hasNext()){
+                        // Add rows
+                        for (int i = 0; i < indicators.size(); i++) {
+                            //add rows
+                            sheet.shiftRows(startRowNewIndicator + 4, sheet.getLastRowNum(), 4);
+                            sheet.copyRows(startRowNewIndicator, startRowNewIndicator + 4, startRowNewIndicator+4, new CellCopyPolicy());
+
+                            fillDFIDIndicatorRows(sheet, indicators.get(i), startRowNewIndicator, fillBaseline, i+1, statementCount, true);
+                            startRowNewIndicator+=4;
+                        }
+                        sheet.addMergedRegion(new CellRangeAddress(statementRow+1, startRowNewIndicator-1, 0, 0));
+                    // Last statement or no statement
+                    }else {
+                        // fill existing template
+                        if(indicators.size()<=numberTemplateIndicators){
+                            // Fill rows
+                            for (int i = 0; i < indicators.size(); i++) {
+                                fillDFIDIndicatorRows(sheet, indicators.get(i), startRowNewIndicator, fillBaseline, i+1, statementCount, i==0);
+                                startRowNewIndicator+=4;
+                            }
+                            sheet.addMergedRegion(new CellRangeAddress(statementRow+1, statementRow+3, 0, 0));
+                            startRowNewIndicator+=(numberTemplateIndicators - indicators.size())*4;
+                            // Add rows and fill
+                        }else {
+                            Integer startRow = startRowNewIndicator;
+                            for (int i = 0; i < indicators.size(); i++) {
+                                Boolean createNewRows = indicators.size()- (i +1) >= numberTemplateIndicators;
+                                // Add new rows
+                                if(createNewRows) {
+                                    sheet.shiftRows(startRowNewIndicator + 4, sheet.getLastRowNum(), 4);
+                                    sheet.copyRows(startRowNewIndicator, startRowNewIndicator + 4, startRowNewIndicator + 4, new CellCopyPolicy());
+                                }
+                                // Fill new rows and new ones
+                                fillDFIDIndicatorRows(sheet, indicators.get(i), startRowNewIndicator, fillBaseline, i+1, statementCount, createNewRows);
+                                startRowNewIndicator+=4;
+                            }
+                            // Merge added rows
+                            if(numberTemplateIndicators.equals(OUTPUT_NUM_TEMP_INDIC)){
+                                sheet.addMergedRegion(new CellRangeAddress(startRow + 1, startRowNewIndicator - 5, 0, 0));
+                            }else {
+                                sheet.addMergedRegion(new CellRangeAddress(startRow + 1, startRowNewIndicator - 3*numberTemplateIndicators, 0, 0));
+                            }
                         }
                     }
                 }
-                // Add new rows and copy the indicator template
-                sheet.shiftRows(startRowNewIndicator, sheet.getLastRowNum(), 4);
-                sheet.copyRows(startRowNewIndicator - 4, startRowNewIndicator, startRowNewIndicator, new CellCopyPolicy());
-
-                // Clear cell for future merge
-                sheet.getRow(startRowNewIndicator).getCell(0).setCellValue("");
-
-                // Set values
-                sheet.getRow(startRowNewIndicator + 1).getCell(2).setCellValue(indicatorList.get(i).getName());
-                sheet.getRow(startRowNewIndicator + 3).getCell(3).setCellValue(indicatorList.get(i).getSourceVerification());
-                if(fillBaseline && !isNull(indicatorList.get(i).getValue()) && !isNull(indicatorList.get(i).getDate()))
-                    sheet.getRow(startRowNewIndicator + 1).getCell(3).setCellValue(indicatorList.get(i).getValue() +
-                            " (" + indicatorList.get(i).getDate() + ")");
-                else
-                    sheet.getRow(startRowNewIndicator+1).getCell(3).setCellValue("");
-                startRowNewIndicator += 4;
             }
-
-            // Merge first column
-            if (numberTemplateIndicators.equals(OUTPUT_NUM_TEMP_INDIC)) {
-                sheet.addMergedRegion(new CellRangeAddress(initialRow + numberTemplateIndicators * 4 - 1, startRowNewIndicator - 1, 0, 0));
-            } else {
-                sheet.addMergedRegion(new CellRangeAddress(initialRow + numberTemplateIndicators * 3, startRowNewIndicator - 1, 0, 0));
-            }
-            return startRowNewIndicator;
+        } else {
+            return initialRow + 4*numberTemplateIndicators;
         }
-
-        // Number of the row of the next level's template
-        return initialRow + numberTemplateIndicators * 4;
+        return startRowNewIndicator;
     }
+
+    private void fillDFIDIndicatorRows(XSSFSheet sheet, Indicator indicator, Integer startRowNewIndicator,  Boolean fillBaseline, Integer indicatorNumber,
+                                        Integer statementCount, Boolean fillNumberStatement) {
+
+        if(fillNumberStatement && Strings.isNotEmpty(indicator.getStatement())) {
+            sheet.getRow(startRowNewIndicator).getCell(0).setCellValue(indicator.getLevel().getName().toUpperCase() + " " + statementCount);
+            sheet.getRow(startRowNewIndicator+1).getCell(0).setCellValue(indicator.getStatement());
+        }
+        sheet.getRow(startRowNewIndicator).getCell(1).setCellValue(sheet.getRow(startRowNewIndicator).getCell(1)
+                .getStringCellValue() + " " + (Strings.isEmpty(indicator.getStatement()) ? "" : statementCount + ".") + indicatorNumber);
+        sheet.getRow(startRowNewIndicator + 1).getCell(1).setCellValue(indicator.getName());
+        sheet.getRow(startRowNewIndicator + 3).getCell(2).setCellValue(indicator.getSourceVerification());
+        if (fillBaseline && !isNull(indicator.getValue()) && !isNull(indicator.getDate()))
+            sheet.getRow(startRowNewIndicator + 1).getCell(2).setCellValue(indicator.getValue() +
+                    " (" + indicator.getDate() + ")");
+
+    }
+//    private Integer fillIndicatorsPerLevel(XSSFSheet sheet, List<Indicator> indicatorList, Integer startRowNewIndicator,
+//                                           Integer numberTemplateIndicators, Boolean fillBaseline){
+//        Integer initialRow = startRowNewIndicator;
+//        Integer numIndicators = indicatorList.size();
+//        int count = 0;
+//        int statementCount = 0;
+//        String lastStatement = "";
+//        Integer lastStatementRow = startRowNewIndicator;
+//        logger().info("Starting to fill Indicators. Start Row New Indicator {}, Number of template indicators of level: {}",
+//                startRowNewIndicator, numberTemplateIndicators);
+//        // Fill the available spaces
+//        while(count < numIndicators && count < numberTemplateIndicators) {
+//
+//
+//            if(indicatorList.get(count).getStatement() !=null && !indicatorList.get(count).getStatement().isEmpty()
+//                    && !lastStatement.equals(indicatorList.get(count).getStatement())) {
+//                statementCount++;
+//
+//                if(count !=0 && numberTemplateIndicators > 1) {
+//                    // Add new rows and copy the indicator template
+//                    sheet.shiftRows(startRowNewIndicator, sheet.getLastRowNum(), 4);
+//                    sheet.copyRows(startRowNewIndicator - 4, startRowNewIndicator, startRowNewIndicator, new CellCopyPolicy());
+//                }
+////                if (numberTemplateIndicators.equals(OUTPUT_NUM_TEMP_INDIC)) {
+////                    sheet.addMergedRegion(new CellRangeAddress(lastStatementRow, startRowNewIndicator, 0, 0));
+////                } else {
+////                    sheet.addMergedRegion(new CellRangeAddress(lastStatementRow, startRowNewIndicator, 0, 0));
+////                }
+//                if(lastStatementRow < startRowNewIndicator){
+//                    List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();
+//                    for (int j = 0; j < mergedRegions.size(); j++) {
+//                        // Check every first row of template indicators including the last row of the previous template
+//                        if (mergedRegions.get(j).getLastColumn() == 0 && mergedRegions.get(j).getLastRow() == startRowNewIndicator - 1) {
+//                            sheet.removeMergedRegion(j);
+//                        }
+//                    }
+//                    sheet.addMergedRegion(new CellRangeAddress(lastStatementRow+1, startRowNewIndicator, 0, 0));
+//                }
+//                lastStatement = indicatorList.get(count).getStatement();
+//                lastStatementRow = startRowNewIndicator;
+//                sheet.getRow(startRowNewIndicator).getCell(0).setCellValue(sheet.getRow(startRowNewIndicator).getCell(0)
+//                        .getStringCellValue() + " " + statementCount);
+//            }
+//
+//            if(Strings.isNotEmpty(indicatorList.get(count).getStatement()) && count==0) {
+//                sheet.getRow(startRowNewIndicator + 1).getCell(0).setCellValue(indicatorList.get(count).getStatement());
+//            }
+//            sheet.getRow(startRowNewIndicator).getCell(2).setCellValue(sheet.getRow(startRowNewIndicator).getCell(2)
+//                    .getStringCellValue() + " " + (Strings.isEmpty(indicatorList.get(count).getStatement()) ? "" :  statementCount + ".") + (count+1));
+//            sheet.getRow(startRowNewIndicator + 1).getCell(2).setCellValue(indicatorList.get(count).getName());
+//            sheet.getRow(startRowNewIndicator + 3).getCell(3).setCellValue(indicatorList.get(count).getSourceVerification());
+//            if(fillBaseline && !isNull(indicatorList.get(count).getValue()) && !isNull(indicatorList.get(count).getDate()))
+//                sheet.getRow(startRowNewIndicator + 1).getCell(3).setCellValue(indicatorList.get(count).getValue() +
+//                    " (" + indicatorList.get(count).getDate() + ")");
+//            startRowNewIndicator += 4;
+//            count++;
+//        }
+//
+//        // If needs new rows
+//        if (numIndicators > numberTemplateIndicators) {
+//            logger().info("Adding new rows to worksheet to insert indicators. IndicatorList Size: {}", indicatorList.size());
+//            for (int i = numberTemplateIndicators; i < indicatorList.size(); i++) {
+//                if (numberTemplateIndicators == i && numberTemplateIndicators.equals(OUTCOME_NUM_TEMP_INDIC)) {
+//                    logger().info("Searching for cells needing unmerging in the first column, numberTemplateIndicators: {}", numberTemplateIndicators);
+//                    // Unmerge merged on the first column, so it can be merged later
+//                    List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();
+//                    for (int j = 0; j < mergedRegions.size(); j++) {
+//                        // Check every first row of template indicators including the last row of the previous template
+//                        if (mergedRegions.get(j).getLastColumn() == 0 && mergedRegions.get(j).getLastRow() == startRowNewIndicator - 1) {
+//                            sheet.removeMergedRegion(j);
+//                        }
+//                    }
+//                }
+//                // Add new rows and copy the indicator template
+////                sheet.shiftRows(startRowNewIndicator - i*4, sheet.getLastRowNum(), 4);
+////                sheet.copyRows(startRowNewIndicator, startRowNewIndicator + 4, startRowNewIndicator - i*4, new CellCopyPolicy());
+//                if(numberTemplateIndicators.equals(OUTCOME_NUM_TEMP_INDIC)){
+//                    sheet.shiftRows(startRowNewIndicator - 8, sheet.getLastRowNum(), 4);
+//                    sheet.copyRows(startRowNewIndicator, startRowNewIndicator + 4, startRowNewIndicator - 8, new CellCopyPolicy());
+//                } else {
+//                    sheet.shiftRows(startRowNewIndicator - 4, sheet.getLastRowNum(), 4);
+//                    sheet.copyRows(startRowNewIndicator, startRowNewIndicator + 4, startRowNewIndicator - 4, new CellCopyPolicy());
+//
+//                }
+////                sheet.shiftRows(startRowNewIndicator - 8, sheet.getLastRowNum(), 4);
+////                sheet.copyRows(startRowNewIndicator, startRowNewIndicator + 4, startRowNewIndicator - i*4, new CellCopyPolicy());
+//
+//
+//                // Clear cell for future merge
+//                sheet.getRow(startRowNewIndicator).getCell(0).setCellValue("");
+//
+//
+//                // Merge first column
+//                if(indicatorList.get(count).getStatement() !=null && !indicatorList.get(count).getStatement().isEmpty()
+//                        && !lastStatement.equals(indicatorList.get(count).getStatement())) {
+//                    statementCount++;
+//
+//                    if(count !=0 && numberTemplateIndicators > 1) {
+//                        // Add new rows and copy the indicator template
+//                        sheet.shiftRows(startRowNewIndicator, sheet.getLastRowNum(), 4);
+//                        sheet.copyRows(startRowNewIndicator - 4, startRowNewIndicator, startRowNewIndicator, new CellCopyPolicy());
+//                    }
+////                if (numberTemplateIndicators.equals(OUTPUT_NUM_TEMP_INDIC)) {
+////                    sheet.addMergedRegion(new CellRangeAddress(lastStatementRow, startRowNewIndicator, 0, 0));
+////                } else {
+////                    sheet.addMergedRegion(new CellRangeAddress(lastStatementRow, startRowNewIndicator, 0, 0));
+////                }
+//                    if(lastStatementRow < startRowNewIndicator){
+//                        List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();
+//                        for (int j = 0; j < mergedRegions.size(); j++) {
+//                            // Check every first row of template indicators including the last row of the previous template
+//                            if (mergedRegions.get(j).getLastColumn() == 0 && mergedRegions.get(j).getLastRow() == startRowNewIndicator - 1) {
+//                                sheet.removeMergedRegion(j);
+//                            }
+//                        }
+//                        sheet.addMergedRegion(new CellRangeAddress(lastStatementRow+1, startRowNewIndicator, 0, 0));
+//                    }
+//                    lastStatement = indicatorList.get(count).getStatement();
+//                    lastStatementRow = startRowNewIndicator;
+//                    sheet.getRow(startRowNewIndicator).getCell(0).setCellValue(sheet.getRow(startRowNewIndicator).getCell(0)
+//                            .getStringCellValue() + " " + statementCount);
+//                }
+//
+//                // Set values
+//                if(indicatorList.get(count).getStatement() != null && !indicatorList.get(count).getStatement().isEmpty()) {
+//                    sheet.getRow(startRowNewIndicator + 1).getCell(0).setCellValue(indicatorList.get(count).getStatement());
+//                    statementCount++;
+//                }
+//
+//                sheet.getRow(startRowNewIndicator).getCell(2).setCellValue(sheet.getRow(startRowNewIndicator).getCell(2)
+//                        .getStringCellValue() + " " + (Strings.isEmpty(indicatorList.get(count).getStatement()) ? "" :  statementCount + ".") + (count+1));
+//                sheet.getRow(startRowNewIndicator + 1).getCell(2).setCellValue(indicatorList.get(i).getName());
+//                sheet.getRow(startRowNewIndicator + 3).getCell(3).setCellValue(indicatorList.get(i).getSourceVerification());
+//                if(fillBaseline && !isNull(indicatorList.get(i).getValue()) && !isNull(indicatorList.get(i).getDate()))
+//                    sheet.getRow(startRowNewIndicator + 1).getCell(3).setCellValue(indicatorList.get(i).getValue() +
+//                            " (" + indicatorList.get(i).getDate() + ")");
+//                else
+//                    sheet.getRow(startRowNewIndicator+1).getCell(3).setCellValue("");
+//
+//                startRowNewIndicator += 4;
+//            }
+//
+//            return startRowNewIndicator;
+//        }
+//
+//        // Number of the row of the next level's template
+//        return initialRow + numberTemplateIndicators * 4;
+//    }
 
     /**
      * Fills the PRM template with the indicators

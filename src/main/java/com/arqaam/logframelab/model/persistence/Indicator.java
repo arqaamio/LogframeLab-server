@@ -81,6 +81,9 @@ public class Indicator {
     private String value;
 
     @Transient
+    private String statement;
+
+    @Transient
     @Builder.Default
     private Integer score = 0;
 

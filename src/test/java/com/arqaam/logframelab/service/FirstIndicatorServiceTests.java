@@ -22,15 +22,10 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-
-import static java.util.Objects.isNull;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
@@ -169,6 +164,34 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
   }
 
   @Test
+  void exportIndicatorsInWordFile_withIndicatorsWithoutStatements() throws IOException {
+    List<Indicator> indicatorList = mockIndicatorList();
+    indicatorList.add(Indicator.builder().id(2L).level(mockLevels[1]).name("Another indicator").statement("Statement Outcome 2").build());
+    List<Indicator> impactIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[3])).collect(Collectors.toList());
+    List<Indicator> outcomeIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[1])).collect(Collectors.toList());
+    List<Indicator> outputIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[0])).peek(x->x.setStatement(null)).collect(Collectors.toList());
+    when(indicatorRepository.findAllById(any())).thenReturn(indicatorList);
+    List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(indicatorList)
+            .stream().peek(x-> {if(x.getLevel().equals(mockLevels[0].getName())) x.setStatement(null);}).collect(Collectors.toList());
+    indicatorResponse.get(1).setStatement("Statement Outcome 2");
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse);
+
+    assertNotNull(result);
+    XWPFDocument resultDoc = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
+    assertEquals(2, resultDoc.getTables().size());
+    XWPFTable table = resultDoc.getTableArray(0);
+    Integer rowIndex = 1;
+    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, rowIndex);
+    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, rowIndex);
+    rowIndex = validateWordTemplateLevel(table, Collections.emptyList(), indicatorResponse, rowIndex);
+    validateWordTemplateLevel(table, outputIndicators, indicatorResponse, rowIndex);
+    resultDoc.close();
+  }
+
+  @Test
   void importIndicators() {
     //TODO this test
 //        indicatorService.importIndicators(new ClassPathResource("Indicator.xlsx").getPath());
@@ -210,9 +233,11 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
   @Test
   void exportIndicatorsInWorksheet() throws IOException {
     List<Indicator> expectedResult = mockIndicatorList();
+    expectedResult.get(0).setStatement(null);
 
     when(indicatorRepository.findAllById(any())).thenReturn(expectedResult);
     List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(expectedResult);
+    indicatorResponse.get(0).setStatement(null);
     ByteArrayOutputStream outputStream = indicatorService
         .exportIndicatorsInWorksheet(indicatorResponse);
     XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(outputStream.toByteArray()));
@@ -234,6 +259,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
       assertEquals(Optional.ofNullable(indicator.getDataSource()).orElse(""), row.getCell(9).getStringCellValue());
       assertEquals(Optional.ofNullable(response.getValue()).orElse(""), row.getCell(10).getStringCellValue());
       assertEquals(Optional.ofNullable(response.getDate()).orElse(""), row.getCell(11).getStringCellValue());
+      assertEquals(Optional.ofNullable(response.getStatement()).orElse(""), row.getCell(12).getStringCellValue());
     }
 
     // try(OutputStream fileOutputStream = new FileOutputStream("thefilename.xlsx")) {
@@ -313,6 +339,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         .dataSource("https://data.worldbank.org/indicator/NY.ADJ.DKAP.GN.ZS?view=chart")
         .date("2000")
         .value("100")
+        .statement("Statement Output")
         .crsCode(Collections.singleton(mockCrsCodes.get(0))).build());
     list.add(Indicator.builder().id(73L).name(
         "Number of government policies developed or revised with civil society organisation participation through EU support")
@@ -323,6 +350,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         .dataSource("https://data.worldbank.org/indicator/SE.PRM.TENR.FE?view=chart")
         .date("2001")
         .value("100")
+        .statement("Statement Outcome")
         .crsCode(Collections.singleton(mockCrsCodes.get(1)))
         .sourceVerification("Capacity4Dev")
         .build());
@@ -335,6 +363,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         .dataSource("https://data.worldbank.org/indicator/EG.ELC.ACCS.UR.ZS?view=chart")
         .date("1980")
         .value("50")
+        .statement("Statement Impact")
         .crsCode(Collections.singleton(mockCrsCodes.get(2))).build());
     list.add(
         Indicator.builder().id(1L).name("Number of food insecure people receiving EU assistance")
@@ -345,6 +374,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
             .dataSource("https://data.worldbank.org/indicator/EG.CFT.ACCS.ZS?view=chart")
             .date("2001")
             .value("100")
+            .statement("Statement Outcome")
             .crsCode(Collections.singleton(mockCrsCodes.get(3)))
             .sourceVerification("World Bank")
             .build());
@@ -359,18 +389,19 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
       int i = 0;
       for (Indicator indicator : indicators) {
         list.add(IndicatorResponse.builder()
-                .name(indicator.getName())
-                .id(indicator.getId())
-                .color(indicator.getLevel().getColor())
-                .description(indicator.getDescription())
-                .level(indicator.getLevel().getName())
-                .sdgCode(indicator.getSdgCode())
-                .crsCode(indicator.getCrsCode())
-                .source(indicator.getSource())
-                .sector(indicator.getSector())
-                .disaggregation(indicator.getDisaggregation())
+                .name(Optional.ofNullable(indicator.getName()).orElse("Indicator "+ i))
+                .id(Optional.ofNullable(indicator.getId()).orElse((long) (1000 +i)))
+                .color(Optional.ofNullable(indicator.getLevel().getColor()).orElse("Yellow"))
+                .description(Optional.ofNullable(indicator.getDescription()).orElse("Description "+ i))
+                .level(Optional.ofNullable(indicator.getLevel().getName()).orElse(mockLevels[0].getName()))
+                .sdgCode(Optional.ofNullable(indicator.getSdgCode()).orElse(Collections.singleton(mockSdgCodes.get(0))))
+                .crsCode(Optional.ofNullable(indicator.getCrsCode()).orElse(Collections.singleton(mockCrsCodes.get(0))))
+                .source(Optional.ofNullable(indicator.getSource()).orElse(Collections.singleton(mockSources.get(0))))
+                .sector(Optional.ofNullable(indicator.getSector()).orElse("Sector "+i))
+                .disaggregation(Optional.ofNullable(indicator.getDisaggregation()).orElse(true))
                 .date(String.valueOf(2000+i))
                 .value(String.valueOf(50+i))
+                .statement(Optional.ofNullable(indicator.getStatement()).orElse("Statement " + i))
                 .build());
         i++;
       }
@@ -490,15 +521,26 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
 
   Integer validateWordTemplateLevel(XWPFTable table, List<Indicator> indicators, List<IndicatorResponse> indicatorResponses, Integer rowIndex){
     if(indicators.size() > 0){
+      AtomicReference<String> lastStatement = new AtomicReference<>("");
+      indicators = indicators.stream().sorted(Comparator.comparing(Indicator::getStatement)).collect(Collectors.toList());
       // if its impact
       String assumptionsValue = indicators.get(0).getLevel().equals(mockLevels[3]) ? "\tNot applicable" : "";
       for (int i = 0; i < indicators.size(); i++) {
         XWPFTableRow row = table.getRow(i+rowIndex);
-        assertEquals(8, row.getTableCells().size());
-        assertEquals("", row.getCell(1).getTextRecursively());
-        assertEquals(indicators.get(i).getName(), row.getCell(2).getTextRecursively());
+        List<Indicator> finalIndicators = indicators;
         int finalI = i;
-        indicatorResponses.stream().filter(x->x.getLevel().equals(mockLevels[3].getName()) && x.getId() == indicators.get(finalI).getId()).findFirst().ifPresent(response-> {
+        assertEquals(8, row.getTableCells().size());
+        indicatorResponses.stream().filter(x->x.getId() == finalIndicators.get(finalI).getId()).findFirst().ifPresent(response-> {
+          assertEquals(Optional.ofNullable(response.getStatement()).orElse("null"), row.getCell(1).getTextRecursively());
+//          if (lastStatement.get().equalsIgnoreCase(response.getStatement())) {
+//            assertTrue(row.getCell(2).getCTTc().getTcPr().isSetVMerge());
+//          } else {
+//            lastStatement.set(response.getStatement());
+//          }
+        });
+
+        assertEquals(indicators.get(i).getName(), row.getCell(2).getTextRecursively());
+        indicatorResponses.stream().filter(x->x.getLevel().equals(mockLevels[3].getName()) && x.getId() == finalIndicators.get(finalI).getId()).findFirst().ifPresent(response-> {
           String baselineValue = (isNull(response.getDate()) || isNull(response.getValue())) ? "" : response.getValue() + " (" +response.getDate() + ")";
           assertEquals(baselineValue, row.getCell(3).getTextRecursively());
         });
@@ -509,7 +551,6 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
 
         // validate merge cells
         assertTrue(row.getCell(0).getCTTc().getTcPr().isSetVMerge());
-        assertTrue(row.getCell(1).getCTTc().getTcPr().isSetVMerge());
         assertTrue(row.getCell(7).getCTTc().getTcPr().isSetVMerge());
       }
 

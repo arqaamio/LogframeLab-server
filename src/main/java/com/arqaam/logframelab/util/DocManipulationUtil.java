@@ -39,7 +39,10 @@ public class DocManipulationUtil {
         // First Row
         CTVMerge ctvMerge = CTVMerge.Factory.newInstance();
         ctvMerge.setVal(STMerge.RESTART);
-        table.getRow(beginRow).getCell(col).getCTTc().getTcPr().setVMerge(ctvMerge);
+        if(table.getRow(beginRow).getCell(col).getCTTc().getTcPr() == null)
+            table.getRow(beginRow).getCell(col).getCTTc().addNewTcPr().setVMerge(ctvMerge);
+        else
+            table.getRow(beginRow).getCell(col).getCTTc().getTcPr().setVMerge(ctvMerge);
 
         // Second Row
         CTVMerge ctvMerge1 = CTVMerge.Factory.newInstance();

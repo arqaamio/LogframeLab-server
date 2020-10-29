@@ -119,11 +119,11 @@ class IndicatorControllerTest extends BaseControllerTest {
     body.add("filter", filters);
 
     List<IndicatorResponse> expected = Arrays.asList(
-      indicatorService.convertIndicatorToIndicatorResponse(mockIndicatorList().get(0)),
-      indicatorService.convertIndicatorToIndicatorResponse(mockIndicatorList().get(1))
+        indicatorService.convertIndicatorToIndicatorResponse(mockIndicatorList().get(1)),
+        indicatorService.convertIndicatorToIndicatorResponse(mockIndicatorList().get(0))
     );
-    expected.get(0).setScore(38);
-    expected.get(1).setScore(40);
+    expected.get(1).setScore(38);
+    expected.get(0).setScore(40);
     
     ResponseEntity<List<IndicatorResponse>> response =
         testRestTemplate.exchange(
@@ -287,11 +287,11 @@ class IndicatorControllerTest extends BaseControllerTest {
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
     List<IndicatorResponse> expected = Arrays.asList(
-      indicatorService.convertIndicatorToIndicatorResponse(mockIndicatorList().get(0)),
-      indicatorService.convertIndicatorToIndicatorResponse(mockIndicatorList().get(1))
+      indicatorService.convertIndicatorToIndicatorResponse(mockIndicatorList().get(1)),
+      indicatorService.convertIndicatorToIndicatorResponse(mockIndicatorList().get(0))
     );
-    expected.get(0).setScore(38);
-    expected.get(1).setScore(40);
+    expected.get(1).setScore(38);
+    expected.get(0).setScore(40);
     MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
     body.add("filter", getSampleFilter());
     body.add("file", new ClassPathResource("test doc.doc"));

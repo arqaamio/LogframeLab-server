@@ -5,6 +5,7 @@ import com.arqaam.logframelab.model.persistence.SDGCode;
 import com.arqaam.logframelab.model.persistence.Source;
 import lombok.*;
 
+import java.util.List;
 import java.util.Set;
 
 @AllArgsConstructor
@@ -27,6 +28,7 @@ public class IndicatorResponse {
     @EqualsAndHashCode.Exclude
     // private int numTimes;
     private Integer score;
+    private String statement;
 
     private String date;
     private String value;

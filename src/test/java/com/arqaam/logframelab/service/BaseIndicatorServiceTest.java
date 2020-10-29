@@ -10,6 +10,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.data.domain.Example;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.lang.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -89,8 +90,8 @@ public abstract class BaseIndicatorServiceTest {
 
   abstract List<Indicator> mockIndicatorList();
 
-  List<IndicatorResponse> getExpectedResult(Boolean sorted) {
-    List<Indicator> indicators = mockIndicatorList();
+  List<IndicatorResponse> getExpectedResult(Boolean sorted, @Nullable List<Indicator> indicator) {
+    List<Indicator> indicators = indicator == null ? mockIndicatorList() : indicator;
     List<IndicatorResponse> indicatorResponses = new ArrayList<>();
     if(sorted) {
       return indicators.stream().map(indicatorService::convertIndicatorToIndicatorResponse).collect(Collectors.toList());

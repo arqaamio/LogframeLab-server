@@ -8,6 +8,7 @@ import com.arqaam.logframelab.model.MLSimilarIndicatorResponse;
 import com.arqaam.logframelab.model.MLStatementQualityRequest;
 import com.arqaam.logframelab.model.MLStatementRequest;
 import com.arqaam.logframelab.model.MLStatementResponse;
+import com.arqaam.logframelab.model.MLScanIndicatorResponse.MLScanIndicator;
 import com.arqaam.logframelab.model.MLStatementResponse.MLStatement;
 import com.arqaam.logframelab.util.Logging;
 
@@ -61,7 +62,7 @@ public class MachineLearningService implements Logging {
      * @param text Text to be sent to the Machine Learning endpoint
      * @return List of Indicators with score of best fit
      */
-    public List<List<String>> scanForIndicators(String text) {
+    public List<MLScanIndicator> scanForIndicators(String text) {
         logger().info("Started to scan for indicators");
         MLScanIndicatorRequest body = new MLScanIndicatorRequest(Collections.singletonList(text), "doc");
         try {

@@ -4,6 +4,7 @@ import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.MLStatementQualityRequest;
 import com.arqaam.logframelab.model.MLStatementResponse;
 import com.arqaam.logframelab.model.SimilarityResponse;
+import com.arqaam.logframelab.model.MLScanIndicatorResponse.MLScanIndicator;
 import com.arqaam.logframelab.model.MLStatementResponse.MLStatement;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.service.IndicatorService;
@@ -74,11 +75,11 @@ public class MachineLearningController implements Logging {
         logger().info("Starting the scan for indicators in the text");
         String text = utils.retrieveTextFromDocument(file);
         logger().info("Text was retrieved from the document");
-        List<List<String>> mlIndicators = machineLearningService.scanForIndicators(text);
+        List<MLScanIndicator> mlIndicators = machineLearningService.scanForIndicators(text);
         logger().info("Retrieved the indicators and its score found in the text");
-        List<Indicator> indicatorList = indicatorService.getIndicatorWithName(mlIndicators.stream().map(x->x.get(0)).collect(Collectors.toList()));
+        List<Indicator> indicatorList = indicatorService.getIndicatorWithId(mlIndicators.stream().map(x->x.getId()).collect(Collectors.toList()));
         for (int i = 0; i < indicatorList.size(); i++) {
-            indicatorList.get(i).setScore((int)Double.parseDouble(mlIndicators.get(i).get(1)));
+            indicatorList.get(i).setScore((int)Math.round(mlIndicators.get(i).getSearchResult().getSimilarity()));
         }
         return ResponseEntity.ok(indicatorList);
     }

@@ -1,6 +1,7 @@
 package com.arqaam.logframelab.service;
 
 import com.arqaam.logframelab.exception.MLAPIRequestFailedException;
+import com.arqaam.logframelab.model.MLScanIndicatorResponse;
 import com.arqaam.logframelab.model.MLStatementQualityRequest;
 import com.arqaam.logframelab.model.MLStatementResponse;
 import com.arqaam.logframelab.model.MLStatementResponse.MLStatement;
@@ -39,13 +40,13 @@ class MachineLearningServiceTest {
     @Test
     void scanForIndicators() {
         String text = "agriculture, women, poverty";
-        List<List<String>> result = machineLearningService.scanForIndicators(text);
+        List<MLScanIndicatorResponse.MLScanIndicator> result = machineLearningService.scanForIndicators(text);
         assertNotNull(result);
         assertFalse(result.isEmpty());
-        for (List<String> list : result) {
-            assertFalse(list.get(0)==null || list.get(0).isEmpty() || list.get(0).isBlank());
-            assertFalse(list.get(1)==null);
-            assertTrue(Double.parseDouble(list.get(1))> -1 && Double.parseDouble(list.get(1)) <= 100);
+        for (MLScanIndicatorResponse.MLScanIndicator indicator : result) {
+            assertFalse(indicator.getIndicator()==null || indicator.getIndicator().isEmpty() || indicator.getIndicator().isBlank());
+            assertNotNull(indicator.getId());
+            assertTrue(indicator.getSearchResult().getSimilarity()> -1 && indicator.getSearchResult().getSimilarity() <= 100);
         }
     }
 

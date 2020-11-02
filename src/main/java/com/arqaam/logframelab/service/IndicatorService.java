@@ -4,6 +4,7 @@ import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto.FilterRequestDto;
 import com.arqaam.logframelab.exception.*;
 import com.arqaam.logframelab.model.IndicatorResponse;
+import com.arqaam.logframelab.model.MLScanIndicatorResponse.MLScanIndicator;
 import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.model.projection.IndicatorFilters;
 import com.arqaam.logframelab.repository.*;
@@ -1092,13 +1093,11 @@ public class IndicatorService implements Logging {
     public List<IndicatorResponse> scanForIndicators(String textToScan) {
         logger().info("Retrieved the indicators and its score found in the text");
         List<IndicatorResponse> response = new ArrayList<>();
-        List<List<String>> mlIndicators = machineLearningService.scanForIndicators(textToScan);
-        List<Indicator> indicators = new ArrayList<Indicator>();
-
+        List<MLScanIndicator> mlIndicators = machineLearningService.scanForIndicators(textToScan);
+        List<Indicator> indicators = getIndicatorWithId(mlIndicators.stream().map(x->x.getId()).collect(Collectors.toList()));
+        
         for (int i = 0; i < mlIndicators.size(); i++) {
-            Indicator ind = getIndicatorByName(mlIndicators.get(i).get(0));
-            ind.setScore((int)Double.parseDouble(mlIndicators.get(i).get(1)));
-            indicators.add(ind);
+            indicators.get(i).setScore((int)Math.round(mlIndicators.get(i).getSearchResult().getSimilarity()));
         }
         // Sort indicators by Level priority
         if(!indicators.isEmpty()) {

@@ -11,8 +11,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.arqaam.logframelab.model.MLScanIndicatorResponse;
 import com.arqaam.logframelab.model.MLStatementQualityRequest;
 import com.arqaam.logframelab.model.MLStatementResponse;
+import com.arqaam.logframelab.model.MLScanIndicatorResponse.MLScanIndicator;
 import com.arqaam.logframelab.model.MLStatementResponse.MLStatement;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.service.IndicatorService;
@@ -43,16 +45,19 @@ public class MachineLearningControllerTest extends BaseControllerTest {
     void scanForIndicators() {
         String indicatorName = "Indicator 1";
         String indicatorName2 = "Indicator 2";
-        List<List<String>> mlIndicators = new ArrayList<>();
-        mlIndicators.add(Arrays.asList(indicatorName, "38.123456"));
-        mlIndicators.add(Arrays.asList(indicatorName2, "40.123456"));
+        MLScanIndicator indicator1 = new MLScanIndicator(indicatorName, 1L, new MLScanIndicatorResponse.MLSearchResult(38.123456));
+        MLScanIndicator indicator2 = new MLScanIndicator(indicatorName2, 2L, new MLScanIndicatorResponse.MLSearchResult(40.123456));
+        
+        List<MLScanIndicator> mlIndicators = new ArrayList<>();
+        mlIndicators.add(indicator1);
+        mlIndicators.add(indicator2);
         
         List<Indicator> indicators = new ArrayList<>();
         indicators.add(Indicator.builder().name(indicatorName).build());
         indicators.add(Indicator.builder().name(indicatorName2).build());
         
         when(machineLearningService.scanForIndicators(any())).thenReturn(mlIndicators);
-        when(indicatorService.getIndicatorWithName(any())).thenReturn(indicators);
+        when(indicatorService.getIndicatorWithId(any())).thenReturn(indicators);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 

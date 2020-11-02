@@ -4,6 +4,8 @@ import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
 import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.IndicatorResponse;
+import com.arqaam.logframelab.model.MLScanIndicatorResponse;
+import com.arqaam.logframelab.model.MLScanIndicatorResponse.MLScanIndicator;
 import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
@@ -102,13 +104,19 @@ class IndicatorControllerTest extends BaseControllerTest {
   void handleFileUpload() {
     String indicatorName = mockIndicatorList().get(0).getName();
     String indicatorName2 = mockIndicatorList().get(1).getName();
-    List<List<String>> mlIndicators = new ArrayList<>();
-    mlIndicators.add(Arrays.asList(indicatorName, "38.123456"));
-    mlIndicators.add(Arrays.asList(indicatorName2, "40.123456"));
+    List<Indicator> indicators = new ArrayList<>();
+    indicators.add(mockIndicatorList().get(0));
+    indicators.add(mockIndicatorList().get(1));
+    
+    MLScanIndicator indicator1 = new MLScanIndicator(indicatorName, 1L, new MLScanIndicatorResponse.MLSearchResult(38.123456));
+    MLScanIndicator indicator2 = new MLScanIndicator(indicatorName2, 2L, new MLScanIndicatorResponse.MLSearchResult(40.123456));
+    
+    List<MLScanIndicator> mlIndicators = new ArrayList<>();
+    mlIndicators.add(indicator1);
+    mlIndicators.add(indicator2);
     
     when(machineLearningService.scanForIndicators(any())).thenReturn(mlIndicators);
-    when(indicatorRepositoryMock.findTopByName(indicatorName)).thenReturn(Optional.of(mockIndicatorList().get(0)));
-    when(indicatorRepositoryMock.findTopByName(indicatorName2)).thenReturn(Optional.of(mockIndicatorList().get(1)));
+    when(indicatorRepositoryMock.findAllByIdIn(any())).thenReturn(indicators);
 
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -119,8 +127,8 @@ class IndicatorControllerTest extends BaseControllerTest {
     body.add("filter", filters);
 
     List<IndicatorResponse> expected = Arrays.asList(
-        indicatorService.convertIndicatorToIndicatorResponse(mockIndicatorList().get(1)),
-        indicatorService.convertIndicatorToIndicatorResponse(mockIndicatorList().get(0))
+      indicatorService.convertIndicatorToIndicatorResponse(mockIndicatorList().get(1)),
+      indicatorService.convertIndicatorToIndicatorResponse(mockIndicatorList().get(0))
     );
     expected.get(1).setScore(38);
     expected.get(0).setScore(40);
@@ -275,13 +283,19 @@ class IndicatorControllerTest extends BaseControllerTest {
   void handleFileUpload_doc() {
     String indicatorName = mockIndicatorList().get(0).getName();
     String indicatorName2 = mockIndicatorList().get(1).getName();
-    List<List<String>> mlIndicators = new ArrayList<>();
-    mlIndicators.add(Arrays.asList(indicatorName, "38.123456"));
-    mlIndicators.add(Arrays.asList(indicatorName2, "40.123456"));
+    List<Indicator> indicators = new ArrayList<>();
+    indicators.add(mockIndicatorList().get(0));
+    indicators.add(mockIndicatorList().get(1));
+    
+    MLScanIndicator indicator1 = new MLScanIndicator(indicatorName, 1L, new MLScanIndicatorResponse.MLSearchResult(38.123456));
+    MLScanIndicator indicator2 = new MLScanIndicator(indicatorName2, 2L, new MLScanIndicatorResponse.MLSearchResult(40.123456));
+    
+    List<MLScanIndicator> mlIndicators = new ArrayList<>();
+    mlIndicators.add(indicator1);
+    mlIndicators.add(indicator2);
     
     when(machineLearningService.scanForIndicators(any())).thenReturn(mlIndicators);
-    when(indicatorRepositoryMock.findTopByName(indicatorName)).thenReturn(Optional.of(mockIndicatorList().get(0)));
-    when(indicatorRepositoryMock.findTopByName(indicatorName2)).thenReturn(Optional.of(mockIndicatorList().get(1)));
+    when(indicatorRepositoryMock.findAllByIdIn(any())).thenReturn(indicators);
 
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);

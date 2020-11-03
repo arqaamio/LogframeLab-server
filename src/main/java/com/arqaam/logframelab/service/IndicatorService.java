@@ -637,7 +637,6 @@ public class IndicatorService implements Logging {
         return IndicatorResponse.builder()
                 .id(indicator.getId())
                 .level(indicator.getLevel().getName())
-                .color(indicator.getLevel().getColor())
                 .name(indicator.getName())
                 .description(indicator.getDescription())
                 .sector(indicator.getSector())

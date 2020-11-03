@@ -22,10 +22,10 @@ import static org.mockito.Mockito.lenient;
 public abstract class BaseIndicatorServiceTest {
 
   final static Level[] mockLevels = new Level[]{
-          new Level(1L, "OUTPUT", "OUTPUT", "{output}", "green", 3),
-          new Level(2L, "OUTCOME", "OUTCOME", "{outcomes}", "red", 2),
-          new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", "{otheroutcomes}", "orange", 4),
-          new Level(4L, "IMPACT", "IMPACT", "{impact}", "purple", 1)
+          new Level(1L, "OUTPUT", "OUTPUT", 3),
+          new Level(2L, "OUTCOME", "OUTCOME", 2),
+          new Level(3L, "OTHER_OUTCOMES", "OTHER OUTCOMES", 4),
+          new Level(4L, "IMPACT", "IMPACT", 1)
   };
   final static List<String> mockSectors = Arrays.asList("Digitalisation", "Education", "Poverty",
       "Nutrition", "Agriculture", "Health", "WASH", "Electricity", "Private Sector",

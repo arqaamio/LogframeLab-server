@@ -391,7 +391,6 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         list.add(IndicatorResponse.builder()
                 .name(Optional.ofNullable(indicator.getName()).orElse("Indicator "+ i))
                 .id(Optional.ofNullable(indicator.getId()).orElse((long) (1000 +i)))
-                .color(Optional.ofNullable(indicator.getLevel().getColor()).orElse("Yellow"))
                 .description(Optional.ofNullable(indicator.getDescription()).orElse("Description "+ i))
                 .level(Optional.ofNullable(indicator.getLevel().getName()).orElse(mockLevels[0].getName()))
                 .sdgCode(Optional.ofNullable(indicator.getSdgCode()).orElse(Collections.singleton(mockSdgCodes.get(0))))
@@ -407,7 +406,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
       }
     } else {
       for (int i = 1; i < 6; i++) {
-        list.add(IndicatorResponse.builder().id(i).level("IMPACT").color("color").name("Label " + i)
+        list.add(IndicatorResponse.builder().id(i).level("IMPACT").name("Label " + i)
                 .description("Description").build());
       }
     }

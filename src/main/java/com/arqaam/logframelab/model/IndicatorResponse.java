@@ -17,7 +17,6 @@ public class IndicatorResponse {
     @EqualsAndHashCode.Exclude
     private long id;
     private String level;
-    private String color;
     private String name;
     private String description;
     private String sector;

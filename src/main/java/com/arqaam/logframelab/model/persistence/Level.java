@@ -22,12 +22,6 @@ public class Level implements Comparable<Level> {
     @Column(name = "DESCRIPTION")
     private String description;
 
-    @Column(name = "TEMPLATE_VAR")
-    private String templateVar;
-
-    @Column(name = "COLOR")
-    private String color;
-
     @Column(name = "PRIORITY")
     private Integer priority;
 

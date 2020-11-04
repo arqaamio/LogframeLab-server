@@ -8,6 +8,7 @@ import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.service.IndicatorService;
 import com.arqaam.logframelab.service.MachineLearningService;
+import com.arqaam.logframelab.service.StatisticService;
 import com.arqaam.logframelab.util.Constants;
 import com.arqaam.logframelab.util.Logging;
 import com.arqaam.logframelab.util.Utils;
@@ -41,11 +42,14 @@ public class IndicatorController implements Logging {
 
     private final IndicatorService indicatorService;
     private final MachineLearningService machineLearningService;
+    private final StatisticService statisticService;
     private final Utils utils;
 
-    public IndicatorController(IndicatorService indicatorService, MachineLearningService machineLearningService, Utils utils) {
+    public IndicatorController(IndicatorService indicatorService, MachineLearningService machineLearningService,
+                               StatisticService statisticService, Utils utils) {
         this.indicatorService = indicatorService;
         this.machineLearningService = machineLearningService;
+        this.statisticService = statisticService;
         this.utils = utils;
     }
 
@@ -91,17 +95,21 @@ public class IndicatorController implements Logging {
             case Constants.XLSX_FORMAT:
                 outputStream = indicatorService.exportIndicatorsInWorksheet(indicators);
                 extension = Constants.WORKSHEET_FILE_EXTENSION;
+                statisticService.addDownloadStatistic(Constants.XLSX_FORMAT);
                 break;
             case Constants.DFID_FORMAT:
                 outputStream = indicatorService.exportIndicatorsDFIDFormat(indicators);
                 extension = Constants.WORKSHEET_FILE_EXTENSION;
+                statisticService.addDownloadStatistic(Constants.DFID_FORMAT);
                 break;
             case Constants.PRM_FORMAT:
                 outputStream = indicatorService.exportIndicatorsPRMFormat(indicators);
+                statisticService.addDownloadStatistic(Constants.PRM_FORMAT);
                 break;
             case Constants.WORD_FORMAT:
             default:
                 outputStream = indicatorService.exportIndicatorsInWordFile(indicators);
+                statisticService.addDownloadStatistic(Constants.WORD_FORMAT);
                 break;
         }
 

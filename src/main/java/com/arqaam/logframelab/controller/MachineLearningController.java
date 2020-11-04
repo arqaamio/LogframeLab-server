@@ -22,10 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @CrossOrigin("*")
@@ -77,7 +74,7 @@ public class MachineLearningController implements Logging {
         logger().info("Text was retrieved from the document");
         List<MLScanIndicator> mlIndicators = machineLearningService.scanForIndicators(text);
         logger().info("Retrieved the indicators and its score found in the text");
-        List<Indicator> indicatorList = indicatorService.getIndicatorWithId(mlIndicators.stream().map(x->x.getId()).collect(Collectors.toList()));
+        List<Indicator> indicatorList = indicatorService.getIndicatorWithId(mlIndicators.stream().map(MLScanIndicator::getId).collect(Collectors.toList()));
         for (int i = 0; i < indicatorList.size(); i++) {
             indicatorList.get(i).setScore((int)Math.round(mlIndicators.get(i).getSearchResult().getSimilarity()));
         }

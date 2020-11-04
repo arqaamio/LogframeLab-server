@@ -76,7 +76,10 @@ public class MachineLearningController implements Logging {
         logger().info("Retrieved the indicators and its score found in the text");
         List<Indicator> indicatorList = indicatorService.getIndicatorWithId(mlIndicators.stream().map(MLScanIndicator::getId).collect(Collectors.toList()));
         for (int i = 0; i < indicatorList.size(); i++) {
-            indicatorList.get(i).setScore((int)Math.round(mlIndicators.get(i).getSearchResult().getSimilarity()));
+            int finalI = i;
+            Optional<MLScanIndicator> scanIndicator = mlIndicators.stream().filter(x->x.getId().equals(indicatorList.get(finalI).getId())).findFirst();
+            if(scanIndicator.isPresent())
+                indicatorList.get(i).setScore((int)Math.round(scanIndicator.get().getSearchResult().getSimilarity()));
         }
         return ResponseEntity.ok(indicatorList);
     }

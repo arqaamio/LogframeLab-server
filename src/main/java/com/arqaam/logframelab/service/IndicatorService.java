@@ -1096,7 +1096,10 @@ public class IndicatorService implements Logging {
         List<Indicator> indicators = getIndicatorWithId(mlIndicators.stream().map(MLScanIndicator::getId).collect(Collectors.toList()));
         
         for (int i = 0; i < indicators.size(); i++) {
-            indicators.get(i).setScore((int)Math.round(mlIndicators.get(i).getSearchResult().getSimilarity()));
+            int finalI = i;
+            Optional<MLScanIndicator> scanIndicator = mlIndicators.stream().filter(x->x.getId().equals(indicators.get(finalI).getId())).findFirst();
+            if(scanIndicator.isPresent())
+                indicators.get(i).setScore((int)Math.round(scanIndicator.get().getSearchResult().getSimilarity()));
         }
         // Sort indicators by Level priority
         if(!indicators.isEmpty()) {

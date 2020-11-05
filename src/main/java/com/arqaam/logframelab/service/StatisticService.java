@@ -1,6 +1,5 @@
 package com.arqaam.logframelab.service;
 
-
 import com.arqaam.logframelab.model.persistence.Statistic;
 import com.arqaam.logframelab.repository.StatisticRepository;
 import com.arqaam.logframelab.util.Constants;
@@ -11,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.List;
 
 @Service
 public class StatisticService implements Logging {
@@ -18,15 +18,15 @@ public class StatisticService implements Logging {
     @Autowired
     private StatisticRepository statisticsRepository;
 
-    public void addDownloadStatistic(String format) {
-        Calendar.getInstance().set(Calendar.DAY_OF_MONTH, 1);
-        Calendar.getInstance().set(Calendar.HOUR, 0);
-        Calendar.getInstance().set(Calendar.MINUTE, 0);
-        Calendar.getInstance().set(Calendar.SECOND, 0);
-        Calendar.getInstance().set(Calendar.MILLISECOND, 0);
-        GregorianCalendar gregorianCalendar = new GregorianCalendar();
-        gregorianCalendar.set(Calendar.getInstance().get(Calendar.YEAR), Calendar.getInstance().get(Calendar.MONTH),1);
-        Date date = gregorianCalendar.getTime();
+    /**
+     * Adds to the counter of number of times a download format
+     * has been downloaded
+     * @param format Download Format
+     * @return Statistic with new values
+     */
+    public Statistic addDownloadStatistic(String format) {
+        logger().info("Adding download statistics to {} format", format);
+        Date date = new GregorianCalendar(Calendar.getInstance().get(Calendar.YEAR), Calendar.getInstance().get(Calendar.MONTH),1, 0,0,0).getTime();
         Statistic statistic = statisticsRepository.findByDate(date).orElse(new Statistic());
         statistic.setDate(date);
         switch(format){
@@ -44,6 +44,15 @@ public class StatisticService implements Logging {
                 statistic.setDownloadWordTemplate(statistic.getDownloadWordTemplate() + 1);
                 break;
         }
-        statisticsRepository.save(statistic);
+        return statisticsRepository.save(statistic);
+    }
+
+    /**
+     * Retrieves all statistics
+     * @return List of statistics
+     */
+    public List<Statistic> getAllStatistics() {
+        logger().info("Retrieving all statistics");
+        return statisticsRepository.findAll();
     }
 }

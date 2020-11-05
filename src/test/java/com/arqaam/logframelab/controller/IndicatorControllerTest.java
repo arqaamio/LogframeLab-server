@@ -12,6 +12,8 @@ import com.arqaam.logframelab.repository.LevelRepository;
 import com.arqaam.logframelab.service.IndicatorService;
 import com.arqaam.logframelab.service.MachineLearningService;
 
+import com.arqaam.logframelab.service.StatisticService;
+import com.arqaam.logframelab.util.Constants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,6 +82,9 @@ class IndicatorControllerTest extends BaseControllerTest {
 
   @MockBean
   private MachineLearningService machineLearningService;
+
+  @MockBean
+  private StatisticService statisticService;
 
   @Autowired
   private IndicatorService indicatorService;
@@ -246,6 +251,7 @@ class IndicatorControllerTest extends BaseControllerTest {
             new HttpEntity<>(indicators), Resource.class);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
+    verify(statisticService).addDownloadStatistic(Constants.WORD_FORMAT);
   }
 
   @Test
@@ -257,6 +263,8 @@ class IndicatorControllerTest extends BaseControllerTest {
                     new HttpEntity<>(indicators), Resource.class);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
+    verify(statisticService).addDownloadStatistic(Constants.DFID_FORMAT);
+
   }
 
   @Test
@@ -268,6 +276,7 @@ class IndicatorControllerTest extends BaseControllerTest {
                     new HttpEntity<>(indicators), Resource.class);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
+    verify(statisticService).addDownloadStatistic(Constants.PRM_FORMAT);
   }
 
   @Test

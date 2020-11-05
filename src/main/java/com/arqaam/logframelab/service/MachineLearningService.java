@@ -1,5 +1,6 @@
 package com.arqaam.logframelab.service;
 
+import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.exception.MLAPIRequestFailedException;
 import com.arqaam.logframelab.model.MLScanIndicatorRequest;
 import com.arqaam.logframelab.model.MLScanIndicatorResponse;
@@ -10,16 +11,22 @@ import com.arqaam.logframelab.model.MLStatementRequest;
 import com.arqaam.logframelab.model.MLStatementResponse;
 import com.arqaam.logframelab.model.MLScanIndicatorResponse.MLScanIndicator;
 import com.arqaam.logframelab.model.MLStatementResponse.MLStatement;
+import com.arqaam.logframelab.model.persistence.CRSCode;
+import com.arqaam.logframelab.model.persistence.Level;
+import com.arqaam.logframelab.model.persistence.SDGCode;
+import com.arqaam.logframelab.model.persistence.Source;
 import com.arqaam.logframelab.util.Logging;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Collections;
 import java.util.List;
@@ -62,11 +69,25 @@ public class MachineLearningService implements Logging {
      * @param text Text to be sent to the Machine Learning endpoint
      * @return List of Indicators with score of best fit
      */
-    public List<MLScanIndicator> scanForIndicators(String text) {
+    public List<MLScanIndicator> scanForIndicators(String text, @Nullable FiltersDto filtersDto) {
         logger().info("Started to scan for indicators");
         MLScanIndicatorRequest body = new MLScanIndicatorRequest(Collections.singletonList(text), "doc");
         try {
-            ResponseEntity<MLScanIndicatorResponse> responseEntity = restTemplate.exchange(URL+"indicators",
+            UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(URL+"indicators");
+            if(filtersDto != null){
+                if(!filtersDto.getLevel().isEmpty())
+                    builder = builder.queryParam("level", filtersDto.getLevel().stream().map(Level::getId).collect(Collectors.toList()));
+                if(!filtersDto.getSector().isEmpty())
+                    builder = builder.queryParam("sector", filtersDto.getSector());
+                if(!filtersDto.getSdgCode().isEmpty())
+                    builder = builder.queryParam("sdgCode", filtersDto.getSdgCode().stream().map(SDGCode::getId).collect(Collectors.toList()));
+                if(!filtersDto.getCrsCode().isEmpty())
+                    builder = builder.queryParam("crsCode", filtersDto.getCrsCode().stream().map(CRSCode::getId).collect(Collectors.toList()));
+                if(!filtersDto.getSource().isEmpty())
+                    builder = builder.queryParam("source", filtersDto.getSource().stream().map(Source::getId).collect(Collectors.toList()));
+            }
+            logger().info("Request URI: {}", builder.toUriString());
+            ResponseEntity<MLScanIndicatorResponse> responseEntity = restTemplate.exchange(builder.toUriString(),
                     HttpMethod.POST, new HttpEntity<>(body, new HttpHeaders()), MLScanIndicatorResponse.class);
             logger().info("Response: {}", responseEntity.getBody());
             if(responseEntity.getStatusCode()!= HttpStatus.OK || responseEntity.getBody() == null){

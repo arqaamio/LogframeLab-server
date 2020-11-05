@@ -1,10 +1,12 @@
 package com.arqaam.logframelab.service;
 
+import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.exception.MLAPIRequestFailedException;
 import com.arqaam.logframelab.model.MLScanIndicatorResponse;
 import com.arqaam.logframelab.model.MLStatementQualityRequest;
 import com.arqaam.logframelab.model.MLStatementResponse;
 import com.arqaam.logframelab.model.MLStatementResponse.MLStatement;
+import com.arqaam.logframelab.model.persistence.Source;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -40,7 +42,7 @@ class MachineLearningServiceTest {
     @Test
     void scanForIndicators() {
         String text = "agriculture, women, poverty";
-        List<MLScanIndicatorResponse.MLScanIndicator> result = machineLearningService.scanForIndicators(text);
+        List<MLScanIndicatorResponse.MLScanIndicator> result = machineLearningService.scanForIndicators(text, null);
         assertNotNull(result);
         assertFalse(result.isEmpty());
         for (MLScanIndicatorResponse.MLScanIndicator indicator : result) {

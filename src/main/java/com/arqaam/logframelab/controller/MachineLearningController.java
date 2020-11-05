@@ -72,7 +72,7 @@ public class MachineLearningController implements Logging {
         logger().info("Starting the scan for indicators in the text");
         String text = utils.retrieveTextFromDocument(file);
         logger().info("Text was retrieved from the document");
-        List<MLScanIndicator> mlIndicators = machineLearningService.scanForIndicators(text);
+        List<MLScanIndicator> mlIndicators = machineLearningService.scanForIndicators(text, null);
         logger().info("Retrieved the indicators and its score found in the text");
         List<Indicator> indicatorList = indicatorService.getIndicatorWithId(mlIndicators.stream().map(MLScanIndicator::getId).collect(Collectors.toList()));
         for (int i = 0; i < indicatorList.size(); i++) {

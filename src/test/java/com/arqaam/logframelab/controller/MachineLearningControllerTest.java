@@ -53,8 +53,8 @@ public class MachineLearningControllerTest extends BaseControllerTest {
         mlIndicators.add(indicator2);
         
         List<Indicator> indicators = new ArrayList<>();
-        indicators.add(Indicator.builder().name(indicatorName).build());
-        indicators.add(Indicator.builder().name(indicatorName2).build());
+        indicators.add(Indicator.builder().id(1L).name(indicatorName).build());
+        indicators.add(Indicator.builder().id(2L).name(indicatorName2).build());
         
         when(machineLearningService.scanForIndicators(any())).thenReturn(mlIndicators);
         when(indicatorService.getIndicatorWithId(any())).thenReturn(indicators);

@@ -356,16 +356,16 @@ public class IndicatorService implements Logging {
           for (int i = 0; i < keys.length; i++) {
             keys[i] = keys[i].trim().replaceAll("\\s+", " ");
           }
-          Level level = levelMap.get(currentRow.getCell(0).getStringCellValue().toUpperCase());
+          Level level = levelMap.get(currentRow.getCell(0).getStringCellValue().trim().toUpperCase());
           if (!isNull(level)) {
             Cell crsCodeCell = currentRow.getCell(7, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
             Cell sdgCodeCell = currentRow.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
             Indicator indicator = Indicator.builder()
                 .level(level)
-                .sector(currentRow.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                .keywords(String.join(",", keys))
-                .name(currentRow.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                .description(currentRow.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .sector(currentRow.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().trim())
+                .keywords(String.join(",", keys).replaceAll("\\s+",""))
+                .name(currentRow.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().trim())
+                .description(currentRow.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().trim())
                 .source(Arrays.stream(currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().split(",")).map(
                         x-> sources.stream().filter(y->y.getName().equalsIgnoreCase(x.trim())).findFirst().orElse(null)).collect(Collectors.toSet()))
                 .disaggregation(currentRow.getCell(6, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().equalsIgnoreCase("yes"))
@@ -373,8 +373,8 @@ public class IndicatorService implements Logging {
                         .split(",")).map(x-> crsCodes.stream().filter(y->String.valueOf(y.getId()).equalsIgnoreCase(x.trim())).findFirst().orElse(null)).collect(Collectors.toSet()))
                 .sdgCode(Arrays.stream(((sdgCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf((int)sdgCodeCell.getNumericCellValue()) : sdgCodeCell.getStringCellValue()))
                         .split(",")).map(x-> sdgCodes.stream().filter(y->String.valueOf(y.getId()).equalsIgnoreCase(x.trim())).findFirst().orElse(null)).collect(Collectors.toSet()))
-                .sourceVerification(currentRow.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
-                .dataSource(currentRow.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue())
+                .sourceVerification(currentRow.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().trim())
+                .dataSource(currentRow.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().trim())
                 .build();
             indicatorList.add(indicator);
             /*
@@ -1097,9 +1097,9 @@ public class IndicatorService implements Logging {
         logger().info("Retrieved the indicators and its score found in the text");
         List<IndicatorResponse> response = new ArrayList<>();
         List<MLScanIndicator> mlIndicators = machineLearningService.scanForIndicators(textToScan);
-        List<Indicator> indicators = getIndicatorWithId(mlIndicators.stream().map(x->x.getId()).collect(Collectors.toList()));
+        List<Indicator> indicators = getIndicatorWithId(mlIndicators.stream().map(MLScanIndicator::getId).collect(Collectors.toList()));
         
-        for (int i = 0; i < mlIndicators.size(); i++) {
+        for (int i = 0; i < indicators.size(); i++) {
             indicators.get(i).setScore((int)Math.round(mlIndicators.get(i).getSearchResult().getSimilarity()));
         }
         // Sort indicators by Level priority

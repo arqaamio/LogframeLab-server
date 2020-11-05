@@ -108,8 +108,8 @@ class IndicatorControllerTest extends BaseControllerTest {
     indicators.add(mockIndicatorList().get(0));
     indicators.add(mockIndicatorList().get(1));
     
-    MLScanIndicator indicator1 = new MLScanIndicator(indicatorName, 1L, new MLScanIndicatorResponse.MLSearchResult(38.123456));
-    MLScanIndicator indicator2 = new MLScanIndicator(indicatorName2, 2L, new MLScanIndicatorResponse.MLSearchResult(40.123456));
+    MLScanIndicator indicator1 = new MLScanIndicator(indicatorName, indicators.get(0).getId(), new MLScanIndicatorResponse.MLSearchResult(38.123456));
+    MLScanIndicator indicator2 = new MLScanIndicator(indicatorName2, indicators.get(1).getId(), new MLScanIndicatorResponse.MLSearchResult(40.123456));
     
     List<MLScanIndicator> mlIndicators = new ArrayList<>();
     mlIndicators.add(indicator1);

@@ -58,7 +58,7 @@ public class IndicatorController implements Logging {
     })
     public ResponseEntity<List<IndicatorResponse>> handleFileUpload(@RequestPart("file") MultipartFile file , @RequestPart("filter") FiltersDto filter) {
         logger().info("Extract Indicators from Word File. File Name: {}", file.getOriginalFilename());
-        if(!file.getOriginalFilename().matches(".+(\\.docx$|\\.doc$)")){
+        if(!file.getOriginalFilename().toLowerCase().matches(".+(\\.docx$|\\.doc$)")){
             logger().error("Failed to upload file since it had the wrong file extension. File Name: {}", file.getOriginalFilename());
            throw new WrongFileExtensionException();
         }

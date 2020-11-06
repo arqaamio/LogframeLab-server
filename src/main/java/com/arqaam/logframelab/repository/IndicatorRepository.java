@@ -1,6 +1,7 @@
 package com.arqaam.logframelab.repository;
 
 import com.arqaam.logframelab.model.persistence.Indicator;
+import com.arqaam.logframelab.model.projection.CounterSectorLevel;
 import com.arqaam.logframelab.model.projection.IndicatorFilters;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
@@ -83,4 +84,11 @@ public interface IndicatorRepository extends JpaRepository<Indicator, Long>, Jpa
    * @return Found indicator
    */
   Optional<Indicator> findTopByName(String name);
+
+  /**
+   * Retrieves number of indicators by its different sectors and levels
+   * @return List with the number of indicators, sector and level
+   */
+  @Query(value = "SELECT i.SECTOR as sector, l.NAME as level, COUNT(*) as count FROM IND_INDICATOR i LEFT JOIN IND_LEVEL_INDICATOR l ON i.LEVEL = l.ID GROUP BY SECTOR, LEVEL", nativeQuery = true)
+  List<CounterSectorLevel> countIndicatorsGroupedBySectorAndLevel();
 }

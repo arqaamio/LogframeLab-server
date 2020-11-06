@@ -5,7 +5,9 @@ import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto.FilterRequestD
 import com.arqaam.logframelab.exception.*;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.MLScanIndicatorResponse.MLScanIndicator;
+import com.arqaam.logframelab.model.NumIndicatorsSectorLevel;
 import com.arqaam.logframelab.model.persistence.*;
+import com.arqaam.logframelab.model.projection.CounterSectorLevel;
 import com.arqaam.logframelab.model.projection.IndicatorFilters;
 import com.arqaam.logframelab.repository.*;
 import com.arqaam.logframelab.util.Constants;
@@ -1122,4 +1124,35 @@ public class IndicatorService implements Logging {
 
     }
 
+    /**
+     * Counts all indicators
+     * @return Number of indicators
+     */
+    public Long getTotalNumIndicators(){
+        logger().info("Counting all indicators");
+        return indicatorRepository.count();
+    }
+
+    /**
+     * Retrieves count of indicators by level and sector
+     * @return List of count of indicators by level organized by sector
+     */
+    public List<NumIndicatorsSectorLevel> getIndicatorsByLevelAndSector(){
+        logger().info("Counting indicators by its different sectors and levels");
+        List<CounterSectorLevel> counterSectorLevel = indicatorRepository.countIndicatorsGroupedBySectorAndLevel();
+        List<NumIndicatorsSectorLevel> list = new ArrayList<>();
+        String lastSector = "";
+        List<NumIndicatorsSectorLevel.CountIndicatorsByLevel> lastElement = new ArrayList<>();
+        for (CounterSectorLevel element : counterSectorLevel) {
+            if(lastSector.equals(element.getSector())){
+                lastElement.add(new NumIndicatorsSectorLevel.CountIndicatorsByLevel(element.getLevel(), element.getCount()));
+            }else {
+                lastElement = new ArrayList<>();
+                lastElement.add(new NumIndicatorsSectorLevel.CountIndicatorsByLevel(element.getLevel(), element.getCount()));
+                list.add(new NumIndicatorsSectorLevel(element.getSector(), lastElement));
+                lastSector = element.getSector();
+            }
+        }
+        return list;
+    }
 }

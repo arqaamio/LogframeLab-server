@@ -71,6 +71,10 @@ public class Indicator {
     @Builder.Default
     private Boolean similarityCheck = false;
 
+    @Column(name = "TIMES_DOWNLOADED", nullable = false)
+    @Builder.Default
+    private Long timesDownloaded = 0L;
+
     @Transient
     private List<String> keywordsList;
 

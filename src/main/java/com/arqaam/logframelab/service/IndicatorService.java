@@ -263,6 +263,7 @@ public class IndicatorService implements Logging {
 
             document.write(outputStream);
             document.close();
+            indicatorRepository.saveAll(indicatorList.stream().peek(x-> x.setTimesDownloaded(x.getTimesDownloaded()+1)).collect(Collectors.toList()));
             return outputStream;
         } catch (IOException e) {
             logger().error("Template was not Found", e);
@@ -460,6 +461,7 @@ public class IndicatorService implements Logging {
         try {
             workbook.write(outputStream);
             workbook.close();
+            indicatorRepository.saveAll(indicatorList.stream().peek(x-> x.setTimesDownloaded(x.getTimesDownloaded()+1)).collect(Collectors.toList()));
         } catch (IOException e) {
             logger().error("Failed to write/close the worksheet",e);
             throw new FailedToCloseFileException();
@@ -733,6 +735,7 @@ public class IndicatorService implements Logging {
                     startRowNewIndicator, OUTPUT_NUM_TEMP_INDIC, false);
             wk.write(output);
             wk.close();
+            indicatorRepository.saveAll(indicatorList.stream().peek(x-> x.setTimesDownloaded(x.getTimesDownloaded()+1)).collect(Collectors.toList()));
             return output;
         } catch (IOException e) {
             logger().error("Failed to open template worksheet.", e);
@@ -1056,6 +1059,7 @@ public class IndicatorService implements Logging {
             fillIndicatorPerTable(outputTable, outputIndicators);
             logger().info("Writing the changes to the template to a outputStream");
             document.write(outputStream);
+            indicatorRepository.saveAll(indicatorList.stream().peek(x-> x.setTimesDownloaded(x.getTimesDownloaded()+1)).collect(Collectors.toList()));
         } catch (IOException e) {
             logger().error("Template was not found.", e);
             throw new FailedToOpenFileException();

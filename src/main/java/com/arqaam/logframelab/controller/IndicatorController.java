@@ -67,7 +67,7 @@ public class IndicatorController implements Logging {
            throw new WrongFileExtensionException();
         }
 
-        List<IndicatorResponse> response  = this.indicatorService.scanForIndicators(utils.retrieveTextFromDocument(file));
+        List<IndicatorResponse> response  = this.indicatorService.scanForIndicators(utils.retrieveTextFromDocument(file), filter);
 
         return  ResponseEntity.ok().body(response);
     }

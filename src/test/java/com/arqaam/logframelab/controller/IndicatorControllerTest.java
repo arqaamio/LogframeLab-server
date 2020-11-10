@@ -120,7 +120,7 @@ class IndicatorControllerTest extends BaseControllerTest {
     mlIndicators.add(indicator1);
     mlIndicators.add(indicator2);
     
-    when(machineLearningService.scanForIndicators(any())).thenReturn(mlIndicators);
+    when(machineLearningService.scanForIndicators(any(), any())).thenReturn(mlIndicators);
     when(indicatorRepositoryMock.findAllByIdIn(any())).thenReturn(indicators);
 
     HttpHeaders headers = new HttpHeaders();
@@ -303,7 +303,7 @@ class IndicatorControllerTest extends BaseControllerTest {
     mlIndicators.add(indicator1);
     mlIndicators.add(indicator2);
     
-    when(machineLearningService.scanForIndicators(any())).thenReturn(mlIndicators);
+    when(machineLearningService.scanForIndicators(any(), any())).thenReturn(mlIndicators);
     when(indicatorRepositoryMock.findAllByIdIn(any())).thenReturn(indicators);
 
     HttpHeaders headers = new HttpHeaders();

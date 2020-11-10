@@ -1093,10 +1093,10 @@ public class IndicatorService implements Logging {
         }
     }
 
-    public List<IndicatorResponse> scanForIndicators(String textToScan) {
+    public List<IndicatorResponse> scanForIndicators(String textToScan, FiltersDto filterDto) {
         logger().info("Retrieved the indicators and its score found in the text");
         List<IndicatorResponse> response = new ArrayList<>();
-        List<MLScanIndicator> mlIndicators = machineLearningService.scanForIndicators(textToScan);
+        List<MLScanIndicator> mlIndicators = machineLearningService.scanForIndicators(textToScan, filterDto);
         List<Indicator> indicators = getIndicatorWithId(mlIndicators.stream().map(MLScanIndicator::getId).collect(Collectors.toList()));
         
         for (int i = 0; i < indicators.size(); i++) {

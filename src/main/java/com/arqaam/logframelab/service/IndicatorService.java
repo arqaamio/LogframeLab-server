@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.persistence.criteria.JoinType;
 import javax.persistence.criteria.Predicate;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -536,11 +537,44 @@ public class IndicatorService implements Logging {
     return (root, criteriaQuery, criteriaBuilder) -> {
         List<Predicate> predicates = new ArrayList<>();
 
-        sector.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("sector")).value(x))));
-        sources.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.join("source").get("id")).value(x))));
-        levels.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.get("level").get("id")).value(x))));
-        sdgCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.join("sdgCode").get("id")).value(x))));
-        crsCodes.ifPresent(x -> predicates.add(criteriaBuilder.and(criteriaBuilder.in(root.join("crsCode").get("id")).value(x))));
+        if(sector.isPresent()){
+            Predicate predicate = criteriaBuilder.and(criteriaBuilder.in(root.get("sector")).value(sector.get()));
+            if(sector.get().stream().anyMatch(x->x.equalsIgnoreCase(Constants.EMPTY_VALUE)))
+                predicates.add(criteriaBuilder.or(predicate, criteriaBuilder.like(root.get("sector"), "")));
+            else
+                predicates.add(predicate);
+        }
+
+        if(sources.isPresent()){
+            Predicate predicate = criteriaBuilder.and(criteriaBuilder.in(root.join("source", JoinType.LEFT).get("id")).value(sources.get()));
+            if(sources.get().stream().anyMatch(x-> x.equals(Constants.EMPTY_VALUE_ID)))
+                predicates.add(criteriaBuilder.or(predicate, criteriaBuilder.isEmpty(root.get("source"))));
+            else
+                predicates.add(predicate);
+        }
+        if(levels.isPresent()){
+            Predicate predicate = criteriaBuilder.and(criteriaBuilder.in(root.get("level").get("id")).value(levels.get()));
+            if(levels.get().stream().anyMatch(x-> x.equals(Constants.EMPTY_VALUE_ID)))
+                predicates.add(criteriaBuilder.or(predicate, criteriaBuilder.isNull(root.get("level"))));
+            else
+                predicates.add(predicate);
+        }
+
+        if(sdgCodes.isPresent()){
+            Predicate predicate = criteriaBuilder.and(criteriaBuilder.in(root.join("sdgCode", JoinType.LEFT).get("id")).value(sdgCodes.get()));
+            if(sdgCodes.get().stream().anyMatch(x-> x.equals(Constants.EMPTY_VALUE_ID)))
+                predicates.add(criteriaBuilder.or(predicate, criteriaBuilder.isEmpty(root.get("sdgCode"))));
+            else
+                predicates.add(predicate);
+        }
+
+        if(crsCodes.isPresent()){
+            Predicate predicate = criteriaBuilder.and(criteriaBuilder.in(root.join("crsCode", JoinType.LEFT).get("id")).value(crsCodes.get()));
+            if(crsCodes.get().stream().anyMatch(x->x == -1))
+                predicates.add(criteriaBuilder.or(predicate, criteriaBuilder.isEmpty(root.get("crsCode"))));
+            else
+                predicates.add(predicate);
+        }
         if(indicatorName != null && !indicatorName.isEmpty())
             predicates.add(criteriaBuilder.and(criteriaBuilder.like(root.get("name"), "%"+indicatorName+"%")));
         predicates.add(criteriaBuilder.and(criteriaBuilder.equal(root.get("temp"), temp)));

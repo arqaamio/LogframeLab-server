@@ -6,7 +6,9 @@ import static org.mockito.Mockito.*;
 
 import com.arqaam.logframelab.exception.IndicatorNotFoundException;
 import com.arqaam.logframelab.model.IndicatorResponse;
+import com.arqaam.logframelab.model.NumIndicatorsSectorLevel;
 import com.arqaam.logframelab.model.persistence.*;
+import com.arqaam.logframelab.model.projection.CounterSectorLevel;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -516,6 +518,33 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     when(indicatorRepository.findById(any())).thenReturn(Optional.empty());
     assertThrows(IndicatorNotFoundException.class, () ->
             indicatorService.updateSimilarityCheck(0L, true));
+  }
+
+  @Test
+  void getTotalNumIndicators() {
+    Long expectedResult = 10L;
+    when(indicatorRepository.count()).thenReturn(expectedResult);
+    Long result = indicatorService.getTotalNumIndicators();
+    assertEquals(expectedResult, result);
+  }
+
+  @Test
+  void getIndicatorsByLevelAndSector() {
+   List<CounterSectorLevel> counterSectorLevels = new ArrayList<>();
+   CounterSectorLevel level = new CounterSectorLevel() {
+     @Override
+     public String getSector() { return "Sector"; }
+     @Override
+     public String getLevel() { return mockLevels[0].getName(); }
+     @Override
+     public Long getCount() { return 10L; }
+   };
+   counterSectorLevels.add(level);
+   List<NumIndicatorsSectorLevel> expectedResult = new ArrayList<>();
+   expectedResult.add(new NumIndicatorsSectorLevel("Sector", Collections.singletonList(new NumIndicatorsSectorLevel.CountIndicatorsByLevel(mockLevels[0].getName(), 10L))));
+   when(indicatorRepository.countIndicatorsGroupedBySectorAndLevel()).thenReturn(counterSectorLevels);
+   List<NumIndicatorsSectorLevel> result = indicatorService.getIndicatorsByLevelAndSector();
+   assertEquals(expectedResult, result);
   }
 
   Integer validateWordTemplateLevel(XWPFTable table, List<Indicator> indicators, List<IndicatorResponse> indicatorResponses, Integer rowIndex){

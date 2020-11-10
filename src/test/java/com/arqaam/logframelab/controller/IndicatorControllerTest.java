@@ -6,7 +6,9 @@ import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.MLScanIndicatorResponse;
 import com.arqaam.logframelab.model.MLScanIndicatorResponse.MLScanIndicator;
+import com.arqaam.logframelab.model.NumIndicatorsSectorLevel;
 import com.arqaam.logframelab.model.persistence.*;
+import com.arqaam.logframelab.model.projection.CounterSectorLevel;
 import com.arqaam.logframelab.repository.IndicatorRepository;
 import com.arqaam.logframelab.repository.LevelRepository;
 import com.arqaam.logframelab.service.IndicatorService;
@@ -26,6 +28,7 @@ import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.lang.reflect.ParameterizedType;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -394,6 +397,64 @@ class IndicatorControllerTest extends BaseControllerTest {
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
+  }
+
+  @Test
+  void getTotalNumIndicators() {
+    Long expectedResult = 30L;
+    when(indicatorService.getTotalNumIndicators()).thenReturn(expectedResult);
+    ResponseEntity<Long> response = testRestTemplate
+        .exchange("/indicator/total-number", HttpMethod.GET,new HttpEntity<>(new HttpHeaders()), Long.class);
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertEquals(expectedResult, response.getBody());
+  }
+
+  @Test
+  void getIndicatorsByLevelAndSector() {
+    List<CounterSectorLevel> counterSectorLevelList = new ArrayList<>();
+    counterSectorLevelList.add(new CounterSectorLevel() {
+      @Override
+      public String getSector() { return "Sector"; }
+      @Override
+      public String getLevel() { return mockLevels[0].getName(); }
+      @Override
+      public Long getCount() { return 100L; }
+    });
+
+    counterSectorLevelList.add(new CounterSectorLevel() {
+      @Override
+      public String getSector() { return "Sector"; }
+      @Override
+      public String getLevel() { return mockLevels[1].getName(); }
+      @Override
+      public Long getCount() { return 4L; }
+    });
+
+    counterSectorLevelList.add(new CounterSectorLevel() {
+      @Override
+      public String getSector() { return "Sector 2"; }
+      @Override
+      public String getLevel() { return mockLevels[3].getName(); }
+      @Override
+      public Long getCount() { return 20L; }
+    });
+    List<NumIndicatorsSectorLevel.CountIndicatorsByLevel> counterLevel = new ArrayList<>();
+    counterLevel.add(new NumIndicatorsSectorLevel.CountIndicatorsByLevel(mockLevels[0].getName(), 100L));
+    counterLevel.add(new NumIndicatorsSectorLevel.CountIndicatorsByLevel(mockLevels[1].getName(), 4L));
+
+    List<NumIndicatorsSectorLevel> expectedResult = new ArrayList<>();
+    expectedResult.add(new NumIndicatorsSectorLevel("Sector", counterLevel));
+    expectedResult.add(new NumIndicatorsSectorLevel("Sector 2", Collections.singletonList(new NumIndicatorsSectorLevel.CountIndicatorsByLevel(mockLevels[3].getName(), 20L))));
+    
+    when(indicatorRepositoryMock.countIndicatorsGroupedBySectorAndLevel()).thenReturn(counterSectorLevelList);
+    ResponseEntity<List<NumIndicatorsSectorLevel>> response = testRestTemplate
+        .exchange("/indicator/sector-level-count", HttpMethod.GET,
+        new HttpEntity<>(new HttpHeaders()), new ParameterizedTypeReference<List<NumIndicatorsSectorLevel>>(){
+        });
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertEquals(expectedResult, response.getBody());
   }
 
   private List<Indicator> mockIndicatorList() {

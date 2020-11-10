@@ -5,7 +5,9 @@ import com.arqaam.logframelab.exception.TemplateNotFoundException;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
 import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.IndicatorResponse;
+import com.arqaam.logframelab.model.NumIndicatorsSectorLevel;
 import com.arqaam.logframelab.model.persistence.Indicator;
+import com.arqaam.logframelab.model.projection.CounterSectorLevel;
 import com.arqaam.logframelab.service.IndicatorService;
 import com.arqaam.logframelab.service.MachineLearningService;
 import com.arqaam.logframelab.service.StatisticService;
@@ -28,7 +30,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URLConnection;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -239,5 +240,27 @@ public class IndicatorController implements Logging {
         return ResponseEntity.ok().headers(httpHeaders).contentLength(outputStream.size())
                 .contentType(MediaType.parseMediaType(mimeType))
                 .body(new ByteArrayResource(outputStream.toByteArray()));
+    }
+
+    @GetMapping("total-number")
+    @ApiOperation(value = "${IndicatorController.getTotalNumIndicators.value}", nickname = "getTotalNumIndicators", response = Long.class)
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "Retrieved total number of indicators", response = Long.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred", response = Error.class)
+    })
+    public ResponseEntity<Long> getTotalNumIndicators() {
+        logger().info("Retrieving the total number of indicators");
+        return ResponseEntity.ok(indicatorService.getTotalNumIndicators());
+    }
+
+    @GetMapping("sector-level-count")
+    @ApiOperation(value = "${IndicatorController.getIndicatorsByLevelAndSector.value}", nickname = "getIndicatorsByLevelAndSector", response = NumIndicatorsSectorLevel.class, responseContainer = "List")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "Retrieved count of indicators by level and sector", response = NumIndicatorsSectorLevel.class, responseContainer = "List"),
+            @ApiResponse(code = 500, message = "Unexpected error occurred", response = Error.class)
+    })
+    public ResponseEntity<List<NumIndicatorsSectorLevel>> getIndicatorsByLevelAndSector() {
+        logger().info("Retrieving the count of indicators per level and sector");
+        return ResponseEntity.ok(indicatorService.getIndicatorsByLevelAndSector());
     }
 }

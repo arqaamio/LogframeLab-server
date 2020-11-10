@@ -2,6 +2,7 @@ package com.arqaam.logframelab.integration;
 
 import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.model.IndicatorResponse;
+import com.arqaam.logframelab.model.NumIndicatorsSectorLevel;
 import com.arqaam.logframelab.model.persistence.CRSCode;
 import com.arqaam.logframelab.model.persistence.Level;
 import com.arqaam.logframelab.model.persistence.SDGCode;
@@ -15,9 +16,7 @@ import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -103,6 +102,40 @@ public class IndicatorIntegrationTest extends BaseIntegrationTest {
         () -> assertTrue(testSortAscending(filtersDto.getSdgCode().stream().map(SDGCode::getName).collect(Collectors.toList()))),
         () -> assertTrue(testSortAscending(filtersDto.getLevel().stream().map(Level::getName).collect(Collectors.toList())))
     );
+  }
+
+  @Test
+  void getTotalNumIndicators() {
+    ResponseEntity<Long> response = testRestTemplate
+            .exchange("/indicator/total-number", HttpMethod.GET,
+                    new HttpEntity<>(new HttpHeaders()), Long.class);
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertTrue(response.getBody() > 0);
+  }
+
+  @Test
+  void getIndicatorsByLevelAndSector() {
+    ResponseEntity<List<NumIndicatorsSectorLevel>> response = testRestTemplate
+            .exchange("/indicator/sector-level-count", HttpMethod.GET,
+                    new HttpEntity<>(new HttpHeaders()), new ParameterizedTypeReference<List<NumIndicatorsSectorLevel>>() {});
+
+                    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertFalse(response.getBody().isEmpty());
+    Map<String, Integer> sectorMap = new HashMap<>();
+    for (NumIndicatorsSectorLevel element : response.getBody()) {
+      if(sectorMap.containsKey(element.getSector())) {
+        fail("Sector should not be repeated");
+      }else {
+        sectorMap.put(element.getSector(), 1);
+      }
+      assertFalse(element.getCounter().isEmpty());
+      for (NumIndicatorsSectorLevel.CountIndicatorsByLevel count : element.getCounter()) {
+        assertTrue(count.getCount() > 0);
+        assertFalse(count.getLevel().isBlank());
+      }
+    }
   }
 
   List<IndicatorResponse> sampleIndicatorResponse() {

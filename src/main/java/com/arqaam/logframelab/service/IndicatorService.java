@@ -1133,7 +1133,6 @@ public class IndicatorService implements Logging {
         logger().info("Retrieved the indicators and its score found in the text");
         List<IndicatorResponse> response = new ArrayList<>();
         List<MLScanIndicator> mlIndicators = machineLearningService.scanForIndicators(textToScan, filterDto);
-        // Sort indicators by Level priority
         if(!mlIndicators.isEmpty()) {
             List<Indicator> indicators = getIndicatorWithId(mlIndicators.stream().map(MLScanIndicator::getId).collect(Collectors.toList()));
             
@@ -1146,7 +1145,7 @@ public class IndicatorService implements Logging {
              // Sort indicators by Level priority
             List<Level> levelsList = levelRepository.findAllByOrderByPriority();
             logger().info("Starting the sort of the indicators");
-            // Sort by Level and then by number of times a keyword was tricked
+            // Sort by Level and then by score
             response = indicators.stream().sorted((o1, o2) -> {
                 if (o1.getLevel().getId().equals(o2.getLevel().getId())){
                     return o1.getScore() > o2.getScore() ? -1 :

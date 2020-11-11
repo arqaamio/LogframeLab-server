@@ -1133,16 +1133,17 @@ public class IndicatorService implements Logging {
         logger().info("Retrieved the indicators and its score found in the text");
         List<IndicatorResponse> response = new ArrayList<>();
         List<MLScanIndicator> mlIndicators = machineLearningService.scanForIndicators(textToScan, filterDto);
-        List<Indicator> indicators = getIndicatorWithId(mlIndicators.stream().map(MLScanIndicator::getId).collect(Collectors.toList()));
-        
-        for (int i = 0; i < indicators.size(); i++) {
-            int finalI = i;
-            Optional<MLScanIndicator> scanIndicator = mlIndicators.stream().filter(x->x.getId().equals(indicators.get(finalI).getId())).findFirst();
-            if(scanIndicator.isPresent())
-                indicators.get(i).setScore((int)Math.round(scanIndicator.get().getSearchResult().getSimilarity()));
-        }
         // Sort indicators by Level priority
-        if(!indicators.isEmpty()) {
+        if(!mlIndicators.isEmpty()) {
+            List<Indicator> indicators = getIndicatorWithId(mlIndicators.stream().map(MLScanIndicator::getId).collect(Collectors.toList()));
+            
+            for (int i = 0; i < indicators.size(); i++) {
+                int finalI = i;
+                Optional<MLScanIndicator> scanIndicator = mlIndicators.stream().filter(x->x.getId().equals(indicators.get(finalI).getId())).findFirst();
+                if(scanIndicator.isPresent())
+                    indicators.get(i).setScore((int)Math.round(scanIndicator.get().getSearchResult().getSimilarity()));
+            }
+             // Sort indicators by Level priority
             List<Level> levelsList = levelRepository.findAllByOrderByPriority();
             logger().info("Starting the sort of the indicators");
             // Sort by Level and then by number of times a keyword was tricked

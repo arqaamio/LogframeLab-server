@@ -45,9 +45,9 @@ public class MachineLearningService implements Logging {
      * Returns list of names of the indicators that are similar to the one sent.
      * @param name Name of the indicator
      * @param threshold Threshold of similarity
-     * @return List of names of indicators that are similar
+     * @return List of ids of indicators that are similar
      */
-    public List<String> getSimilarIndicators(String name, Double threshold) {
+    public List<Long> getSimilarIndicators(String name, Double threshold) {
         logger().info("Started to retrieve similar indicators to: {} with threshold: {}", name, threshold);
         MLSimilarIndicatorRequest body = new MLSimilarIndicatorRequest(name, threshold);
         try {
@@ -57,7 +57,7 @@ public class MachineLearningService implements Logging {
                 throw new HttpClientErrorException(responseEntity.getStatusCode());
             }
             // Remove its own indicator and map
-            return responseEntity.getBody().stream().filter(x->x.getSimilarity()<0.9999).map(MLSimilarIndicatorResponse::getIndicator).collect(Collectors.toList());
+            return responseEntity.getBody().stream().filter(x->x.getSimilarity()<0.9999).map(MLSimilarIndicatorResponse::getIndicatorId).collect(Collectors.toList());
         } catch(HttpClientErrorException | HttpServerErrorException e) {
             logger().error("Failed to retrieve similar indicators from the Machine Learning API", e);
             throw new MLAPIRequestFailedException();

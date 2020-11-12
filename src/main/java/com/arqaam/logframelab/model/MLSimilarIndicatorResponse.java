@@ -12,7 +12,8 @@ import java.util.List;
 @AllArgsConstructor
 public class MLSimilarIndicatorResponse {
 
-    private String indicator;
+    @JsonProperty("indicator-id")
+    private Long indicatorId;
     @JsonProperty("semantic-similarity")
     private Double similarity;
 }

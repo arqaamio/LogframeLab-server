@@ -51,11 +51,11 @@ public class MachineLearningController implements Logging {
         logger().info("Starting to retrieve similar indicators with threshold {}", threshold);
         List<SimilarityResponse> response = new ArrayList<>();
         List<Indicator> indicatorUnchecked = indicatorService.getIndicatorsWithSimilarity(false);
-        List<String> indicatorNames;
+        List<Long> indicatorsIds;
         for(Indicator indicator : indicatorUnchecked) {
-            indicatorNames = machineLearningService.getSimilarIndicators(indicator.getName(), threshold);
-            if(!indicatorNames.isEmpty()){
-                response.add(new SimilarityResponse(indicator, indicatorService.getIndicatorWithName(indicatorNames)));
+            indicatorsIds = machineLearningService.getSimilarIndicators(indicator.getName(), threshold);
+            if(!indicatorsIds.isEmpty()){
+                response.add(new SimilarityResponse(indicator, indicatorService.getIndicatorWithId(indicatorsIds)));
             }
         }
 

@@ -36,17 +36,24 @@ public class Utils implements Logging {
     public String retrieveTextFromDocument(MultipartFile file) {
         String text = "";
         try {
-            if(file.getOriginalFilename().matches(".+\\.docx$")) {
+            if(file.getOriginalFilename().toLowerCase().matches(".+\\.docx$")) {
                 logger().info("Retrieving text from a .docx file with file name: {}", file.getOriginalFilename());
                 XWPFDocument doc = new XWPFDocument(file.getInputStream());
                 text = new XWPFWordExtractor(doc).getText();
                 doc.close();
             } else {
                 // Read .doc
-                logger().info("Retrieving text from a .doc file with file name: {}", file.getOriginalFilename());            
-                HWPFDocument doc = new HWPFDocument(file.getInputStream());
-                text = new WordExtractor(doc).getText();
-                doc.close();
+                logger().info("Retrieving text from a .doc file with file name: {}", file.getOriginalFilename()); 
+                try {           
+                    HWPFDocument doc = new HWPFDocument(file.getInputStream());
+                    text = new WordExtractor(doc).getText();
+                    doc.close();
+                } catch(IllegalArgumentException e) {
+                    logger().info("Actually its a .docx file with file name: {}", file.getOriginalFilename());
+                    XWPFDocument doc = new XWPFDocument(file.getInputStream());
+                    text = new XWPFWordExtractor(doc).getText();
+                    doc.close();
+                }
             }
         } catch (IOException e) {
             logger().error("Failed to open word file. Name of the file: {}", file.getOriginalFilename(), e);

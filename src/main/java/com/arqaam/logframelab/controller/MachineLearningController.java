@@ -1,5 +1,6 @@
 package com.arqaam.logframelab.controller;
 
+import com.arqaam.logframelab.exception.IndicatorNotFoundException;
 import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.MLStatementQualityRequest;
 import com.arqaam.logframelab.model.MLStatementResponse;
@@ -54,8 +55,15 @@ public class MachineLearningController implements Logging {
         List<Long> indicatorsIds;
         for(Indicator indicator : indicatorUnchecked) {
             indicatorsIds = machineLearningService.getSimilarIndicators(indicator.getName(), threshold);
-            if(!indicatorsIds.isEmpty()){
-                response.add(new SimilarityResponse(indicator, indicatorService.getIndicatorWithId(indicatorsIds)));
+            if(indicatorsIds.isEmpty()) {
+                response.add(new SimilarityResponse(indicator, Collections.emptyList()));
+            } else {
+                try {
+                    response.add(new SimilarityResponse(indicator, indicatorService.getIndicatorWithId(indicatorsIds)));
+                }catch(IndicatorNotFoundException e) {
+                    response.add(new SimilarityResponse(indicator, Collections.emptyList()));
+                    logger().warn("Indicators were not found: {}", indicatorsIds);
+                }
             }
         }
 

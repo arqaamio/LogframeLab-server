@@ -339,7 +339,7 @@ public class IndicatorService implements Logging {
         levelMap.put(lvl.getName(), lvl);
       }
 
-      logger().info("Importing indicators from xlsx, name {}", file.getName());
+      logger().info("Importing indicators from xlsx, name {}", file.getOriginalFilename());
       try {
         List<Indicator> indicatorList = new ArrayList<>();
         Iterator<Row> iterator = new XSSFWorkbook(file.getInputStream()).getSheetAt(0).iterator();
@@ -366,26 +366,36 @@ public class IndicatorService implements Logging {
           if (!isNull(level)) {
             Cell crsCodeCell = currentRow.getCell(7, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
             Cell sdgCodeCell = currentRow.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-            int finalRow = row;
             Indicator indicator = Indicator.builder()
                 .level(level)
                 .sector(cleanText(currentRow.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue()))
                 .keywords(cleanText(String.join(",", keys).replaceAll("\\s+","")))
                 .name(cleanText(currentRow.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue()))
                 .description(cleanText(currentRow.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue()))
-                .source(Arrays.stream(cleanText(currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue()).split(",")).map(
-                        x-> sources.stream().filter(y->y.getName().equalsIgnoreCase(x.trim())).findFirst()
-                        .orElseThrow(() -> new WorksheetInWrongFormatException("Source on row " + finalRow + " is invalid"))).collect(Collectors.toSet()))
                 .disaggregation(cleanText(currentRow.getCell(6, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue()).equalsIgnoreCase("yes"))
-                .crsCode(Arrays.stream(((crsCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf((int)crsCodeCell.getNumericCellValue()) : cleanText(crsCodeCell.getStringCellValue())))
-                        .split(",")).map(x-> crsCodes.stream().filter(y->String.valueOf(y.getId()).equalsIgnoreCase(x.trim())).findFirst()
-                        .orElseThrow(() -> new WorksheetInWrongFormatException("CRS Code on row " + finalRow + " is invalid"))).collect(Collectors.toSet()))
-                .sdgCode(Arrays.stream(((sdgCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf((int)sdgCodeCell.getNumericCellValue()) : cleanText(sdgCodeCell.getStringCellValue())))
-                        .split(",")).map(x-> sdgCodes.stream().filter(y->String.valueOf(y.getId()).equalsIgnoreCase(x.trim())).findFirst()
-                        .orElseThrow(() -> new WorksheetInWrongFormatException("SDG Code on row " + finalRow + " is invalid"))).collect(Collectors.toSet()))
                 .sourceVerification(cleanText(currentRow.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue()))
                 .dataSource(cleanText(currentRow.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue()))
                 .build();
+            int finalRow = row;
+            if(!currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().isEmpty()){
+                 indicator.setSource(Arrays.stream(cleanText(currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue()).split(",")).map(
+                        x-> sources.stream().filter(y->y.getName().equalsIgnoreCase(x.trim())).findFirst()
+                        .orElseThrow(() -> new WorksheetInWrongFormatException("Source on row " + finalRow + " is invalid"))).collect(Collectors.toSet()));
+
+            }
+            String crsCodeContent = cleanText(crsCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf((int)crsCodeCell.getNumericCellValue()) : crsCodeCell.getStringCellValue());
+            if(!crsCodeContent.isEmpty()){
+                  indicator.setCrsCode(Arrays.stream(crsCodeContent.split(",")).map(x-> crsCodes.stream()
+                        .filter(y->String.valueOf(y.getId()).equalsIgnoreCase(x.trim())).findFirst()
+                        .orElseThrow(() -> new WorksheetInWrongFormatException("CRS Code on row " + finalRow + " is invalid"))).collect(Collectors.toSet()));
+
+            }
+            String sdgCodeContent = cleanText(sdgCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf((int)sdgCodeCell.getNumericCellValue()) : sdgCodeCell.getStringCellValue());
+            if(!sdgCodeContent.isEmpty()){
+                    indicator.setSdgCode(Arrays.stream(sdgCodeContent.split(",")).map(x-> sdgCodes.stream()
+                        .filter(y->String.valueOf(y.getId()).equalsIgnoreCase(x.trim())).findFirst()
+                        .orElseThrow(() -> new WorksheetInWrongFormatException("SDG Code on row " + finalRow + " is invalid"))).collect(Collectors.toSet()));
+            }
             indicatorList.add(indicator);
             /*
              * Logging per row with a large-enough file caused an error in tests:

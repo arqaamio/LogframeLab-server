@@ -89,7 +89,8 @@ public class WebSecurityConfiguration  extends WebSecurityConfigurerAdapter  {
         .headers()
         .and()
         .authorizeRequests()
-            .antMatchers("/indicator/**", "/worldbank/**", "/auth/login", "/indicators/**", "/stomp", "/ml/**", "/statistic/**")
+            .antMatchers("/indicator/**", "/worldbank/**", "/auth/login", "/indicators/**", "/stomp", "/ml/**",
+                    "/statistic/**", "/source/**")
         .permitAll()
         .anyRequest()
         .authenticated();

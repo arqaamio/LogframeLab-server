@@ -9,8 +9,8 @@ import com.arqaam.logframelab.model.MLScanIndicatorResponse.MLScanIndicator;
 import com.arqaam.logframelab.model.NumIndicatorsSectorLevel;
 import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.model.projection.CounterSectorLevel;
-import com.arqaam.logframelab.repository.IndicatorRepository;
-import com.arqaam.logframelab.repository.LevelRepository;
+import com.arqaam.logframelab.model.projection.IndicatorFilters;
+import com.arqaam.logframelab.repository.*;
 import com.arqaam.logframelab.service.IndicatorService;
 import com.arqaam.logframelab.service.MachineLearningService;
 
@@ -82,6 +82,15 @@ class IndicatorControllerTest extends BaseControllerTest {
 
   @MockBean
   private IndicatorRepository indicatorRepositoryMock;
+
+  @MockBean
+  private SDGCodeRepository sdgCodeRepository;
+
+  @MockBean
+  private CRSCodeRepository crsCodeRepository;
+
+  @MockBean
+  private SourceRepository sourceRepository;
 
   @MockBean
   private MachineLearningService machineLearningService;
@@ -327,6 +336,67 @@ class IndicatorControllerTest extends BaseControllerTest {
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertEqualsIndicator(expected, response.getBody());
+  }
+
+  @Test
+  void getFilters() {
+    String sector = mockSectors.get(0);
+    Source source = mockSources.get(0);
+    Level level = mockLevels[0];
+    SDGCode sdgCode = mockSdgCodes.get(0);
+    CRSCode crsCode = mockCrsCodes.get(0);
+
+    List<IndicatorFilters> indicatorFilters= new ArrayList<>();
+    indicatorFilters.add(new IndicatorFilters() {
+      @Override
+      public String getSector() { return sector; }
+      @Override
+      public String getDescription() { return null; }
+      @Override
+      public Set<Source> getSource() { return Collections.singleton(source); }
+      @Override
+      public Level getLevel() { return level; }
+      @Override
+      public Set<SDGCode> getSdgCode() { return Collections.singleton(sdgCode); }
+      @Override
+      public Set<CRSCode> getCrsCode() { return Collections.singleton(crsCode); }
+    });
+    List<Level> levels = Arrays.asList(mockLevels.clone());
+    when(indicatorRepositoryMock.getAllBy()).thenReturn(indicatorFilters);
+
+    ResponseEntity<FiltersDto> response = testRestTemplate
+            .exchange("/indicator/filters", HttpMethod.GET,
+                    new HttpEntity<>(new HttpHeaders()), FiltersDto.class);
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(Collections.singletonList(sector), response.getBody().getSector());
+    assertEquals(Collections.singletonList(source), response.getBody().getSource());
+    assertEquals(Collections.singletonList(level), response.getBody().getLevel());
+    assertEquals(new LinkedHashSet<>(Collections.singletonList(sdgCode)), response.getBody().getSdgCode());
+    assertEquals(new LinkedHashSet<>(Collections.singletonList(crsCode)), response.getBody().getCrsCode());
+  }
+
+  @Test
+  void getFilters_all() {
+    List<Level> levels = Arrays.asList(mockLevels.clone());
+    when(indicatorRepositoryMock.getSectors()).thenReturn(mockSectors);
+    when(sourceRepository.findAll()).thenReturn(mockSources);
+    when(levelRepositoryMock.findAll()).thenReturn(levels);
+    when(sdgCodeRepository.findAll()).thenReturn(mockSdgCodes);
+    when(crsCodeRepository.findAll()).thenReturn(mockCrsCodes);
+
+    ResponseEntity<FiltersDto> response = testRestTemplate
+            .exchange("/indicator/filters?all=1", HttpMethod.GET,
+                    new HttpEntity<>(new HttpHeaders()), FiltersDto.class);
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(mockSectors.stream().sorted().collect(Collectors.toList()), response.getBody().getSector());
+    assertEquals(mockSources.stream().sorted(Comparator.comparing(Source::getName)).collect(Collectors.toList()), response.getBody().getSource());
+    assertEquals(levels.stream().sorted().collect(Collectors.toList()), response.getBody().getLevel());
+    assertEquals(mockCrsCodes.stream().sorted(Comparator.comparing(CRSCode::getName)).collect(Collectors.toCollection(LinkedHashSet::new)), response.getBody().getCrsCode());
+    assertEquals(mockSdgCodes.stream().sorted(Comparator.comparing(SDGCode::getName)).collect(Collectors.toCollection(LinkedHashSet::new)), response.getBody().getSdgCode());
   }
 
   @Test

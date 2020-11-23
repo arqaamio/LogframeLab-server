@@ -538,21 +538,37 @@ public class IndicatorService implements Logging {
         return indicatorRepository.getSectors();
     }
 
-    public FiltersDto getFilters() {
-        List<IndicatorFilters> filtersResult = indicatorRepository.getAllBy();
-
+    /**
+     * Returns filters
+     * @param getAll True if retrieving filters independently if connected with indicators
+     * @return Filters
+     */
+    public FiltersDto getFilters(Boolean getAll) {
+        List<String> sectors = null;
+        List<Source> sources = null;
+        List<Level> levels = null;
+        List<SDGCode> sdgCodes = null;
+        List<CRSCode> crsCodes = null;
         FiltersDto filters = new FiltersDto();
-
-        filters.getSector().addAll(filtersResult.stream().map(IndicatorFilters::getSector).filter(f -> !f.isEmpty())
-                .sorted().collect(Collectors.toList()));
-        filters.getSource().addAll(filtersResult.stream().map(IndicatorFilters::getSource).filter(f -> !f.isEmpty()).flatMap(Collection::stream)
-                .sorted(Comparator.comparing(Source::getName)).collect(Collectors.toCollection(LinkedHashSet::new)));
-        filters.getLevel().addAll(filtersResult.stream().map(IndicatorFilters::getLevel).sorted().collect(Collectors.toList()));
-        filters.getSdgCode().addAll(filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty())
-                .flatMap(Collection::stream).sorted(Comparator.comparing(SDGCode::getName)).collect(Collectors.toCollection(LinkedHashSet::new)));
-        filters.getCrsCode().addAll(filtersResult.stream().map(IndicatorFilters::getCrsCode).filter(f -> !f.isEmpty())
-                .flatMap(Collection::stream).sorted(Comparator.comparing(CRSCode::getName)).collect(Collectors.toCollection(LinkedHashSet::new)));
-
+        if(getAll) {
+            sectors = indicatorRepository.getSectors();
+            sources = sourceRepository.findAll();
+            levels = levelRepository.findAll();
+            sdgCodes = sdgCodeRepository.findAll();
+            crsCodes = crsCodeRepository.findAll();
+        } else {
+            List<IndicatorFilters> filtersResult = indicatorRepository.getAllBy();
+            sectors = filtersResult.stream().map(IndicatorFilters::getSector).collect(Collectors.toList());
+            sources = filtersResult.stream().map(IndicatorFilters::getSource).filter(f -> !f.isEmpty()).flatMap(Collection::stream).collect(Collectors.toList());
+            levels = filtersResult.stream().map(IndicatorFilters::getLevel).collect(Collectors.toList());
+            sdgCodes = filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty()).flatMap(Collection::stream).collect(Collectors.toList());
+            crsCodes = filtersResult.stream().map(IndicatorFilters::getCrsCode).filter(f -> !f.isEmpty()).flatMap(Collection::stream).collect(Collectors.toList());
+        }
+        filters.getSector().addAll(sectors.stream().filter(f -> !f.isEmpty()).sorted().collect(Collectors.toList()));
+        filters.getSource().addAll(sources.stream().sorted(Comparator.comparing(Source::getName)).collect(Collectors.toCollection(LinkedHashSet::new)));
+        filters.getLevel().addAll(levels.stream().sorted().collect(Collectors.toList()));
+        filters.getSdgCode().addAll(sdgCodes.stream().sorted(Comparator.comparing(SDGCode::getName)).collect(Collectors.toCollection(LinkedHashSet::new)));
+        filters.getCrsCode().addAll(crsCodes.stream().sorted(Comparator.comparing(CRSCode::getName)).collect(Collectors.toCollection(LinkedHashSet::new)));
         return filters;
     }
 

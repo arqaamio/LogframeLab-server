@@ -4,11 +4,13 @@ import static java.util.Objects.isNull;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.exception.IndicatorNotFoundException;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.NumIndicatorsSectorLevel;
 import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.model.projection.CounterSectorLevel;
+import com.arqaam.logframelab.model.projection.IndicatorFilters;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -20,7 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.http.MediaType;
+import org.springframework.http.*;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -201,6 +203,56 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
 //        indicatorService.importIndicators("/home/ari/Downloads/Indicator.xlsx");
 //        indicatorService.importIndicators("/home/ari/Downloads/SDGs_changed.xlsx");
 
+  }
+  @Test
+  void getFilters() {
+    String sector = mockSectors.get(0);
+    Source source = mockSources.get(0);
+    Level level = mockLevels[0];
+    SDGCode sdgCode = mockSdgCodes.get(0);
+    CRSCode crsCode = mockCrsCodes.get(0);
+
+    List<IndicatorFilters> indicatorFilters= new ArrayList<>();
+    indicatorFilters.add(new IndicatorFilters() {
+      @Override
+      public String getSector() { return sector; }
+      @Override
+      public String getDescription() { return null; }
+      @Override
+      public Set<Source> getSource() { return Collections.singleton(source); }
+      @Override
+      public Level getLevel() { return level; }
+      @Override
+      public Set<SDGCode> getSdgCode() { return Collections.singleton(sdgCode); }
+      @Override
+      public Set<CRSCode> getCrsCode() { return Collections.singleton(crsCode); }
+    });
+    List<Level> levels = Arrays.asList(mockLevels.clone());
+    when(indicatorRepository.getAllBy()).thenReturn(indicatorFilters);
+
+    FiltersDto result = indicatorService.getFilters(false);
+    assertEquals(new HashSet<>(Collections.singletonList(sector)), result.getSector());
+    assertEquals(new HashSet<>(Collections.singletonList(source)), result.getSource());
+    assertEquals(new HashSet<>(Collections.singletonList(level)), result.getLevel());
+    assertEquals(new HashSet<>(Collections.singletonList(sdgCode)), result.getSdgCode());
+    assertEquals(new HashSet<>(Collections.singletonList(crsCode)), result.getCrsCode());
+  }
+
+  @Test
+  void getFilters_all() {
+    List<Level> levels = Arrays.asList(mockLevels.clone());
+    when(indicatorRepository.getSectors()).thenReturn(mockSectors);
+    when(sourceRepository.findAll()).thenReturn(mockSources);
+    when(levelRepository.findAll()).thenReturn(levels);
+    when(sdgCodeRepository.findAll()).thenReturn(mockSdgCodes);
+    when(crsCodeRepository.findAll()).thenReturn(mockCrsCodes);
+
+    FiltersDto result = indicatorService.getFilters(true);
+    assertEquals(mockSectors.stream().sorted().collect(Collectors.toCollection(LinkedHashSet::new)), result.getSector());
+    assertEquals(mockSources.stream().sorted(Comparator.comparing(Source::getName)).collect(Collectors.toCollection(LinkedHashSet::new)), result.getSource());
+    assertEquals(levels.stream().sorted().collect(Collectors.toCollection(LinkedHashSet::new)), result.getLevel());
+    assertEquals(mockCrsCodes.stream().sorted(Comparator.comparing(CRSCode::getName)).collect(Collectors.toCollection(LinkedHashSet::new)), result.getCrsCode());
+    assertEquals(mockSdgCodes.stream().sorted(Comparator.comparing(SDGCode::getName)).collect(Collectors.toCollection(LinkedHashSet::new)), result.getSdgCode());
   }
 
   @Test

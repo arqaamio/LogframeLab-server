@@ -151,19 +151,20 @@ public class AuthController implements Logging {
 
   @DeleteMapping(value = "users/{username}")
   @PreAuthorize("hasAnyAuthority('CRUD_ADMIN', 'CRUD_APP_USER')")
-  @ApiOperation(value = "${AuthController.deleteUser.value}", nickname = "deleteUser", response = User.class, authorizations = { @Authorization(value="jwtToken") })
+  @ApiOperation(value = "${AuthController.deleteUser.value}", nickname = "deleteUser", authorizations = { @Authorization(value="jwtToken") })
   @ApiResponses({
-          @ApiResponse(code = 200, message = "Deleted the user", response = User.class),
+          @ApiResponse(code = 200, message = "Deleted the user"),
           @ApiResponse(code = 404, message = "User not found", response = Error.class),
           @ApiResponse(code = 500, message = "Failed to delete the user", response = Error.class)
   })
-  public ResponseEntity<User> deleteUser(@PathVariable("username") String username) {
+  public ResponseEntity<Void> deleteUser(@PathVariable("username") String username) {
     logger().info("Deleting the user with username: {}", username);
     Optional<User> user = userService.findByUsername(username);
     if (user.isEmpty()) {
       logger().error("Failed to find user with username: {}", username);
       throw new UserNotFoundException();
     }
-    return ResponseEntity.ok(userService.deleteUserByUsername(username));
+    userService.deleteUserById(username);
+    return ResponseEntity.ok().build();
   }
 }

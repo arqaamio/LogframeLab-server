@@ -42,11 +42,6 @@ public class UserService implements Logging {
     userRepository.deleteById(id);
   }
 
-  public User deleteUserByUsername(String username) {
-    logger().info("Deleting user by its username: {}", username);
-    return userRepository.deleteUserByUsername(username);
-  }
-
   public Optional<User> findByUsername(String username) {
     logger().info("Retrieving user by username: {}", username);
     return userRepository.findByUsername(username);

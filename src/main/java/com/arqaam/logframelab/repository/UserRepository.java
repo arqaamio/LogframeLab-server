@@ -24,6 +24,4 @@ public interface UserRepository extends JpaRepository<User, String> {
 
   @Query(value = "from User u join u.groupMembership m join m.group order by u.username")
   List<User> getAllUsersWithTheirGroups();
-
-  User deleteUserByUsername(String username);
 }

@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class BaseIntegrationTest {
 
   protected static final String SEC_ADMIN_USERNAME = "secadmin";
-  protected static final String SEC_ADMIN_PASSWORD = "Passw0rdArqaam1234@";
+  protected static final String SEC_ADMIN_PASSWORD = "password";
 
   protected String bearerToken;
 

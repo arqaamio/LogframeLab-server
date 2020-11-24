@@ -3,6 +3,7 @@ package com.arqaam.logframelab.configuration.security;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import com.arqaam.logframelab.service.auth.GroupService;
 import com.arqaam.logframelab.service.auth.UserService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,7 +16,8 @@ public class ContextRefreshEventListener {
 
   // TODO investigate more secure way of storing such credentials
   private static final String SEC_ADMIN_GROUP_NAME = "SEC_ADMIN";
-  private static final String PASSWORD_TO_BE_CHANGED = "Passw0rdArqaam1234@";
+  @Value("${logframelab.secadmin.password}")
+  private String SEC_ADMIN_PASSWORD;
   private static final String DEFAULT_SEC_ADMIN_USERNAME = "secadmin";
   private static final String SYSTEM = "SYSTEM";
 
@@ -33,12 +35,11 @@ public class ContextRefreshEventListener {
   @EventListener
   public void initSecurityAdminUser(ContextRefreshedEvent event) {
     List<User> usersByGroupName = userService.getUserByGroupName(SEC_ADMIN_GROUP_NAME);
-
     if (usersByGroupName.isEmpty()) {
       User secAdminUser =
           User.builder()
               .username(DEFAULT_SEC_ADMIN_USERNAME)
-              .password(passwordEncoder.encode(PASSWORD_TO_BE_CHANGED))
+              .password(passwordEncoder.encode(SEC_ADMIN_PASSWORD))
               .enabled(true)
               .createdBy(SYSTEM)
               .build();

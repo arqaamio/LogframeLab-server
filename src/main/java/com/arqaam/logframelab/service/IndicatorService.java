@@ -294,11 +294,13 @@ public class IndicatorService implements Logging {
                 if (filledTemplateIndicators) DocManipulationUtil.insertTableRow(table, rowIndex);
                 else filledTemplateIndicators = true;
 
-                if(!Objects.equals(indicator.getStatement(), currentStatement) || rowIndex == initialRow + indicatorList.size() -1 ) {
+                if(!Objects.equals(currentStatement, indicator.getStatement())) {
                     DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(1), indicator.getStatement(), DEFAULT_FONT_SIZE);
-                    if(!statementRow.equals(rowIndex)) DocManipulationUtil.mergeCellsByColumn(table, statementRow, rowIndex, 1);
+                    //if(!statementRow.equals(rowIndex)) DocManipulationUtil.mergeCellsByColumn(table, statementRow, rowIndex, 1);
                     currentStatement = indicator.getStatement();
                     statementRow = rowIndex;
+                } else if (Objects.equals(currentStatement, indicator.getStatement()) ) { //|| rowIndex == initialRow + indicatorList.size() -1
+                    DocManipulationUtil.mergeCellsByColumn(table, statementRow, rowIndex, 1);
                 }
                 // Set values
                 DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(2), indicator.getName(), DEFAULT_FONT_SIZE);

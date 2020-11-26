@@ -234,13 +234,15 @@ public class IndicatorService implements Logging {
             List<Indicator> outcomeIndicators = new ArrayList<>();
             List<Indicator> outputIndicators = new ArrayList<>();
             List<Indicator> otherOutcomeIndicators = new ArrayList<>();
-            for (int i = 0; i < indicatorList.size(); i++) {
-                Indicator indicator = indicatorList.get(i);
-                if(!StringUtils.isEmpty(indicatorResponses.get(i).getValue()))
-                    indicator.setValue(indicatorResponses.get(i).getValue());
-                if(!StringUtils.isEmpty(indicatorResponses.get(i).getDate()))
-                    indicator.setDate(indicatorResponses.get(i).getDate());
-                indicator.setStatement(indicatorResponses.get(i).getStatement());
+            for (Indicator indicator : indicatorList) {
+                indicatorResponses.stream().filter(x -> x.getId() == indicator.getId()).findFirst().ifPresent(ind -> {
+                    if (!StringUtils.isEmpty(ind.getValue()))
+                        indicator.setValue(ind.getValue());
+                    if (!StringUtils.isEmpty(ind.getDate()))
+                        indicator.setDate(ind.getDate());
+                    indicator.setStatement(ind.getStatement());
+                });
+
                 // Can't do switch because the values aren't known before runtime
                 if (levels.get(0).equals(indicator.getLevel())) {
                     impactIndicators.add(indicator);
@@ -262,7 +264,9 @@ public class IndicatorService implements Logging {
             rowIndex = fillWordTableByLevel(otherOutcomeIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
                     table, rowIndex, false);
-            fillWordTableByLevel(outputIndicators, table, rowIndex, false);
+            fillWordTableByLevel(outputIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
+                    Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
+                    table, rowIndex, false);
 
             document.write(outputStream);
             document.close();

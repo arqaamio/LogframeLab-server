@@ -810,11 +810,13 @@ public class IndicatorService implements Logging {
 
             for (int i = 0; i < indicatorList.size(); i++) {
                 Indicator indicator = indicatorList.get(i);
-                if(!StringUtils.isEmpty(indicatorResponse.get(i).getValue()))
-                    indicator.setValue(indicatorResponse.get(i).getValue());
-                if(!StringUtils.isEmpty(indicatorResponse.get(i).getDate()))
-                    indicator.setDate(indicatorResponse.get(i).getDate());
-                indicator.setStatement(indicatorResponse.get(i).getStatement());
+                indicatorResponse.stream().filter(x -> x.getId() == indicator.getId()).findFirst().ifPresent(ind -> {
+                    if (!StringUtils.isEmpty(ind.getValue()))
+                        indicator.setValue(ind.getValue());
+                    if (!StringUtils.isEmpty(ind.getDate()))
+                        indicator.setDate(ind.getDate());
+                    indicator.setStatement(ind.getStatement());
+                });
                 // Can't do switch because the values aren't known before runtime
                 if (levels.get(0).equals(indicator.getLevel())) {
                     impactIndicators.add(indicator);

@@ -170,9 +170,16 @@ public class IndicatorController implements Logging {
     }
 
     @GetMapping("filters")
-    public ResponseEntity<FiltersDto> getFilters() {
-        return ResponseEntity.ok(indicatorService.getFilters());
+    @ApiOperation(value = "${IndicatorController.getFilters.value}", nickname = "getFilters", response = FiltersDto.class)
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "Retrieved filters", response = FiltersDto.class),
+            @ApiResponse(code = 500, message = "Unexpected error occurred", response = Error.class)
+    })
+    public ResponseEntity<FiltersDto> getFilters(@RequestParam(value = "all", defaultValue = "0") String getAll ) {
+        logger().info("Retrieving filters. All: {}", getAll);
+        return ResponseEntity.ok(indicatorService.getFilters(getAll.equalsIgnoreCase("1")));
     }
+
 
     @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation(value = "${IndicatorController.getIndicators.value}", nickname = "getIndicators", response = IndicatorResponse.class, responseContainer = "List")

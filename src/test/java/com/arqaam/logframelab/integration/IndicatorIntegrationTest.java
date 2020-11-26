@@ -31,6 +31,12 @@ public class IndicatorIntegrationTest extends BaseIntegrationTest {
   private static final int DATABASE_SDG_CODE_SIZE = 17;
   private static final int DATABASE_LEVEL_SIZE = 3;
 
+  private static final int DATABASE_ALL_SECTOR_SIZE = 42;
+  private static final int DATABASE_ALL_CRS_CODE_SIZE = 49;
+  private static final int DATABASE_ALL_SOURCE_SIZE = 48;
+  private static final int DATABASE_ALL_SDG_CODE_SIZE = 17;
+  private static final int DATABASE_ALL_LEVEL_SIZE = 4;
+
   @BeforeEach
   void setup() {
     generateAuthToken();
@@ -99,8 +105,31 @@ public class IndicatorIntegrationTest extends BaseIntegrationTest {
         () -> assertTrue(testSortAscending(new ArrayList<>(filtersDto.getSector()))),
         () -> assertTrue(testSortAscending(filtersDto.getCrsCode().stream().map(CRSCode::getName).collect(Collectors.toList()))),
         () -> assertTrue(testSortAscending(filtersDto.getSource().stream().map(Source::getName).collect(Collectors.toList()))),
-        () -> assertTrue(testSortAscending(filtersDto.getSdgCode().stream().map(SDGCode::getName).collect(Collectors.toList()))),
-        () -> assertTrue(testSortAscending(filtersDto.getLevel().stream().map(Level::getName).collect(Collectors.toList())))
+        () -> assertTrue(testSortAscending(filtersDto.getSdgCode().stream().map(SDGCode::getName).collect(Collectors.toList())))
+    );
+  }
+
+  @Test
+  void getFilters_all() {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(bearerToken);
+
+    ResponseEntity<FiltersDto> filters =
+            testRestTemplate.exchange(
+                    "/indicator/filters?all=1", HttpMethod.GET, new HttpEntity<>(headers), FiltersDto.class);
+    FiltersDto filtersDto = Objects.requireNonNull(filters.getBody());
+
+    assertAll(
+            () -> assertThat(filters.getStatusCode(), is(HttpStatus.OK)),
+            () -> assertThat(filtersDto.getSector().size(), is(DATABASE_ALL_SECTOR_SIZE)),
+            () -> assertThat(filtersDto.getCrsCode().size(), is(DATABASE_ALL_CRS_CODE_SIZE)),
+            () -> assertThat(filtersDto.getSource().size(), is(DATABASE_ALL_SOURCE_SIZE)),
+            () -> assertThat(filtersDto.getSdgCode().size(), is(DATABASE_ALL_SDG_CODE_SIZE)),
+            () -> assertThat(filtersDto.getLevel().size(), is(DATABASE_ALL_LEVEL_SIZE)),
+            () -> assertTrue(testSortAscending(new ArrayList<>(filtersDto.getSector()))),
+            () -> assertTrue(testSortAscending(filtersDto.getCrsCode().stream().map(CRSCode::getName).collect(Collectors.toList()))),
+            () -> assertTrue(testSortAscending(filtersDto.getSource().stream().map(Source::getName).collect(Collectors.toList()))),
+            () -> assertTrue(testSortAscending(filtersDto.getSdgCode().stream().map(SDGCode::getName).collect(Collectors.toList())))
     );
   }
 

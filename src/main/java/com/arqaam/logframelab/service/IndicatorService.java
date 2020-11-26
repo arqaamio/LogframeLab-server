@@ -234,13 +234,15 @@ public class IndicatorService implements Logging {
             List<Indicator> outcomeIndicators = new ArrayList<>();
             List<Indicator> outputIndicators = new ArrayList<>();
             List<Indicator> otherOutcomeIndicators = new ArrayList<>();
-            for (int i = 0; i < indicatorList.size(); i++) {
-                Indicator indicator = indicatorList.get(i);
-                if(!StringUtils.isEmpty(indicatorResponses.get(i).getValue()))
-                    indicator.setValue(indicatorResponses.get(i).getValue());
-                if(!StringUtils.isEmpty(indicatorResponses.get(i).getDate()))
-                    indicator.setDate(indicatorResponses.get(i).getDate());
-                indicator.setStatement(indicatorResponses.get(i).getStatement());
+            for (Indicator indicator : indicatorList) {
+                indicatorResponses.stream().filter(x -> x.getId() == indicator.getId()).findFirst().ifPresent(ind -> {
+                    if (!StringUtils.isEmpty(ind.getValue()))
+                        indicator.setValue(ind.getValue());
+                    if (!StringUtils.isEmpty(ind.getDate()))
+                        indicator.setDate(ind.getDate());
+                    indicator.setStatement(ind.getStatement());
+                });
+
                 // Can't do switch because the values aren't known before runtime
                 if (levels.get(0).equals(indicator.getLevel())) {
                     impactIndicators.add(indicator);
@@ -262,7 +264,9 @@ public class IndicatorService implements Logging {
             rowIndex = fillWordTableByLevel(otherOutcomeIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
                     table, rowIndex, false);
-            fillWordTableByLevel(outputIndicators, table, rowIndex, false);
+            fillWordTableByLevel(outputIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
+                    Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
+                    table, rowIndex, false);
 
             document.write(outputStream);
             document.close();
@@ -294,11 +298,13 @@ public class IndicatorService implements Logging {
                 if (filledTemplateIndicators) DocManipulationUtil.insertTableRow(table, rowIndex);
                 else filledTemplateIndicators = true;
 
-                if(!Objects.equals(indicator.getStatement(), currentStatement) || rowIndex == initialRow + indicatorList.size() -1 ) {
+                if(!Objects.equals(currentStatement, indicator.getStatement())) {
                     DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(1), indicator.getStatement(), DEFAULT_FONT_SIZE);
-                    if(!statementRow.equals(rowIndex)) DocManipulationUtil.mergeCellsByColumn(table, statementRow, rowIndex, 1);
+                    //if(!statementRow.equals(rowIndex)) DocManipulationUtil.mergeCellsByColumn(table, statementRow, rowIndex, 1);
                     currentStatement = indicator.getStatement();
                     statementRow = rowIndex;
+                } else if (Objects.equals(currentStatement, indicator.getStatement()) ) { //|| rowIndex == initialRow + indicatorList.size() -1
+                    DocManipulationUtil.mergeCellsByColumn(table, statementRow, rowIndex, 1);
                 }
                 // Set values
                 DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(2), indicator.getName(), DEFAULT_FONT_SIZE);
@@ -339,51 +345,70 @@ public class IndicatorService implements Logging {
         levelMap.put(lvl.getName(), lvl);
       }
 
-      logger().info("Importing indicators from xlsx, name {}", file.getName());
+      logger().info("Importing indicators from xlsx, name {}", file.getOriginalFilename());
       try {
         List<Indicator> indicatorList = new ArrayList<>();
         Iterator<Row> iterator = new XSSFWorkbook(file.getInputStream()).getSheetAt(0).iterator();
+        int row = 0;
         // skip the headers row
         if (iterator.hasNext()) {
           iterator.next();
+          row++;
         }
         while (iterator.hasNext()) {
           Row currentRow = iterator.next();
+          row++;
           try {
-            currentRow.getCell(2).getStringCellValue();
+             currentRow.getCell(3).getStringCellValue();
           } catch (NullPointerException ex) {
             continue;
           }
           // key words
-          String[] keys = currentRow.getCell(2).getStringCellValue().toLowerCase().split(",");
+          String[] keys = currentRow.getCell(2, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().toLowerCase().split(",");
           for (int i = 0; i < keys.length; i++) {
             keys[i] = keys[i].trim().replaceAll("\\s+", " ");
           }
-          Level level = levelMap.get(currentRow.getCell(0).getStringCellValue().trim().toUpperCase());
+          Level level = levelMap.get(cleanText(currentRow.getCell(0, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue()).toUpperCase());
           if (!isNull(level)) {
             Cell crsCodeCell = currentRow.getCell(7, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
             Cell sdgCodeCell = currentRow.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
             Indicator indicator = Indicator.builder()
                 .level(level)
-                .sector(currentRow.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().trim())
-                .keywords(String.join(",", keys).replaceAll("\\s+",""))
-                .name(currentRow.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().trim())
-                .description(currentRow.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().trim())
-                .source(Arrays.stream(currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().split(",")).map(
-                        x-> sources.stream().filter(y->y.getName().equalsIgnoreCase(x.trim())).findFirst().orElse(null)).collect(Collectors.toSet()))
-                .disaggregation(currentRow.getCell(6, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().equalsIgnoreCase("yes"))
-                .crsCode(Arrays.stream(((crsCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf((int)crsCodeCell.getNumericCellValue()) : crsCodeCell.getStringCellValue()))
-                        .split(",")).map(x-> crsCodes.stream().filter(y->String.valueOf(y.getId()).equalsIgnoreCase(x.trim())).findFirst().orElse(null)).collect(Collectors.toSet()))
-                .sdgCode(Arrays.stream(((sdgCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf((int)sdgCodeCell.getNumericCellValue()) : sdgCodeCell.getStringCellValue()))
-                        .split(",")).map(x-> sdgCodes.stream().filter(y->String.valueOf(y.getId()).equalsIgnoreCase(x.trim())).findFirst().orElse(null)).collect(Collectors.toSet()))
-                .sourceVerification(currentRow.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().trim())
-                .dataSource(currentRow.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().trim())
+                .sector(cleanText(currentRow.getCell(1, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue()))
+                .keywords(cleanText(String.join(",", keys).replaceAll("\\s+","")))
+                .name(cleanText(currentRow.getCell(3, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue()))
+                .description(cleanText(currentRow.getCell(4, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue()))
+                .disaggregation(cleanText(currentRow.getCell(6, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue()).equalsIgnoreCase("yes"))
+                .sourceVerification(cleanText(currentRow.getCell(9, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue()))
+                .dataSource(cleanText(currentRow.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue()))
                 .build();
+            int finalRow = row;
+            if(!currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().isEmpty()){
+                 indicator.setSource(Arrays.stream(cleanText(currentRow.getCell(5, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue()).split(",")).map(
+                        x-> sources.stream().filter(y->y.getName().equalsIgnoreCase(x.trim())).findFirst()
+                        .orElseThrow(() -> new WorksheetInWrongFormatException("Source on row " + finalRow + " is invalid"))).collect(Collectors.toSet()));
+
+            }
+            String crsCodeContent = cleanText(crsCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf((int)crsCodeCell.getNumericCellValue()) : crsCodeCell.getStringCellValue());
+            if(!crsCodeContent.isEmpty()){
+                  indicator.setCrsCode(Arrays.stream(crsCodeContent.split(",")).map(x-> crsCodes.stream()
+                        .filter(y->String.valueOf(y.getId()).equalsIgnoreCase(x.trim())).findFirst()
+                        .orElseThrow(() -> new WorksheetInWrongFormatException("CRS Code on row " + finalRow + " is invalid"))).collect(Collectors.toSet()));
+
+            }
+            String sdgCodeContent = cleanText(sdgCodeCell.getCellType().equals(CellType.NUMERIC) ? String.valueOf((int)sdgCodeCell.getNumericCellValue()) : sdgCodeCell.getStringCellValue());
+            if(!sdgCodeContent.isEmpty()){
+                    indicator.setSdgCode(Arrays.stream(sdgCodeContent.split(",")).map(x-> sdgCodes.stream()
+                        .filter(y->String.valueOf(y.getId()).equalsIgnoreCase(x.trim())).findFirst()
+                        .orElseThrow(() -> new WorksheetInWrongFormatException("SDG Code on row " + finalRow + " is invalid"))).collect(Collectors.toSet()));
+            }
             indicatorList.add(indicator);
             /*
              * Logging per row with a large-enough file caused an error in tests:
              * https://stackoverflow.com/a/52033799/2211446
              */
+          } else {
+              throw new WorksheetInWrongFormatException("Level on row " + row + " is invalid. Valid values: " + levelMap.keySet());
           }
         }
         return indicatorList;
@@ -397,6 +422,32 @@ public class IndicatorService implements Logging {
         }*/
     }
 
+    /**
+     * Removes special characters and extra empty space
+     * @param text Text to be cleaned
+     * @return Cleaned text
+     */
+    private String cleanText(String text) {
+        // strips off all non-ASCII characters
+        text = text.replaceAll("[^\\x00-\\x7F]", "");
+
+        // erases all the ASCII control characters
+        text = text.replaceAll("[\\p{Cntrl}&&[^\r\n\t]]", "");
+
+        // removes non-printable characters from Unicode
+        text = text.replaceAll("\\p{C}", "");
+
+        text = text.replaceAll("[^ -~]","");
+
+        text = text.replaceAll("[^\\p{ASCII}]", "");
+
+        text = text.replaceAll("\\\\x\\p{XDigit}{2}", "");
+        text = text.replaceAll("\\\\n","");
+
+
+        text = text.replaceAll("[^\\x20-\\x7e]", "");
+        return text.trim();
+    }
     /**
      * Import Indicators from an worksheet/excel file with the extension xlsx
      * @param indicatorResponses Indicators to written in the excel file
@@ -493,21 +544,37 @@ public class IndicatorService implements Logging {
         return indicatorRepository.getSectors();
     }
 
-    public FiltersDto getFilters() {
-        List<IndicatorFilters> filtersResult = indicatorRepository.getAllBy();
-
+    /**
+     * Returns filters
+     * @param getAll True if retrieving filters independently if connected with indicators
+     * @return Filters
+     */
+    public FiltersDto getFilters(Boolean getAll) {
+        List<String> sectors = null;
+        List<Source> sources = null;
+        List<Level> levels = null;
+        List<SDGCode> sdgCodes = null;
+        List<CRSCode> crsCodes = null;
         FiltersDto filters = new FiltersDto();
-
-        filters.getSector().addAll(filtersResult.stream().map(IndicatorFilters::getSector).filter(f -> !f.isEmpty())
-                .sorted().collect(Collectors.toList()));
-        filters.getSource().addAll(filtersResult.stream().map(IndicatorFilters::getSource).filter(f -> !f.isEmpty()).flatMap(Collection::stream)
-                .sorted(Comparator.comparing(Source::getName)).collect(Collectors.toCollection(LinkedHashSet::new)));
-        filters.getLevel().addAll(filtersResult.stream().map(IndicatorFilters::getLevel).sorted().collect(Collectors.toList()));
-        filters.getSdgCode().addAll(filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty())
-                .flatMap(Collection::stream).sorted(Comparator.comparing(SDGCode::getName)).collect(Collectors.toCollection(LinkedHashSet::new)));
-        filters.getCrsCode().addAll(filtersResult.stream().map(IndicatorFilters::getCrsCode).filter(f -> !f.isEmpty())
-                .flatMap(Collection::stream).sorted(Comparator.comparing(CRSCode::getName)).collect(Collectors.toCollection(LinkedHashSet::new)));
-
+        if(getAll) {
+            sectors = indicatorRepository.getSectors();
+            sources = sourceRepository.findAll();
+            levels = levelRepository.findAll();
+            sdgCodes = sdgCodeRepository.findAll();
+            crsCodes = crsCodeRepository.findAll();
+        } else {
+            List<IndicatorFilters> filtersResult = indicatorRepository.getAllBy();
+            sectors = filtersResult.stream().map(IndicatorFilters::getSector).collect(Collectors.toList());
+            sources = filtersResult.stream().map(IndicatorFilters::getSource).filter(f -> !f.isEmpty()).flatMap(Collection::stream).collect(Collectors.toList());
+            levels = filtersResult.stream().map(IndicatorFilters::getLevel).collect(Collectors.toList());
+            sdgCodes = filtersResult.stream().map(IndicatorFilters::getSdgCode).filter(f -> !f.isEmpty()).flatMap(Collection::stream).collect(Collectors.toList());
+            crsCodes = filtersResult.stream().map(IndicatorFilters::getCrsCode).filter(f -> !f.isEmpty()).flatMap(Collection::stream).collect(Collectors.toList());
+        }
+        filters.getSector().addAll(sectors.stream().filter(f -> !f.isEmpty()).sorted().collect(Collectors.toList()));
+        filters.getSource().addAll(sources.stream().sorted(Comparator.comparing(Source::getName)).collect(Collectors.toCollection(LinkedHashSet::new)));
+        filters.getLevel().addAll(levels.stream().sorted().collect(Collectors.toList()));
+        filters.getSdgCode().addAll(sdgCodes.stream().sorted(Comparator.comparing(SDGCode::getName)).collect(Collectors.toCollection(LinkedHashSet::new)));
+        filters.getCrsCode().addAll(crsCodes.stream().sorted(Comparator.comparing(CRSCode::getName)).collect(Collectors.toCollection(LinkedHashSet::new)));
         return filters;
     }
 
@@ -743,11 +810,13 @@ public class IndicatorService implements Logging {
 
             for (int i = 0; i < indicatorList.size(); i++) {
                 Indicator indicator = indicatorList.get(i);
-                if(!StringUtils.isEmpty(indicatorResponse.get(i).getValue()))
-                    indicator.setValue(indicatorResponse.get(i).getValue());
-                if(!StringUtils.isEmpty(indicatorResponse.get(i).getDate()))
-                    indicator.setDate(indicatorResponse.get(i).getDate());
-                indicator.setStatement(indicatorResponse.get(i).getStatement());
+                indicatorResponse.stream().filter(x -> x.getId() == indicator.getId()).findFirst().ifPresent(ind -> {
+                    if (!StringUtils.isEmpty(ind.getValue()))
+                        indicator.setValue(ind.getValue());
+                    if (!StringUtils.isEmpty(ind.getDate()))
+                        indicator.setDate(ind.getDate());
+                    indicator.setStatement(ind.getStatement());
+                });
                 // Can't do switch because the values aren't known before runtime
                 if (levels.get(0).equals(indicator.getLevel())) {
                     impactIndicators.add(indicator);

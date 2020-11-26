@@ -4,11 +4,13 @@ import static java.util.Objects.isNull;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.exception.IndicatorNotFoundException;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.NumIndicatorsSectorLevel;
 import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.model.projection.CounterSectorLevel;
+import com.arqaam.logframelab.model.projection.IndicatorFilters;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -20,9 +22,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.http.MediaType;
+import org.springframework.http.*;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.util.*;
@@ -194,6 +195,36 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
   }
 
   @Test
+  void exportIndicatorsInWordFile_multipleImpactStatements() throws IOException {
+    List<Indicator> indicatorList = mockIndicatorList();
+    indicatorList.add(Indicator.builder().id(100L).name("Impact indicator").statement("Statement").level(mockLevels[3])
+            .dataSource("").date("1981").value("30").build());
+    indicatorList.add(Indicator.builder().id(101L).name("Impact indicator 2").statement("Statement 2").level(mockLevels[3])
+            .dataSource("").date("1991").value("29").build());
+
+    List<Indicator> impactIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[3])).collect(Collectors.toList());
+    List<Indicator> outcomeIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[1])).collect(Collectors.toList());
+    List<Indicator> outputIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
+    when(indicatorRepository.findAllById(any())).thenReturn(indicatorList);
+    List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(indicatorList);
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse);
+
+    assertNotNull(result);
+    XWPFDocument resultDoc = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
+    assertEquals(2, resultDoc.getTables().size());
+    XWPFTable table = resultDoc.getTableArray(0);
+    Integer rowIndex = 1;
+    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, rowIndex);
+    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, rowIndex);
+    rowIndex = validateWordTemplateLevel(table, Collections.emptyList(), indicatorResponse, rowIndex);
+    validateWordTemplateLevel(table, outputIndicators, indicatorResponse, rowIndex);
+    resultDoc.close();
+  }
+
+  @Test
   void importIndicators() {
     //TODO this test
 //        indicatorService.importIndicators(new ClassPathResource("Indicator.xlsx").getPath());
@@ -201,6 +232,56 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
 //        indicatorService.importIndicators("/home/ari/Downloads/Indicator.xlsx");
 //        indicatorService.importIndicators("/home/ari/Downloads/SDGs_changed.xlsx");
 
+  }
+  @Test
+  void getFilters() {
+    String sector = mockSectors.get(0);
+    Source source = mockSources.get(0);
+    Level level = mockLevels[0];
+    SDGCode sdgCode = mockSdgCodes.get(0);
+    CRSCode crsCode = mockCrsCodes.get(0);
+
+    List<IndicatorFilters> indicatorFilters= new ArrayList<>();
+    indicatorFilters.add(new IndicatorFilters() {
+      @Override
+      public String getSector() { return sector; }
+      @Override
+      public String getDescription() { return null; }
+      @Override
+      public Set<Source> getSource() { return Collections.singleton(source); }
+      @Override
+      public Level getLevel() { return level; }
+      @Override
+      public Set<SDGCode> getSdgCode() { return Collections.singleton(sdgCode); }
+      @Override
+      public Set<CRSCode> getCrsCode() { return Collections.singleton(crsCode); }
+    });
+    List<Level> levels = Arrays.asList(mockLevels.clone());
+    when(indicatorRepository.getAllBy()).thenReturn(indicatorFilters);
+
+    FiltersDto result = indicatorService.getFilters(false);
+    assertEquals(new HashSet<>(Collections.singletonList(sector)), result.getSector());
+    assertEquals(new HashSet<>(Collections.singletonList(source)), result.getSource());
+    assertEquals(new HashSet<>(Collections.singletonList(level)), result.getLevel());
+    assertEquals(new HashSet<>(Collections.singletonList(sdgCode)), result.getSdgCode());
+    assertEquals(new HashSet<>(Collections.singletonList(crsCode)), result.getCrsCode());
+  }
+
+  @Test
+  void getFilters_all() {
+    List<Level> levels = Arrays.asList(mockLevels.clone());
+    when(indicatorRepository.getSectors()).thenReturn(mockSectors);
+    when(sourceRepository.findAll()).thenReturn(mockSources);
+    when(levelRepository.findAll()).thenReturn(levels);
+    when(sdgCodeRepository.findAll()).thenReturn(mockSdgCodes);
+    when(crsCodeRepository.findAll()).thenReturn(mockCrsCodes);
+
+    FiltersDto result = indicatorService.getFilters(true);
+    assertEquals(mockSectors.stream().sorted().collect(Collectors.toCollection(LinkedHashSet::new)), result.getSector());
+    assertEquals(mockSources.stream().sorted(Comparator.comparing(Source::getName)).collect(Collectors.toCollection(LinkedHashSet::new)), result.getSource());
+    assertEquals(levels.stream().sorted().collect(Collectors.toCollection(LinkedHashSet::new)), result.getLevel());
+    assertEquals(mockCrsCodes.stream().sorted(Comparator.comparing(CRSCode::getName)).collect(Collectors.toCollection(LinkedHashSet::new)), result.getCrsCode());
+    assertEquals(mockSdgCodes.stream().sorted(Comparator.comparing(SDGCode::getName)).collect(Collectors.toCollection(LinkedHashSet::new)), result.getSdgCode());
   }
 
   @Test
@@ -400,8 +481,8 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
                 .source(Optional.ofNullable(indicator.getSource()).orElse(Collections.singleton(mockSources.get(0))))
                 .sector(Optional.ofNullable(indicator.getSector()).orElse("Sector "+i))
                 .disaggregation(Optional.ofNullable(indicator.getDisaggregation()).orElse(true))
-                .date(String.valueOf(2000+i))
-                .value(String.valueOf(50+i))
+                .date(Optional.ofNullable(indicator.getDate()).orElse(String.valueOf(2000+i)))
+                .value(Optional.ofNullable(indicator.getValue()).orElse(String.valueOf(50+i)))
                 .statement(Optional.ofNullable(indicator.getStatement()).orElse("Statement " + i))
                 .build());
         i++;
@@ -559,12 +640,13 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         int finalI = i;
         assertEquals(8, row.getTableCells().size());
         indicatorResponses.stream().filter(x->x.getId() == finalIndicators.get(finalI).getId()).findFirst().ifPresent(response-> {
-          assertEquals(Optional.ofNullable(response.getStatement()).orElse("null"), row.getCell(1).getTextRecursively());
-//          if (lastStatement.get().equalsIgnoreCase(response.getStatement())) {
-//            assertTrue(row.getCell(2).getCTTc().getTcPr().isSetVMerge());
-//          } else {
-//            lastStatement.set(response.getStatement());
-//          }
+          if(lastStatement.get().equalsIgnoreCase(response.getStatement())){
+            assertEquals("", row.getCell(1).getTextRecursively());
+            assertTrue(row.getCell(1).getCTTc().getTcPr().isSetVMerge());
+          }else {
+            assertEquals(Optional.ofNullable(response.getStatement()).orElse("null"), row.getCell(1).getTextRecursively());
+            lastStatement.set(response.getStatement());
+          }
         });
 
         assertEquals(indicators.get(i).getName(), row.getCell(2).getTextRecursively());
@@ -575,7 +657,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         assertEquals("", row.getCell(4).getTextRecursively());
         assertEquals("", row.getCell(5).getTextRecursively());
         assertEquals(Optional.ofNullable(indicators.get(i).getSourceVerification()).orElse(""), row.getCell(6).getTextRecursively());
-        assertEquals(assumptionsValue,row.getCell(7).getTextRecursively());
+        assertEquals(i==0? assumptionsValue : "",row.getCell(7).getTextRecursively());
 
         // validate merge cells
         assertTrue(row.getCell(0).getCTTc().getTcPr().isSetVMerge());

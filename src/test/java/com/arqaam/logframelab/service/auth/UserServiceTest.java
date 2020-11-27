@@ -99,7 +99,6 @@ public class UserServiceTest {
     when(userRepository.save(any())).thenReturn(expected);
 
     User result = userService.provisionUser(dto);
-    verify(userRepository).findByUsername(username);
     verify(groupRepository).findAllById(groups);
     verify(userRepository).save(any());
     assertEquals(expected, result);

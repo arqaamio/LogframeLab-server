@@ -53,13 +53,8 @@ public class UserService implements Logging {
   }
 
   public User provisionUser(UserAuthProvisioningRequestDto authProvisioningRequest) {
-    Optional<User> optionalUser = findByUsername(authProvisioningRequest.getUsername());
-
     User user;
-    if (optionalUser.isPresent()) {
-      user = optionalUser.get();
-      user.removeAllGroups();
-    } else if (StringUtils.isEmpty(authProvisioningRequest.getPassword())) {
+    if (StringUtils.isEmpty(authProvisioningRequest.getPassword())) {
       throw new UserProvisioningException();
     } else {
       user = new User(authProvisioningRequest.getUsername(),

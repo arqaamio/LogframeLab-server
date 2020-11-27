@@ -94,7 +94,6 @@ public class UserServiceTest {
     User expected = new User();
     expected.setUsername(username);
     expected.addGroups(Collections.emptyList());
-    when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
     when(groupRepository.findAllById(groups)).thenReturn(Collections.emptyList());
     when(userRepository.save(any())).thenReturn(expected);
 
@@ -113,12 +112,10 @@ public class UserServiceTest {
     User expected = new User();
     expected.setUsername(username);
     expected.addGroups(Collections.emptyList());
-    when(userRepository.findByUsername(username)).thenReturn(Optional.of(expected));
     when(groupRepository.findAllById(groups)).thenReturn(Collections.emptyList());
     when(userRepository.save(any())).thenReturn(expected);
 
     User result = userService.provisionUser(dto);
-    verify(userRepository).findByUsername(username);
     verify(groupRepository).findAllById(groups);
     verify(userRepository).save(any());
     assertEquals(expected, result);
@@ -129,11 +126,7 @@ public class UserServiceTest {
     String username = "username";
     List<Integer> groups = Collections.singletonList(1);
     UserAuthProvisioningRequestDto dto = new UserAuthProvisioningRequestDto(username, "", groups);
-
-    when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
-
     assertThrows(UserProvisioningException.class, () -> userService.provisionUser(dto));
-    verify(userRepository).findByUsername(username);
     verify(groupRepository, times(0)).findAllById(groups);
     verify(userRepository, times(0)).save(any());
   }

@@ -12,4 +12,6 @@ public class Constants {
 
     public static final String EMPTY_VALUE = "empty_string";
     public static final Long EMPTY_VALUE_ID = -1L;
+
+    public static final String SEC_ADMIN_GROUP_NAME = "SEC_ADMIN";
 }

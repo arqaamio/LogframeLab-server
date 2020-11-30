@@ -2,10 +2,14 @@ package com.arqaam.logframelab.service.auth;
 
 import com.arqaam.logframelab.controller.dto.auth.UserDto;
 import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningRequestDto;
+import com.arqaam.logframelab.exception.OnlySecAdminUserException;
+import com.arqaam.logframelab.exception.UserNotFoundException;
 import com.arqaam.logframelab.exception.UserProvisioningException;
+import com.arqaam.logframelab.model.persistence.auth.Group;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import com.arqaam.logframelab.repository.GroupRepository;
 import com.arqaam.logframelab.repository.UserRepository;
+import com.arqaam.logframelab.util.Constants;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -58,9 +62,35 @@ public class UserServiceTest {
 
   @Test
   void deleteUserByIdTest(){
-    String userId = "1";
+    String userId = "secadmin";
+    User user = User.builder().username(userId).build();
+    when(userRepository.findByUsername(userId)).thenReturn(Optional.of(user));
     userService.deleteUserById(userId);
     verify(userRepository).deleteById(userId);
+  }
+
+  @Test
+  void deleteUserByIdTest_userNotFound(){
+    assertThrows(UserNotFoundException.class, ()->{
+      String userId = "secadmin";
+      when(userRepository.findByUsername(userId)).thenReturn(Optional.empty());
+      userService.deleteUserById(userId);
+    });
+  }
+
+  @Test
+  void deleteUserByIdTest_onlySecAdmin(){
+    assertThrows(OnlySecAdminUserException.class, ()->{
+      String userId = "secadmin";
+      User user = User.builder().username(userId).build();
+      Group group = new Group();
+      group.setName(Constants.SEC_ADMIN_GROUP_NAME);
+      user.addGroup(group);
+      when(userRepository.findByUsername(userId)).thenReturn(Optional.of(user));
+      when(userRepository.findUserByGroupMembership(any())).thenReturn(Collections.singletonList(user));
+
+      userService.deleteUserById(userId);
+    });
   }
 
   @Test

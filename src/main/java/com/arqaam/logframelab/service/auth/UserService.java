@@ -2,10 +2,13 @@ package com.arqaam.logframelab.service.auth;
 
 import com.arqaam.logframelab.controller.dto.auth.UserDto;
 import com.arqaam.logframelab.controller.dto.auth.create.UserAuthProvisioningRequestDto;
+import com.arqaam.logframelab.exception.OnlySecAdminUserException;
+import com.arqaam.logframelab.exception.UserNotFoundException;
 import com.arqaam.logframelab.exception.UserProvisioningException;
 import com.arqaam.logframelab.model.persistence.auth.User;
 import com.arqaam.logframelab.repository.GroupRepository;
 import com.arqaam.logframelab.repository.UserRepository;
+import com.arqaam.logframelab.util.Constants;
 import com.arqaam.logframelab.util.Logging;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -38,6 +41,16 @@ public class UserService implements Logging {
   }
 
   public void deleteUserById(String id) {
+    Optional<User> user = findByUsername(id);
+    if (user.isEmpty()) {
+      logger().error("Failed to find user with username: {}", id);
+      throw new UserNotFoundException();
+    }
+    if(userRepository.findUserByGroupMembership(Constants.SEC_ADMIN_GROUP_NAME).size() == 1 &&
+            user.get().getGroupMembership().stream().anyMatch(x->x.getGroup().getName().equalsIgnoreCase(Constants.SEC_ADMIN_GROUP_NAME))) {
+      logger().error("Failed to delete user because it's only sec admin user. User: {}", user);
+      throw new OnlySecAdminUserException();
+    }
     logger().info("Deleting user by its id: {}", id);
     userRepository.deleteById(id);
   }

@@ -159,11 +159,6 @@ public class AuthController implements Logging {
   })
   public ResponseEntity<Void> deleteUser(@PathVariable("username") String username) {
     logger().info("Deleting the user with username: {}", username);
-    Optional<User> user = userService.findByUsername(username);
-    if (user.isEmpty()) {
-      logger().error("Failed to find user with username: {}", username);
-      throw new UserNotFoundException();
-    }
     userService.deleteUserById(username);
     return ResponseEntity.ok().build();
   }

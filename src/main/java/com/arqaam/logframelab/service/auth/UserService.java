@@ -37,6 +37,13 @@ public class UserService implements Logging {
 
   public User createOrUpdateUser(User user) {
     logger().info("Starting to create or save user: {}", user);
+    List<User> secAdminUsers = userRepository.findUserByGroupMembership(Constants.SEC_ADMIN_GROUP_NAME);
+    if(secAdminUsers.size() == 1 && secAdminUsers.get(0).getUsername().equals(user.getUsername()) &&
+      !user.getGroupMembership().stream().anyMatch(x->x.getGroup().getName().equalsIgnoreCase(Constants.SEC_ADMIN_GROUP_NAME))) {
+      logger().error("Failed to update user because it's only sec admin user. User: {}", user);
+      throw new OnlySecAdminUserException();
+    }
+
     return userRepository.save(user);
   }
 

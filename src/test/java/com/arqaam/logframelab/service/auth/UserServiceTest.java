@@ -52,12 +52,26 @@ public class UserServiceTest {
 
   @Test
   void createOrUpdateUserTest(){
-    User expected = new User();
-    when(userRepository.save(expected)).thenReturn(expected);
+    String userId = "secadmin";
+    User user = User.builder().username(userId).build();
+    Group group = new Group();
+    group.setName(Constants.SEC_ADMIN_GROUP_NAME);
+    user.addGroup(group);
+    when(userRepository.save(user)).thenReturn(user);
+    when(userRepository.findUserByGroupMembership(any())).thenReturn(Collections.singletonList(user));
+    User result = userService.createOrUpdateUser(user);
+    verify(userRepository).save(user);
+    assertEquals(user, result);
+  }
 
-    User result = userService.createOrUpdateUser(expected);
-    verify(userRepository).save(expected);
-    assertEquals(expected, result);
+  @Test
+  void createOrUpdateUserTest_onlySecAdmin(){
+    assertThrows(OnlySecAdminUserException.class, ()->{
+      String userId = "secadmin";
+      User user = User.builder().username(userId).build();
+      when(userRepository.findUserByGroupMembership(any())).thenReturn(Collections.singletonList(user));
+      userService.createOrUpdateUser(user);
+    });
   }
 
   @Test

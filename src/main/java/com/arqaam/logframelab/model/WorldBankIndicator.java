@@ -10,7 +10,7 @@ public class WorldBankIndicator {
     private IndicatorProperties country;
     private String countryiso3code;
     private String date;
-    private Integer value;
+    private String value;
     private String unit;
     private String obs_status;
     private Integer decimal;

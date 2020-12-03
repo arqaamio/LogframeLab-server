@@ -97,7 +97,7 @@ public class WorldBankService implements Logging {
                         throw new WorldBankAPIRequestFailedException();
                     }
                     List<WorldBankIndicator> result = new ArrayList<>();
-                    List<Integer> valuesList = response.getWDI().getValue();
+                    List<String> valuesList = response.getWDI().getValue();
 
                     String[] yearsList = response.getWDI().getDimension().getYear().getCategory().getLabel().values().toArray(new String[0]);
                     for (int i = 0; i < valuesList.size(); i++) {

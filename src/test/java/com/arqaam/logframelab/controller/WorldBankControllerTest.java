@@ -45,7 +45,7 @@ class WorldBankControllerTest extends BaseControllerTest {
                 null, new ParameterizedTypeReference<List<WorldBankIndicator>>() {});
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertFalse(response.getBody().stream().anyMatch(x -> x == null || x.getValue()!=100));
+        assertFalse(response.getBody().stream().anyMatch(x -> x == null || !x.getValue().equals("100")));
 
         for (int i = 0; i < response.getBody().size(); i++) {
             assertEquals(response.getBody().get(i).getDate(), String.valueOf(2000+i));
@@ -60,7 +60,7 @@ class WorldBankControllerTest extends BaseControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(2, response.getBody().size());
-        assertFalse(response.getBody().stream().anyMatch(x -> x == null || x.getValue()!=100));
+        assertFalse(response.getBody().stream().anyMatch(x -> x == null || !x.getValue().equals("100")));
 
         for (int i = 0; i < response.getBody().size(); i++) {
             assertEquals(response.getBody().get(i).getDate(), String.valueOf(2000+i));

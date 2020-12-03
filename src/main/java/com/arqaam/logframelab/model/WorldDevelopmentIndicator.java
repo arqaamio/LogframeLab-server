@@ -17,7 +17,7 @@ public class WorldDevelopmentIndicator {
         private String label;
         private String source;
         private String updated;
-        private List<Integer> value;
+        private List<String> value;
         private Dimension dimension;
 
         @Data

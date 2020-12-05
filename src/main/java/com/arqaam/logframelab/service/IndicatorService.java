@@ -19,9 +19,8 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFTable;
-import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.apache.poi.xwpf.usermodel.*;
+import org.apache.xmlbeans.XmlCursor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -1138,6 +1137,8 @@ public class IndicatorService implements Logging {
                 indicator.setValue(response.getValue());
             if(!StringUtils.isEmpty(response.getDate()))
                 indicator.setDate(response.getDate());
+            if(!StringUtils.isEmpty(response.getStatement()))
+                indicator.setStatement(response.getStatement());
             // Can't do switch because the values aren't known before runtime
             if (levels.get(0).equals(indicator.getLevel())) {
                 impactIndicators.add(indicator);
@@ -1150,6 +1151,7 @@ public class IndicatorService implements Logging {
 
         try {
             XWPFDocument document = new XWPFDocument(new ClassPathResource(Constants.PRM_FORMAT + "_Template" + Constants.WORD_FILE_EXTENSION).getInputStream());
+            XWPFDocument documentDynamic = new XWPFDocument(new ClassPathResource(Constants.PRM_FORMAT + "_Template_Dynamic" + Constants.WORD_FILE_EXTENSION).getInputStream());
             XWPFTable impactTable = document.getTableArray(0);
             XWPFTable outcomeTable = document.getTableArray(1);
             XWPFTable outputTable = document.getTableArray(2);
@@ -1159,11 +1161,27 @@ public class IndicatorService implements Logging {
             if(outcomeIndicators.isEmpty()) document.removeBodyElement(document.getPosOfTable(outcomeTable));
             if(outputIndicators.isEmpty()) document.removeBodyElement(document.getPosOfTable(outputTable));
 
-            fillIndicatorPerTable(impactTable, impactIndicators);
+            Map<String, List<Indicator>> dataImpact = impactIndicators.stream().collect(Collectors.groupingBy(
+                    m -> m.getStatement() == null ?
+                            " " : m.getStatement())
+            );
+            Map<String, List<Indicator>> dataOutcome = outcomeIndicators.stream().collect(Collectors.groupingBy(
+                    m -> m.getStatement() == null ?
+                            " " : m.getStatement())
+            );
+            Map<String, List<Indicator>> dataOutput = outputIndicators.stream().collect(Collectors.groupingBy(
+                    m -> m.getStatement() == null ?
+                            " " : m.getStatement())
+            );
+
+            fillIndicatorPerTableDynamic(dataImpact ,impactTable, documentDynamic ,"Impact#");
+            fillIndicatorPerTableDynamic(dataOutcome ,outcomeTable, documentDynamic ,"Outcome#");
+            fillIndicatorPerTableDynamic(dataOutput ,outputTable, documentDynamic ,"Output#");
+            /*fillIndicatorPerTable(impactTable, impactIndicators);
             fillIndicatorPerTable(outcomeTable, outcomeIndicators);
-            fillIndicatorPerTable(outputTable, outputIndicators);
+            fillIndicatorPerTable(outputTable, outputIndicators);*/
             logger().info("Writing the changes to the template to a outputStream");
-            document.write(outputStream);
+            documentDynamic.write(outputStream);
             indicatorRepository.saveAll(indicatorList.stream().peek(x-> x.setTimesDownloaded(x.getTimesDownloaded()+1)).collect(Collectors.toList()));
         } catch (IOException e) {
             logger().error("Template was not found.", e);
@@ -1179,6 +1197,7 @@ public class IndicatorService implements Logging {
      */
     private void fillIndicatorPerTable(XWPFTable table, List<Indicator> indicators){
         logger().info("Starting to fill the table with the indicators of the the size: {}", indicators.size());
+
         for (int i = 0; i < indicators.size(); i++) {
             if(table.getRow(i*2+2)==null){
                 XWPFTableRow row = table.insertNewTableRow(table.getNumberOfRows());
@@ -1194,7 +1213,88 @@ public class IndicatorService implements Logging {
             if(!StringUtils.isEmpty(indicators.get(i).getValue()) && !StringUtils.isEmpty(indicators.get(i).getDate())){
                 DocManipulationUtil.setTextOnCell(table.getRow(i*2+2).getCell(1), indicators.get(i).getValue() + " (" + indicators.get(i).getDate()+ ")", null);
             }
+            if(!org.apache.commons.lang3.StringUtils.isBlank(indicators.get(i).getStatement())){
+                System.out.println("--------------------------------------------");
+                System.out.println(indicators.get(i).getStatement());
+                DocManipulationUtil.setTextOnCellWithBoldTitle(table.getRow(0).getCell(0),table.getRow(0).getCell(0).getText(),indicators.get(i).getStatement(),null);
+            }
             DocManipulationUtil.setTextOnCellWithBoldTitle(table.getRow(i*2+3).getCell(0), "NOTES:" ,indicators.get(i).getSourceVerification(), null);
+        }
+    }
+    private void copyTable(XWPFTable source, XWPFTable target) {
+        target.getCTTbl().setTblPr(source.getCTTbl().getTblPr());
+        target.getCTTbl().setTblGrid(source.getCTTbl().getTblGrid());
+        for (int r = 0; r<source.getRows().size(); r++) {
+            XWPFTableRow targetRow = target.createRow();
+            XWPFTableRow row = source.getRows().get(r);
+            targetRow.getCtRow().setTrPr(row.getCtRow().getTrPr());
+            for (int c=0; c<row.getTableCells().size(); c++) {
+                //newly created row has 1 cell
+                XWPFTableCell targetCell = c==0 ? targetRow.getTableCells().get(0) : targetRow.createCell();
+                XWPFTableCell cell = row.getTableCells().get(c);
+                targetCell.getCTTc().setTcPr(cell.getCTTc().getTcPr());
+                XmlCursor cursor = targetCell.getParagraphArray(0).getCTP().newCursor();
+                for (int p = 0; p < cell.getBodyElements().size(); p++) {
+                    IBodyElement elem = cell.getBodyElements().get(p);
+                    if (elem instanceof XWPFParagraph) {
+                        XWPFParagraph targetPar = targetCell.insertNewParagraph(cursor);
+                        cursor.toNextToken();
+                        XWPFParagraph par = (XWPFParagraph) elem;
+                        copyParagraph(par, targetPar);
+                    } else if (elem instanceof XWPFTable) {
+                        XWPFTable targetTable = targetCell.insertNewTbl(cursor);
+                        XWPFTable table = (XWPFTable) elem;
+                        copyTable(table, targetTable);
+                        cursor.toNextToken();
+                    }
+                }
+                //newly created cell has one default paragraph we need to remove
+                targetCell.removeParagraph(targetCell.getParagraphs().size()-1);
+            }
+        }
+        //newly created table has one row by default. we need to remove the default row.
+        target.removeRow(0);
+    }
+
+    private void copyParagraph(XWPFParagraph source, XWPFParagraph target) {
+        target.getCTP().setPPr(source.getCTP().getPPr());
+        for (int i=0; i<source.getRuns().size(); i++ ) {
+            XWPFRun run = source.getRuns().get(i);
+            XWPFRun targetRun = target.createRun();
+            //copy formatting
+            targetRun.getCTR().setRPr(run.getCTR().getRPr());
+            //no images just copy text
+            targetRun.setText(run.getText(0));
+        }
+    }
+
+    private void fillIndicatorPerTableDynamic( Map<String, List<Indicator>> data ,XWPFTable source, XWPFDocument document , String type){
+        logger().info("Starting to fill the table with the indicators of the the size: {}", data.size());
+        Set<String> keys = data.keySet();
+        int index =0;
+        for (String statement : keys) {
+            XWPFTable table = document.createTable();
+            copyTable(source, table);
+            List<Indicator> indicators = data.get(statement);
+            DocManipulationUtil.setTextOnCellWithBoldTitle(table.getRow(0).getCell(0), type + (index + 1), statement, null);
+            for (int i = 0; i < indicators.size(); i++) {
+                if (table.getRow(i * 2 + 2) == null) {
+                    XWPFTableRow row = table.insertNewTableRow(table.getNumberOfRows());
+                    XWPFTableRow row2 = table.insertNewTableRow(table.getNumberOfRows());
+                    for (int j = 0; j < 5; j++) {
+                        row.addNewTableCell();
+                        row2.addNewTableCell();
+                    }
+                    // Merge the Notes row
+                    DocManipulationUtil.mergeCellsByRow(table, 0, 4, table.getNumberOfRows() - 1);
+                }
+                DocManipulationUtil.setTextOnCellWithBoldTitle(table.getRow(i * 2 + 2).getCell(0), "Indicator " + (i + 1) + ":", indicators.get(i).getName(), null);
+                if (!StringUtils.isEmpty(indicators.get(i).getValue()) && !StringUtils.isEmpty(indicators.get(i).getDate())) {
+                    DocManipulationUtil.setTextOnCell(table.getRow(i * 2 + 2).getCell(1), indicators.get(i).getValue() + " (" + indicators.get(i).getDate() + ")", null);
+                }
+                DocManipulationUtil.setTextOnCellWithBoldTitle(table.getRow(i * 2 + 3).getCell(0), "NOTES:", indicators.get(i).getSourceVerification(), null);
+            }
+            index++;
         }
     }
 

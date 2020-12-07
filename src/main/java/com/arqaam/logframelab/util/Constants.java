@@ -14,4 +14,8 @@ public class Constants {
     public static final Long EMPTY_VALUE_ID = -1L;
 
     public static final String SEC_ADMIN_GROUP_NAME = "SEC_ADMIN";
+
+    public static final String IMPACT_LEVEL_PREFIX = "Impact #";
+    public static final String OUTCOME_LEVEL_PREFIX = "Outcome #";
+    public static final String OUTPUT_LEVEL_PREFIX = "Output #";
 }

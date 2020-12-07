@@ -1177,9 +1177,9 @@ public class IndicatorService implements Logging {
                             " " : m.getStatement())
             );
 
-            fillIndicatorPerTableDynamic(dataImpact ,impactTable, documentDynamic ,"Impact #");
-            fillIndicatorPerTableDynamic(dataOutcome ,outcomeTable, documentDynamic ,"Outcome #");
-            fillIndicatorPerTableDynamic(dataOutput ,outputTable, documentDynamic ,"Output #");
+            fillIndicatorPerTableDynamic(dataImpact ,impactTable, documentDynamic ,Constants.IMPACT_LEVEL_PREFIX);
+            fillIndicatorPerTableDynamic(dataOutcome ,outcomeTable, documentDynamic ,Constants.OUTCOME_LEVEL_PREFIX);
+            fillIndicatorPerTableDynamic(dataOutput ,outputTable, documentDynamic ,Constants.OUTPUT_LEVEL_PREFIX);
             logger().info("Writing the changes to the template to a outputStream");
             documentDynamic.write(outputStream);
             indicatorRepository.saveAll(indicatorList.stream().peek(x-> x.setTimesDownloaded(x.getTimesDownloaded()+1)).collect(Collectors.toList()));
@@ -1192,56 +1192,9 @@ public class IndicatorService implements Logging {
 
     /**
      * Fills the table of the level with the indicators
-     * @param table Table to be filled
-     * @param indicators Indicators with which the table will be filled
+     * @param source Table to be filled
+     * @param data Indicators with which the table will be filled
      */
-
-    private void copyTable(XWPFTable source, XWPFTable target) {
-        target.getCTTbl().setTblPr(source.getCTTbl().getTblPr());
-        target.getCTTbl().setTblGrid(source.getCTTbl().getTblGrid());
-        for (int r = 0; r<source.getRows().size(); r++) {
-            XWPFTableRow targetRow = target.createRow();
-            XWPFTableRow row = source.getRows().get(r);
-            targetRow.getCtRow().setTrPr(row.getCtRow().getTrPr());
-            for (int c=0; c<row.getTableCells().size(); c++) {
-                //newly created row has 1 cell
-                XWPFTableCell targetCell = c==0 ? targetRow.getTableCells().get(0) : targetRow.createCell();
-                XWPFTableCell cell = row.getTableCells().get(c);
-                targetCell.getCTTc().setTcPr(cell.getCTTc().getTcPr());
-                XmlCursor cursor = targetCell.getParagraphArray(0).getCTP().newCursor();
-                for (int p = 0; p < cell.getBodyElements().size(); p++) {
-                    IBodyElement elem = cell.getBodyElements().get(p);
-                    if (elem instanceof XWPFParagraph) {
-                        XWPFParagraph targetPar = targetCell.insertNewParagraph(cursor);
-                        cursor.toNextToken();
-                        XWPFParagraph par = (XWPFParagraph) elem;
-                        copyParagraph(par, targetPar);
-                    } else if (elem instanceof XWPFTable) {
-                        XWPFTable targetTable = targetCell.insertNewTbl(cursor);
-                        XWPFTable table = (XWPFTable) elem;
-                        copyTable(table, targetTable);
-                        cursor.toNextToken();
-                    }
-                }
-                //newly created cell has one default paragraph we need to remove
-                targetCell.removeParagraph(targetCell.getParagraphs().size()-1);
-            }
-        }
-        //newly created table has one row by default. we need to remove the default row.
-        target.removeRow(0);
-    }
-
-    private void copyParagraph(XWPFParagraph source, XWPFParagraph target) {
-        target.getCTP().setPPr(source.getCTP().getPPr());
-        for (int i=0; i<source.getRuns().size(); i++ ) {
-            XWPFRun run = source.getRuns().get(i);
-            XWPFRun targetRun = target.createRun();
-            //copy formatting
-            targetRun.getCTR().setRPr(run.getCTR().getRPr());
-            //no images just copy text
-            targetRun.setText(run.getText(0));
-        }
-    }
 
     private void fillIndicatorPerTableDynamic( Map<String, List<Indicator>> data ,XWPFTable source, XWPFDocument document , String type){
         logger().info("Starting to fill the table with the indicators of the the size: {}", data.size());
@@ -1250,7 +1203,7 @@ public class IndicatorService implements Logging {
         for (String statement : keys) {
             //copy the table from template and fill it dynamically
             XWPFTable table = document.createTable();
-            copyTable(source, table);
+            DocManipulationUtil.copyTable(source, table);
             List<Indicator> indicators = data.get(statement);
             DocManipulationUtil.setTextOnCellWithBoldTitle(table.getRow(0).getCell(0), type + (index + 1), statement, null);
             for (int i = 0; i < indicators.size(); i++) {

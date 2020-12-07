@@ -1161,6 +1161,7 @@ public class IndicatorService implements Logging {
             if(outcomeIndicators.isEmpty()) document.removeBodyElement(document.getPosOfTable(outcomeTable));
             if(outputIndicators.isEmpty()) document.removeBodyElement(document.getPosOfTable(outputTable));
 
+            //group by statement and separate the indicators with null statement
             Map<String, List<Indicator>> dataImpact = impactIndicators.stream().collect(Collectors.groupingBy(
                     m -> m.getStatement() == null ?
                             " " : m.getStatement())
@@ -1273,6 +1274,7 @@ public class IndicatorService implements Logging {
         Set<String> keys = data.keySet();
         int index =0;
         for (String statement : keys) {
+            //copy the table from template and fill it dynamically
             XWPFTable table = document.createTable();
             copyTable(source, table);
             List<Indicator> indicators = data.get(statement);

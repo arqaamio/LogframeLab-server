@@ -1180,9 +1180,6 @@ public class IndicatorService implements Logging {
             fillIndicatorPerTableDynamic(dataImpact ,impactTable, documentDynamic ,"Impact #");
             fillIndicatorPerTableDynamic(dataOutcome ,outcomeTable, documentDynamic ,"Outcome #");
             fillIndicatorPerTableDynamic(dataOutput ,outputTable, documentDynamic ,"Output #");
-            /*fillIndicatorPerTable(impactTable, impactIndicators);
-            fillIndicatorPerTable(outcomeTable, outcomeIndicators);
-            fillIndicatorPerTable(outputTable, outputIndicators);*/
             logger().info("Writing the changes to the template to a outputStream");
             documentDynamic.write(outputStream);
             indicatorRepository.saveAll(indicatorList.stream().peek(x-> x.setTimesDownloaded(x.getTimesDownloaded()+1)).collect(Collectors.toList()));
@@ -1198,32 +1195,7 @@ public class IndicatorService implements Logging {
      * @param table Table to be filled
      * @param indicators Indicators with which the table will be filled
      */
-    private void fillIndicatorPerTable(XWPFTable table, List<Indicator> indicators){
-        logger().info("Starting to fill the table with the indicators of the the size: {}", indicators.size());
 
-        for (int i = 0; i < indicators.size(); i++) {
-            if(table.getRow(i*2+2)==null){
-                XWPFTableRow row = table.insertNewTableRow(table.getNumberOfRows());
-                XWPFTableRow row2 = table.insertNewTableRow(table.getNumberOfRows());
-                for (int j = 0; j < 5; j++) {
-                    row.addNewTableCell();
-                    row2.addNewTableCell();
-                }
-                // Merge the Notes row
-                DocManipulationUtil.mergeCellsByRow(table, 0, 4, table.getNumberOfRows() - 1);
-            }
-            DocManipulationUtil.setTextOnCellWithBoldTitle(table.getRow(i*2+2).getCell(0),"Indicator "+ (i+1) +":", indicators.get(i).getName(), null);
-            if(!StringUtils.isEmpty(indicators.get(i).getValue()) && !StringUtils.isEmpty(indicators.get(i).getDate())){
-                DocManipulationUtil.setTextOnCell(table.getRow(i*2+2).getCell(1), indicators.get(i).getValue() + " (" + indicators.get(i).getDate()+ ")", null);
-            }
-            if(!org.apache.commons.lang3.StringUtils.isBlank(indicators.get(i).getStatement())){
-                System.out.println("--------------------------------------------");
-                System.out.println(indicators.get(i).getStatement());
-                DocManipulationUtil.setTextOnCellWithBoldTitle(table.getRow(0).getCell(0),table.getRow(0).getCell(0).getText(),indicators.get(i).getStatement(),null);
-            }
-            DocManipulationUtil.setTextOnCellWithBoldTitle(table.getRow(i*2+3).getCell(0), "NOTES:" ,indicators.get(i).getSourceVerification(), null);
-        }
-    }
     private void copyTable(XWPFTable source, XWPFTable target) {
         target.getCTTbl().setTblPr(source.getCTTbl().getTblPr());
         target.getCTTbl().setTblGrid(source.getCTTbl().getTblGrid());

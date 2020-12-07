@@ -1,6 +1,7 @@
 package com.arqaam.logframelab.service;
 
 import static java.util.Objects.isNull;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -705,5 +706,42 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
       }
     }
     return posTable+1;
+  }
+  @Test
+  void exportIndicatorsPRMFormatValidateStatement() throws IOException {
+    List<Indicator> indicatorList = mockIndicatorList();
+    when(indicatorRepository.findAllById(any())).thenReturn(indicatorList);
+    List<Indicator> impactIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[3])).collect(Collectors.toList());
+    List<Indicator> outcomeIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[1])).collect(Collectors.toList());
+    List<Indicator> outputIndicators = indicatorList.stream()
+            .filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
+
+    List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(indicatorList);
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsPRMFormat(indicatorResponse);
+    assertNotNull(result);
+    XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
+    int posTable = 0;
+    posTable = validatePRMFormatForStatement(document, impactIndicators, mockLevels[3], posTable);
+    posTable = validatePRMFormatForStatement(document, outcomeIndicators, mockLevels[1], posTable);
+    validatePRMFormatForStatement(document, outputIndicators, mockLevels[0], posTable);
+  }
+  private int validatePRMFormatForStatement(XWPFDocument document, List<Indicator> indicators, Level level, Integer posTable) {
+    if(indicators.isEmpty()){
+      for (XWPFTable table : document.getTables()){
+        assertNotEquals(level.getName() + " #1:".toLowerCase(), table.getRow(0).getCell(0).getText().toLowerCase());
+      }
+      return posTable;
+    }
+    else{
+      for (XWPFTable table : document.getTables()){
+        if(indicators.size()<=posTable){
+          assertThat(table.getRow(0).getCell(0).getText().toLowerCase()).contains(indicators.get(posTable).getStatement().toLowerCase());
+          posTable++;
+        }
+      }
+    }
+    return posTable;
   }
 }

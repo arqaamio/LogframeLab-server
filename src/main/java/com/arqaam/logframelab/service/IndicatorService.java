@@ -1300,6 +1300,7 @@ public class IndicatorService implements Logging {
             }
             index++;
             XWPFParagraph paragraph = document.createParagraph();
+            
             XWPFRun run=paragraph.createRun();
             run.setText(" ");
 

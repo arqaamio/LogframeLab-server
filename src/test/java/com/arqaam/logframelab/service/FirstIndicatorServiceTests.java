@@ -8,6 +8,7 @@ import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.exception.IndicatorNotFoundException;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.NumIndicatorsSectorLevel;
+import com.arqaam.logframelab.model.StatementResponse;
 import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.model.projection.CounterSectorLevel;
 import com.arqaam.logframelab.model.projection.IndicatorFilters;
@@ -125,22 +126,28 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
             .filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
 
     List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(indicatorList);
-    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse);
+    List<StatementResponse> statementResponse = createListStatementResponse();
+    List<String> impactStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[3].getName()))
+            .map(StatementResponse::getStatement).collect(Collectors.toList());
+    List<String> outcomeStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[1].getName()))
+            .map(StatementResponse::getStatement).collect(Collectors.toList());
+    List<String> outputStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[0].getName()))
+            .map(StatementResponse::getStatement).collect(Collectors.toList());
 
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse);
     assertNotNull(result);
     XWPFDocument resultDoc = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
     assertEquals(2, resultDoc.getTables().size());
     XWPFTable table = resultDoc.getTableArray(0);
     Integer rowIndex = 1;
-    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, rowIndex);
-    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, rowIndex);
-    rowIndex = validateWordTemplateLevel(table, Collections.emptyList(), indicatorResponse, rowIndex);
-    validateWordTemplateLevel(table, outputIndicators, indicatorResponse, rowIndex);
+    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, impactStatement, rowIndex);
+    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, outcomeStatement, rowIndex);
+    validateWordTemplateLevel(table, outputIndicators, indicatorResponse, outputStatement, rowIndex);
     resultDoc.close();
   }
 
   @Test
-  void exportIndicatorsInWordFile_withoutValuesAndDate() throws IOException {
+  void exportIndicatorsInWordFile_withoutValuesAndDate_multipleStatementsSameLevel() throws IOException {
     List<Indicator> indicatorList = mockIndicatorList().stream().peek(x -> {x.setValue(null); x.setDate(null);}).collect(Collectors.toList());
     lenient().when(indicatorRepository.findAllById(any())).thenReturn(indicatorList);
 
@@ -152,17 +159,26 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
             .filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
 
     List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(indicatorList);
-    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse);
+    List<StatementResponse> statementResponse = createListStatementResponse();
+    statementResponse.add(new StatementResponse("New impact statement", mockLevels[3].getName()));
+    statementResponse.add(new StatementResponse("New output statement", mockLevels[0].getName()));
+    List<String> impactStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[3].getName()))
+            .map(StatementResponse::getStatement).collect(Collectors.toList());
+    List<String> outcomeStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[1].getName()))
+            .map(StatementResponse::getStatement).collect(Collectors.toList());
+    List<String> outputStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[0].getName()))
+            .map(StatementResponse::getStatement).collect(Collectors.toList());
+
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse);
 
     assertNotNull(result);
     XWPFDocument resultDoc = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
     assertEquals(2, resultDoc.getTables().size());
     XWPFTable table = resultDoc.getTableArray(0);
     Integer rowIndex = 1;
-    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, rowIndex);
-    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, rowIndex);
-    rowIndex = validateWordTemplateLevel(table, Collections.emptyList(), indicatorResponse, rowIndex);
-    validateWordTemplateLevel(table, outputIndicators, indicatorResponse, rowIndex);
+    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, impactStatement, rowIndex);
+    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, outcomeStatement, rowIndex);
+    validateWordTemplateLevel(table, outputIndicators, indicatorResponse, outputStatement, rowIndex);
     resultDoc.close();
   }
 
@@ -180,17 +196,17 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(indicatorList)
             .stream().peek(x-> {if(x.getLevel().equals(mockLevels[0].getName())) x.setStatement(null);}).collect(Collectors.toList());
     indicatorResponse.get(1).setStatement("Statement Outcome 2");
-    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse);
+    List<StatementResponse> statementResponse = Collections.emptyList();
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse);
 
     assertNotNull(result);
     XWPFDocument resultDoc = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
     assertEquals(2, resultDoc.getTables().size());
     XWPFTable table = resultDoc.getTableArray(0);
     Integer rowIndex = 1;
-    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, rowIndex);
-    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, rowIndex);
-    rowIndex = validateWordTemplateLevel(table, Collections.emptyList(), indicatorResponse, rowIndex);
-    validateWordTemplateLevel(table, outputIndicators, indicatorResponse, rowIndex);
+    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, Collections.emptyList(), rowIndex);
+    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, Collections.emptyList(), rowIndex);
+    validateWordTemplateLevel(table, outputIndicators, indicatorResponse, Collections.emptyList(), rowIndex);
     resultDoc.close();
   }
 
@@ -210,17 +226,17 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
             .filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
     when(indicatorRepository.findAllById(any())).thenReturn(indicatorList);
     List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(indicatorList);
-    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse);
+    List<StatementResponse> statementResponse = Collections.emptyList();
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse);
 
     assertNotNull(result);
     XWPFDocument resultDoc = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
     assertEquals(2, resultDoc.getTables().size());
     XWPFTable table = resultDoc.getTableArray(0);
     Integer rowIndex = 1;
-    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, rowIndex);
-    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, rowIndex);
-    rowIndex = validateWordTemplateLevel(table, Collections.emptyList(), indicatorResponse, rowIndex);
-    validateWordTemplateLevel(table, outputIndicators, indicatorResponse, rowIndex);
+    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, Collections.emptyList(), rowIndex);
+    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, Collections.emptyList(), rowIndex);
+    validateWordTemplateLevel(table, outputIndicators, indicatorResponse,Collections.emptyList(), rowIndex);
     resultDoc.close();
   }
 
@@ -321,8 +337,9 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     when(indicatorRepository.findAllById(any())).thenReturn(expectedResult);
     List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(expectedResult);
     indicatorResponse.get(0).setStatement(null);
+    List<StatementResponse> statementResponse = createListStatementResponse();
     ByteArrayOutputStream outputStream = indicatorService
-        .exportIndicatorsInWorksheet(indicatorResponse);
+        .exportIndicatorsInWorksheet(indicatorResponse, statementResponse);
     XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(outputStream.toByteArray()));
     XSSFSheet sheet = workbook.getSheetAt(0);
     IndicatorResponse response;
@@ -628,14 +645,15 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
    assertEquals(expectedResult, result);
   }
 
-  Integer validateWordTemplateLevel(XWPFTable table, List<Indicator> indicators, List<IndicatorResponse> indicatorResponses, Integer rowIndex){
+  Integer validateWordTemplateLevel(XWPFTable table, List<Indicator> indicators, List<IndicatorResponse> indicatorResponses,
+                                    List<String> statements, Integer rowIndex){
     if(indicators.size() > 0){
       AtomicReference<String> lastStatement = new AtomicReference<>("");
       indicators = indicators.stream().sorted(Comparator.comparing(Indicator::getStatement)).collect(Collectors.toList());
       // if its impact
       String assumptionsValue = indicators.get(0).getLevel().equals(mockLevels[3]) ? "\tNot applicable" : "";
       for (int i = 0; i < indicators.size(); i++) {
-        XWPFTableRow row = table.getRow(i+rowIndex);
+        XWPFTableRow row = table.getRow(rowIndex);
         List<Indicator> finalIndicators = indicators;
         int finalI = i;
         assertEquals(8, row.getTableCells().size());
@@ -662,9 +680,19 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         // validate merge cells
         assertTrue(row.getCell(0).getCTTc().getTcPr().isSetVMerge());
         assertTrue(row.getCell(7).getCTTc().getTcPr().isSetVMerge());
+        rowIndex++;
       }
 
-      return rowIndex + indicators.size();
+      for(String statement: statements) {
+        XWPFTableRow row = table.getRow(rowIndex);
+        assertEquals(statement, row.getCell(1).getTextRecursively());
+        // validate merge cells
+        assertTrue(row.getCell(0).getCTTc().getTcPr().isSetVMerge());
+        assertTrue(row.getCell(7).getCTTc().getTcPr().isSetVMerge());
+        rowIndex++;
+      }
+
+      return rowIndex;
     }else {
       assertEquals(8, table.getRow(rowIndex).getTableCells().size());
       // First column has the level and last column is not empty for impact indicators
@@ -705,5 +733,13 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
       }
     }
     return posTable+1;
+  }
+
+  public List<StatementResponse> createListStatementResponse() {
+    List<StatementResponse> responses = new ArrayList<>();
+    responses.add(new StatementResponse("No indicator impact statement", "IMPACT"));
+    responses.add(new StatementResponse("No indicator outcome statement", "outcome"));
+    responses.add(new StatementResponse("No indicator output statement", "OUTPUT"));
+    return responses;
   }
 }

@@ -2,11 +2,9 @@ package com.arqaam.logframelab.controller;
 
 import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
+import com.arqaam.logframelab.model.*;
 import com.arqaam.logframelab.model.Error;
-import com.arqaam.logframelab.model.IndicatorResponse;
-import com.arqaam.logframelab.model.MLScanIndicatorResponse;
 import com.arqaam.logframelab.model.MLScanIndicatorResponse.MLScanIndicator;
-import com.arqaam.logframelab.model.NumIndicatorsSectorLevel;
 import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.model.projection.CounterSectorLevel;
 import com.arqaam.logframelab.model.projection.IndicatorFilters;
@@ -257,10 +255,11 @@ class IndicatorControllerTest extends BaseControllerTest {
 
   @Test
   void downloadIndicators_wordFormat() {
-    List<IndicatorResponse> indicators = getExpectedResult();
+    IndicatorDownloadRequest request = new IndicatorDownloadRequest();
+    request.setIndicators(getExpectedResult());
     ResponseEntity<Resource> response = testRestTemplate
         .exchange("/indicator/download", HttpMethod.POST,
-            new HttpEntity<>(indicators), Resource.class);
+            new HttpEntity<>(request), Resource.class);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
     verify(statisticService).addDownloadStatistic(Constants.WORD_FORMAT);
@@ -268,11 +267,12 @@ class IndicatorControllerTest extends BaseControllerTest {
 
   @Test
   void downloadIndicators_DFIDFormat() {
-    List<IndicatorResponse> indicators = getExpectedResult();
+    IndicatorDownloadRequest request = new IndicatorDownloadRequest();
+    request.setIndicators(getExpectedResult());
     when(indicatorRepositoryMock.findAllById(any())).thenReturn(mockIndicatorList());
     ResponseEntity<Resource> response = testRestTemplate
             .exchange("/indicator/download?format=dfid", HttpMethod.POST,
-                    new HttpEntity<>(indicators), Resource.class);
+                    new HttpEntity<>(request), Resource.class);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
     verify(statisticService).addDownloadStatistic(Constants.DFID_FORMAT);
@@ -281,11 +281,12 @@ class IndicatorControllerTest extends BaseControllerTest {
 
   @Test
   void downloadIndicators_PRMFormat() {
-    List<IndicatorResponse> indicators = getExpectedResult();
+    IndicatorDownloadRequest request = new IndicatorDownloadRequest();
+    request.setIndicators(getExpectedResult());
     when(indicatorRepositoryMock.findAllById(any())).thenReturn(mockIndicatorList());
     ResponseEntity<Resource> response = testRestTemplate
             .exchange("/indicator/download?format=prm", HttpMethod.POST,
-                    new HttpEntity<>(indicators), Resource.class);
+                    new HttpEntity<>(request), Resource.class);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
     verify(statisticService).addDownloadStatistic(Constants.PRM_FORMAT);
@@ -293,10 +294,11 @@ class IndicatorControllerTest extends BaseControllerTest {
 
   @Test
   void downloadIndicators_emptyIndicators() {
-    List<IndicatorResponse> indicators = new ArrayList<>();
+    IndicatorDownloadRequest request = new IndicatorDownloadRequest();
+    request.setIndicators(Collections.emptyList());
     ResponseEntity<Error> response =
             testRestTemplate.exchange(
-                    "/indicator/download", HttpMethod.POST, new HttpEntity<>(indicators), Error.class);
+                    "/indicator/download", HttpMethod.POST, new HttpEntity<>(request), Error.class);
     assertEqualsException(response, HttpStatus.CONFLICT, 6, IllegalArgumentException.class);
   }
 

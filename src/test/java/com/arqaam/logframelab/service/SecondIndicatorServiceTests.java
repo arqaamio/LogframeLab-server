@@ -1,5 +1,6 @@
 package com.arqaam.logframelab.service;
 
+import com.arqaam.logframelab.model.StatementResponse;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.poi.ss.util.CellRangeAddress;
@@ -30,19 +31,26 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
         .filter(x -> x.getLevel().equals(mockLevels[1])).collect(Collectors.toList());
     List<Indicator> outputIndicators = mockIndicatorList().stream()
         .filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
+    List<StatementResponse> statementResponse = createListStatementResponse();
+    List<String> impactStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[3].getName()))
+            .map(StatementResponse::getStatement).collect(Collectors.toList());
+    List<String> outcomeStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[1].getName()))
+            .map(StatementResponse::getStatement).collect(Collectors.toList());
+    List<String> outputStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[0].getName()))
+            .map(StatementResponse::getStatement).collect(Collectors.toList());
 
-    ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsDFIDFormat(getExpectedResult(true, null));
+    ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsDFIDFormat(getExpectedResult(true, null), statementResponse);
     assertNotNull(outputStream);
     XSSFSheet sheet = new XSSFWorkbook(new ByteArrayInputStream(outputStream.toByteArray()))
         .getSheetAt(0);
 
     int rowIndex = 1;
     rowIndex = validateDFIDTemplateLevel(sheet, impactIndicators, rowIndex,
-        IndicatorService.IMPACT_NUM_TEMP_INDIC);
+        IndicatorService.IMPACT_NUM_TEMP_INDIC, impactStatement);
     rowIndex = validateDFIDTemplateLevel(sheet, outcomeIndicators, rowIndex,
-        IndicatorService.OUTCOME_NUM_TEMP_INDIC);
+        IndicatorService.OUTCOME_NUM_TEMP_INDIC, outcomeStatement);
     validateDFIDTemplateLevel(sheet, outputIndicators, rowIndex,
-        IndicatorService.OUTPUT_NUM_TEMP_INDIC);
+        IndicatorService.OUTPUT_NUM_TEMP_INDIC, outputStatement);
 
     sheet.getWorkbook().close();
   }
@@ -58,7 +66,7 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
     List<Indicator> outputIndicators = indicatorList.stream()
             .filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
 
-    ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsDFIDFormat(getExpectedResult(true, indicatorList));
+    ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsDFIDFormat(getExpectedResult(true, indicatorList), Collections.emptyList());
 
     assertNotNull(outputStream);
     XSSFSheet sheet = new XSSFWorkbook(new ByteArrayInputStream(outputStream.toByteArray()))
@@ -66,11 +74,11 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
 
     int rowIndex = 1;
     rowIndex = validateDFIDTemplateLevel(sheet, impactIndicators, rowIndex,
-            IndicatorService.IMPACT_NUM_TEMP_INDIC);
+            IndicatorService.IMPACT_NUM_TEMP_INDIC, Collections.emptyList());
     rowIndex = validateDFIDTemplateLevel(sheet, outcomeIndicators, rowIndex,
-            IndicatorService.OUTCOME_NUM_TEMP_INDIC);
+            IndicatorService.OUTCOME_NUM_TEMP_INDIC, Collections.emptyList());
     validateDFIDTemplateLevel(sheet, outputIndicators, rowIndex,
-            IndicatorService.OUTPUT_NUM_TEMP_INDIC);
+            IndicatorService.OUTPUT_NUM_TEMP_INDIC, Collections.emptyList());
 
     sheet.getWorkbook().close();
   }
@@ -86,11 +94,18 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
     mockIndicators.add(new Indicator(100L, "Extra indicator 3", "", "", mockLevels[1], "",
         null, false, null, null, mockSourceVerification.get(2), "", false, false, 0L, null,null, null, null, 0));
     when(indicatorRepository.findAllById(any())).thenReturn(mockIndicators);
+    List<StatementResponse> statementResponse = createListStatementResponse();
+    List<String> impactStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[3].getName()))
+            .map(StatementResponse::getStatement).collect(Collectors.toList());
+    List<String> outcomeStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[1].getName()))
+            .map(StatementResponse::getStatement).collect(Collectors.toList());
+    List<String> outputStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[0].getName()))
+            .map(StatementResponse::getStatement).collect(Collectors.toList());
 
     ByteArrayOutputStream outputStream = indicatorService
         .exportIndicatorsDFIDFormat(mockIndicators.stream()
             .map(indicatorService::convertIndicatorToIndicatorResponse)
-            .collect(Collectors.toList()));
+            .collect(Collectors.toList()), statementResponse);
 
     assertNotNull(outputStream);
     XSSFSheet sheet = new XSSFWorkbook(new ByteArrayInputStream(outputStream.toByteArray()))
@@ -98,15 +113,15 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
 
     int rowIndex = 1;
     rowIndex = validateDFIDTemplateLevel(sheet, Collections.emptyList(), rowIndex,
-        IndicatorService.IMPACT_NUM_TEMP_INDIC);
+        IndicatorService.IMPACT_NUM_TEMP_INDIC, impactStatement);
     rowIndex = validateDFIDTemplateLevel(sheet,
         mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[1]))
             .collect(Collectors.toList()),
-        rowIndex, IndicatorService.OUTCOME_NUM_TEMP_INDIC);
+        rowIndex, IndicatorService.OUTCOME_NUM_TEMP_INDIC, outcomeStatement);
     validateDFIDTemplateLevel(sheet,
         mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[0]))
             .collect(Collectors.toList()),
-        rowIndex, IndicatorService.OUTPUT_NUM_TEMP_INDIC);
+        rowIndex, IndicatorService.OUTPUT_NUM_TEMP_INDIC, outputStatement);
     sheet.getWorkbook().close();
   }
 
@@ -125,7 +140,7 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
     ByteArrayOutputStream outputStream = indicatorService
         .exportIndicatorsDFIDFormat(mockIndicators.stream()
             .map(indicatorService::convertIndicatorToIndicatorResponse)
-            .collect(Collectors.toList()));
+            .collect(Collectors.toList()), Collections.emptyList());
 
     assertNotNull(outputStream);
     XSSFSheet sheet = new XSSFWorkbook(new ByteArrayInputStream(outputStream.toByteArray()))
@@ -135,13 +150,13 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
     rowIndex = validateDFIDTemplateLevel(sheet,
         mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[3]))
             .collect(Collectors.toList()),
-        rowIndex, IndicatorService.IMPACT_NUM_TEMP_INDIC);
+        rowIndex, IndicatorService.IMPACT_NUM_TEMP_INDIC, Collections.emptyList());
     rowIndex = validateDFIDTemplateLevel(sheet, Collections.emptyList(), rowIndex,
-        IndicatorService.OUTCOME_NUM_TEMP_INDIC);
+        IndicatorService.OUTCOME_NUM_TEMP_INDIC, Collections.emptyList());
     validateDFIDTemplateLevel(sheet,
         mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[0]))
             .collect(Collectors.toList()),
-        rowIndex, IndicatorService.OUTPUT_NUM_TEMP_INDIC);
+        rowIndex, IndicatorService.OUTPUT_NUM_TEMP_INDIC, Collections.emptyList());
     sheet.getWorkbook().close();
   }
 
@@ -160,8 +175,7 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
     ByteArrayOutputStream outputStream = indicatorService
         .exportIndicatorsDFIDFormat(mockIndicators.stream()
             .map(indicatorService::convertIndicatorToIndicatorResponse)
-            .collect(Collectors.toList()));
-
+            .collect(Collectors.toList()), Collections.emptyList());
     assertNotNull(outputStream);
     XSSFSheet sheet = new XSSFWorkbook(new ByteArrayInputStream(outputStream.toByteArray()))
         .getSheetAt(0);
@@ -170,13 +184,13 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
     rowIndex = validateDFIDTemplateLevel(sheet,
         mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[3]))
             .collect(Collectors.toList()),
-        rowIndex, IndicatorService.IMPACT_NUM_TEMP_INDIC);
+        rowIndex, IndicatorService.IMPACT_NUM_TEMP_INDIC, Collections.emptyList());
     rowIndex = validateDFIDTemplateLevel(sheet,
         mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[1]))
             .collect(Collectors.toList()),
-        rowIndex, IndicatorService.OUTCOME_NUM_TEMP_INDIC);
+        rowIndex, IndicatorService.OUTCOME_NUM_TEMP_INDIC, Collections.emptyList());
     validateDFIDTemplateLevel(sheet, Collections.emptyList(), rowIndex,
-        IndicatorService.OUTPUT_NUM_TEMP_INDIC);
+        IndicatorService.OUTPUT_NUM_TEMP_INDIC, Collections.emptyList());
     sheet.getWorkbook().close();
   }
 
@@ -190,7 +204,7 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
     ByteArrayOutputStream outputStream = indicatorService
         .exportIndicatorsDFIDFormat(mockIndicators.stream()
             .map(indicatorService::convertIndicatorToIndicatorResponse)
-            .collect(Collectors.toList()));
+            .collect(Collectors.toList()), Collections.emptyList());
 
     assertNotNull(outputStream);
     XSSFSheet sheet = new XSSFWorkbook(new ByteArrayInputStream(outputStream.toByteArray()))
@@ -200,15 +214,15 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
     rowIndex = validateDFIDTemplateLevel(sheet,
         mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[3]))
             .collect(Collectors.toList()),
-        rowIndex, IndicatorService.IMPACT_NUM_TEMP_INDIC);
+        rowIndex, IndicatorService.IMPACT_NUM_TEMP_INDIC, Collections.emptyList());
     rowIndex = validateDFIDTemplateLevel(sheet,
         mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[1]))
             .collect(Collectors.toList()),
-        rowIndex, IndicatorService.OUTCOME_NUM_TEMP_INDIC);
+        rowIndex, IndicatorService.OUTCOME_NUM_TEMP_INDIC, Collections.emptyList());
     validateDFIDTemplateLevel(sheet,
         mockIndicators.stream().filter(x -> x.getLevel().equals(mockLevels[0]))
             .collect(Collectors.toList()),
-        rowIndex, IndicatorService.OUTPUT_NUM_TEMP_INDIC);
+        rowIndex, IndicatorService.OUTPUT_NUM_TEMP_INDIC, Collections.emptyList());
     sheet.getWorkbook().close();
   }
 
@@ -235,25 +249,33 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
             .filter(x -> x.getLevel().equals(mockLevels[1])).collect(Collectors.toList());
     List<Indicator> outputIndicators = indicators.stream()
             .filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
+    List<StatementResponse> statementResponse = createListStatementResponse();
+    statementResponse.add(new StatementResponse("New outcome statement without indicator", mockLevels[1].getName()));
+    List<String> impactStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[3].getName()))
+            .map(StatementResponse::getStatement).collect(Collectors.toList());
+    List<String> outcomeStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[1].getName()))
+            .map(StatementResponse::getStatement).collect(Collectors.toList());
+    List<String> outputStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[0].getName()))
+            .map(StatementResponse::getStatement).collect(Collectors.toList());
 
-    ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsDFIDFormat(getExpectedResult(true, indicators));
+    ByteArrayOutputStream outputStream = indicatorService.exportIndicatorsDFIDFormat(getExpectedResult(true, indicators), statementResponse);
     assertNotNull(outputStream);
     XSSFSheet sheet = new XSSFWorkbook(new ByteArrayInputStream(outputStream.toByteArray()))
             .getSheetAt(0);
 
     int rowIndex = 1;
     rowIndex = validateDFIDTemplateLevel(sheet, impactIndicators, rowIndex,
-            IndicatorService.IMPACT_NUM_TEMP_INDIC);
+            IndicatorService.IMPACT_NUM_TEMP_INDIC, impactStatement);
     rowIndex = validateDFIDTemplateLevel(sheet, outcomeIndicators, rowIndex,
-            IndicatorService.OUTCOME_NUM_TEMP_INDIC);
+            IndicatorService.OUTCOME_NUM_TEMP_INDIC, outcomeStatement);
     validateDFIDTemplateLevel(sheet, outputIndicators, rowIndex,
-            IndicatorService.OUTPUT_NUM_TEMP_INDIC);
+            IndicatorService.OUTPUT_NUM_TEMP_INDIC, outputStatement);
 
     sheet.getWorkbook().close();
   }
 
   Integer validateDFIDTemplateLevel(XSSFSheet sheet, List<Indicator> indicators, Integer rowIndex,
-                                    Integer numberTemplateIndicators) {
+                                    Integer numberTemplateIndicators, List<String> statements) {
     List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();
     Integer initialRow = rowIndex;
     String baselineValue;
@@ -312,7 +334,17 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
 //                && x.getLastRow() == finalLastStatementRow -1));
 //      }
     }
-    if(indicators.isEmpty()) {
+    for(String statement : statements) {
+      assertEquals(statement, sheet.getRow(rowIndex + 1).getCell(0).getStringCellValue());
+      for (int j = 0; j < numberTemplateIndicators; j++) {
+        assertEquals("", sheet.getRow(rowIndex + 1).getCell(1).getStringCellValue());
+        assertEquals("", sheet.getRow(rowIndex + 3).getCell(2).getStringCellValue());
+        assertEquals("", sheet.getRow(rowIndex + 1).getCell(2).getStringCellValue());
+        rowIndex+=4;
+      }
+
+    }
+    if(indicators.isEmpty() && statements.isEmpty()) {
       int count = 0;
       while (count < numberTemplateIndicators) {
         assertEquals("", sheet.getRow(rowIndex + 1).getCell(1).getStringCellValue());
@@ -395,5 +427,13 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
         .sourceVerification(mockSourceVerification.get(3)).build());
 
     return list;
+  }
+
+  public List<StatementResponse> createListStatementResponse() {
+    List<StatementResponse> responses = new ArrayList<>();
+    responses.add(new StatementResponse("No indicator impact statement", "IMPACT"));
+    responses.add(new StatementResponse("No indicator outcome statement", "outcome"));
+    responses.add(new StatementResponse("No indicator output statement", "OUTPUT"));
+    return responses;
   }
 }

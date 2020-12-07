@@ -3,9 +3,8 @@ package com.arqaam.logframelab.controller;
 import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.exception.TemplateNotFoundException;
 import com.arqaam.logframelab.exception.WrongFileExtensionException;
+import com.arqaam.logframelab.model.*;
 import com.arqaam.logframelab.model.Error;
-import com.arqaam.logframelab.model.IndicatorResponse;
-import com.arqaam.logframelab.model.NumIndicatorsSectorLevel;
 import com.arqaam.logframelab.model.persistence.Indicator;
 import com.arqaam.logframelab.model.projection.CounterSectorLevel;
 import com.arqaam.logframelab.service.IndicatorService;
@@ -30,6 +29,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -81,35 +81,46 @@ public class IndicatorController implements Logging {
             @ApiResponse(code = 409, message = "Failed to download indicators. It cannot be empty", response = Error.class),
             @ApiResponse(code = 500, message = "Unexpected Error", response = Error.class)
     })
-    public ResponseEntity<Resource> downloadIndicators(@RequestBody List<IndicatorResponse> indicators,
+    public ResponseEntity<Resource> downloadIndicators(@RequestBody IndicatorDownloadRequest request,
                                                        @RequestParam(value = "format", defaultValue = Constants.WORD_FILE_EXTENSION) String format) {
 
-        logger().info("Downloading indicators. format {}, Indicators: {}", format, indicators);
-        if(indicators.isEmpty()){
+        logger().info("Downloading indicators. format {}, Indicators: {}, Statements: {}", format,
+                request.getIndicators(), request.getStatements());
+
+        if(request.getIndicators() == null || request.getIndicators().isEmpty()){
             String msg = "Failed to download indicators. It cannot be empty";
             logger().error(msg);
             throw new IllegalArgumentException(msg);
+        }
+        List<StatementResponse> statements = new ArrayList<>();
+        if(request.getStatements() != null && !request.getStatements().isEmpty()) {
+            // Filter statements to get only statements that aren't connected with indicators
+            statements = request.getStatements().stream().filter(x->
+                    request.getIndicators().stream().noneMatch(y-> {
+                        if(y.getStatement() == null || y.getStatement().isBlank()) return false;
+                        return y.getStatement().equalsIgnoreCase(x.getStatement());
+                    })).collect(Collectors.toList());
         }
         ByteArrayOutputStream outputStream;
         String extension = Constants.WORD_FILE_EXTENSION;
         switch (format.toUpperCase()) {
             case Constants.XLSX_FORMAT:
-                outputStream = indicatorService.exportIndicatorsInWorksheet(indicators);
+                outputStream = indicatorService.exportIndicatorsInWorksheet(request.getIndicators(), statements);
                 extension = Constants.WORKSHEET_FILE_EXTENSION;
                 statisticService.addDownloadStatistic(Constants.XLSX_FORMAT);
                 break;
             case Constants.DFID_FORMAT:
-                outputStream = indicatorService.exportIndicatorsDFIDFormat(indicators);
+                outputStream = indicatorService.exportIndicatorsDFIDFormat(request.getIndicators(), statements);
                 extension = Constants.WORKSHEET_FILE_EXTENSION;
                 statisticService.addDownloadStatistic(Constants.DFID_FORMAT);
                 break;
             case Constants.PRM_FORMAT:
-                outputStream = indicatorService.exportIndicatorsPRMFormat(indicators);
+                outputStream = indicatorService.exportIndicatorsPRMFormat(request.getIndicators());
                 statisticService.addDownloadStatistic(Constants.PRM_FORMAT);
                 break;
             case Constants.WORD_FORMAT:
             default:
-                outputStream = indicatorService.exportIndicatorsInWordFile(indicators);
+                outputStream = indicatorService.exportIndicatorsInWordFile(request.getIndicators(), statements);
                 statisticService.addDownloadStatistic(Constants.WORD_FORMAT);
                 break;
         }

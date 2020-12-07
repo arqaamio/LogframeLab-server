@@ -1,8 +1,10 @@
 package com.arqaam.logframelab.integration;
 
 import com.arqaam.logframelab.controller.dto.FiltersDto;
+import com.arqaam.logframelab.model.IndicatorDownloadRequest;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.NumIndicatorsSectorLevel;
+import com.arqaam.logframelab.model.StatementResponse;
 import com.arqaam.logframelab.model.persistence.CRSCode;
 import com.arqaam.logframelab.model.persistence.Level;
 import com.arqaam.logframelab.model.persistence.SDGCode;
@@ -65,10 +67,23 @@ public class IndicatorIntegrationTest extends BaseIntegrationTest {
 
   @Test
   void downloadIndicators() {
-    List<IndicatorResponse> indicators = sampleIndicatorResponse();
+    IndicatorDownloadRequest request = new IndicatorDownloadRequest();
+    request.setIndicators(sampleIndicatorResponse());
+    request.setStatements(sampleStatementResponse());
     ResponseEntity<Resource> response = testRestTemplate
             .exchange("/indicator/download", HttpMethod.POST,
-                    new HttpEntity<>(indicators), Resource.class);
+                    new HttpEntity<>(request), Resource.class);
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+  }
+
+  @Test
+  void downloadIndicators_withoutStatements() {
+    IndicatorDownloadRequest request = new IndicatorDownloadRequest();
+    request.setIndicators(sampleIndicatorResponse());
+    ResponseEntity<Resource> response = testRestTemplate
+            .exchange("/indicator/download", HttpMethod.POST,
+                    new HttpEntity<>(request), Resource.class);
     assertEquals(HttpStatus.OK, response.getStatusCode());
     assertNotNull(response.getBody());
   }
@@ -173,6 +188,15 @@ public class IndicatorIntegrationTest extends BaseIntegrationTest {
     list.add(IndicatorResponse.builder().id(42L).date("1980").value("100").build());
     return list;
   }
+
+  public List<StatementResponse> sampleStatementResponse() {
+    List<StatementResponse> responses = new ArrayList<>();
+    responses.add(new StatementResponse("No indicator impact statement", "IMPACT"));
+    responses.add(new StatementResponse("No indicator outcome statement", "outcome"));
+    responses.add(new StatementResponse("No indicator output statement", "OUTPUT"));
+    return responses;
+  }
+
   private boolean testSortAscending(List<String> list) {
     for (int i = 0; i < list.size() - 1; i++) {
       if(list.get(i).compareTo(list.get(i+1))>0) return false;

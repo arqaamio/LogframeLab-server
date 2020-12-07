@@ -21,6 +21,8 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xwpf.usermodel.*;
 import org.apache.xmlbeans.XmlCursor;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTCell;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -1175,9 +1177,9 @@ public class IndicatorService implements Logging {
                             " " : m.getStatement())
             );
 
-            fillIndicatorPerTableDynamic(dataImpact ,impactTable, documentDynamic ,"Impact#");
-            fillIndicatorPerTableDynamic(dataOutcome ,outcomeTable, documentDynamic ,"Outcome#");
-            fillIndicatorPerTableDynamic(dataOutput ,outputTable, documentDynamic ,"Output#");
+            fillIndicatorPerTableDynamic(dataImpact ,impactTable, documentDynamic ,"Impact #");
+            fillIndicatorPerTableDynamic(dataOutcome ,outcomeTable, documentDynamic ,"Outcome #");
+            fillIndicatorPerTableDynamic(dataOutput ,outputTable, documentDynamic ,"Output #");
             /*fillIndicatorPerTable(impactTable, impactIndicators);
             fillIndicatorPerTable(outcomeTable, outcomeIndicators);
             fillIndicatorPerTable(outputTable, outputIndicators);*/
@@ -1297,6 +1299,10 @@ public class IndicatorService implements Logging {
                 DocManipulationUtil.setTextOnCellWithBoldTitle(table.getRow(i * 2 + 3).getCell(0), "NOTES:", indicators.get(i).getSourceVerification(), null);
             }
             index++;
+            XWPFParagraph paragraph = document.createParagraph();
+            XWPFRun run=paragraph.createRun();
+            run.setText(" ");
+
         }
     }
 

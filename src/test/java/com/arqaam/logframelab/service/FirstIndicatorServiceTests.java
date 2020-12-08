@@ -676,15 +676,8 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     }
   }
 
-  /**
-   * Validates PRM document and returns the position of the next table. If it was a removed table then it won't change
-   * @param document PRM Document to validate
-   * @param indicators Indicators to validate with
-   * @param level Level of the indicators
-   * @param posTable Position of the table in the table array
-   * @return The position of the next table. If it was a removed table then it won't change
-   */
-  private int validatePRMFormatPerLevel(XWPFDocument document, List<Indicator> indicators, Level level, Integer posTable) {
+
+ /* private int validatePRMFormatPerLevel(XWPFDocument document, List<Indicator> indicators, Level level, Integer posTable) {
     if(indicators.isEmpty()){
       for (XWPFTable table : document.getTables()){
         assertNotEquals(level.getName() + " #1:".toLowerCase(), table.getRow(0).getCell(0).getText().toLowerCase());
@@ -706,7 +699,15 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
       }
     }
     return posTable+1;
-  }
+  }*/
+  /**
+   * Validates PRM document and returns the position of the next table. If it was a removed table then it won't change
+   * @param document PRM Document to validate
+   * @param indicators Indicators to validate with
+   * @param level Level of the indicators
+   * @param posTable Position of the table in the table array
+   * @return The position of the next table. If it was a removed table then it won't change
+   */
   @Test
   void exportIndicatorsPRMFormatValidateStatement() throws IOException {
     List<Indicator> indicatorList = mockIndicatorList();
@@ -723,11 +724,11 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     assertNotNull(result);
     XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
     int posTable = 0;
-    posTable = validatePRMFormatForStatement(document, impactIndicators, mockLevels[3], posTable);
-    posTable = validatePRMFormatForStatement(document, outcomeIndicators, mockLevels[1], posTable);
-    validatePRMFormatForStatement(document, outputIndicators, mockLevels[0], posTable);
+    posTable = validatePRMFormatPerLevel(document, impactIndicators, mockLevels[3], posTable);
+    posTable = validatePRMFormatPerLevel(document, outcomeIndicators, mockLevels[1], posTable);
+    validatePRMFormatPerLevel(document, outputIndicators, mockLevels[0], posTable);
   }
-  private int validatePRMFormatForStatement(XWPFDocument document, List<Indicator> indicators, Level level, Integer posTable) {
+  private int validatePRMFormatPerLevel(XWPFDocument document, List<Indicator> indicators, Level level, Integer posTable) {
     if(indicators.isEmpty()){
       for (XWPFTable table : document.getTables()){
         assertNotEquals(level.getName() + " #1:".toLowerCase(), table.getRow(0).getCell(0).getText().toLowerCase());
@@ -737,7 +738,20 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     else{
       for (XWPFTable table : document.getTables()){
         if(indicators.size()<=posTable){
+          assertTrue(table.getRow(0).getCell(0).getText().toLowerCase().contains(indicators.get(posTable).getLevel().getName().toLowerCase()));
           assertThat(table.getRow(0).getCell(0).getText().toLowerCase()).contains(indicators.get(posTable).getStatement().toLowerCase());
+          for (int i = 2; i < table.getRows().size(); i+=2) {
+            assertEquals("Indicator " + i/2 + ":", table.getRow(i).getCell(0).getParagraphs().get(0).getText());
+            assertEquals(indicators.get(i/2 -1).getName(), table.getRow(i).getCell(0).getParagraphs().get(1).getText());
+            assertEquals(indicators.get(i/2 -1).getValue() + " (" + indicators.get(i/2 -1).getDate() + ")", table.getRow(i).getCell(1).getParagraphs().get(0).getText());
+            assertEquals("NOTES:", table.getRow(i+1).getCell(0).getParagraphs().get(0).getText());
+            if(indicators.get(i/2 -1).getSourceVerification() == null){
+              assertEquals(1, table.getRow(i+1).getCell(0).getParagraphs().size());
+              assertEquals("NOTES:", table.getRow(i+1).getCell(0).getText());
+            }else {
+              assertEquals(indicators.get(i/2 -1).getSourceVerification(), table.getRow(i+1).getCell(0).getParagraphs().get(1).getText());
+            }
+          }
           posTable++;
         }
       }

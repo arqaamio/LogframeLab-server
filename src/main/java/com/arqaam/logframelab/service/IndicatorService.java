@@ -1134,21 +1134,23 @@ public class IndicatorService implements Logging {
         List<Indicator> outputIndicators = new ArrayList<>();
         for (int i = 0; i < indicatorList.size(); i++) {
             Indicator indicator = indicatorList.get(i);
-            IndicatorResponse response = indicatorResponses.stream().filter(x-> x.getId() == indicator.getId()).findAny().get();
-            if(!StringUtils.isEmpty(response.getValue()))
-                indicator.setValue(response.getValue());
-            if(!StringUtils.isEmpty(response.getDate()))
-                indicator.setDate(response.getDate());
-            if(!StringUtils.isEmpty(response.getStatement()))
-                indicator.setStatement(response.getStatement());
-            // Can't do switch because the values aren't known before runtime
-            if (levels.get(0).equals(indicator.getLevel())) {
-                impactIndicators.add(indicator);
-            } else if (levels.get(1).equals(indicator.getLevel())) {
-                outcomeIndicators.add(indicator);
-            } else {
-                outputIndicators.add(indicator);
-            }
+           indicatorResponses.stream().filter(x-> x.getId() == indicator.getId()).findAny().ifPresent(response -> {
+               if(!StringUtils.isEmpty(response.getValue()))
+                   indicator.setValue(response.getValue());
+               if(!StringUtils.isEmpty(response.getDate()))
+                   indicator.setDate(response.getDate());
+               if(!StringUtils.isEmpty(response.getStatement()))
+                   indicator.setStatement(response.getStatement());
+               // Can't do switch because the values aren't known before runtime
+               if (levels.get(0).equals(indicator.getLevel())) {
+                   impactIndicators.add(indicator);
+               } else if (levels.get(1).equals(indicator.getLevel())) {
+                   outcomeIndicators.add(indicator);
+               } else {
+                   outputIndicators.add(indicator);
+               }
+            });
+
         }
 
         try {

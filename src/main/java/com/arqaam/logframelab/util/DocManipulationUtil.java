@@ -132,6 +132,11 @@ public class DocManipulationUtil {
         // When removing the paragraphs, it removes the run and changes the font size
         Optional.ofNullable(fontSize).ifPresent(run::setFontSize);
     }
+    /**
+     * copy a paragraph in document
+     * @param source    the paragraph to be copied
+     * @param target    the paragraph to copy to
+     */
     private static void copyParagraph(XWPFParagraph source, XWPFParagraph target) {
         target.getCTP().setPPr(source.getCTP().getPPr());
         for (int i=0; i<source.getRuns().size(); i++ ) {
@@ -143,6 +148,11 @@ public class DocManipulationUtil {
             targetRun.setText(run.getText(0));
         }
     }
+    /**
+     * copy a table in document
+     * @param source    the table to be copied
+     * @param target    the table to copy to
+     */
     public static void copyTable(XWPFTable source, XWPFTable target) {
         target.getCTTbl().setTblPr(source.getCTTbl().getTblPr());
         target.getCTTbl().setTblGrid(source.getCTTbl().getTblGrid());

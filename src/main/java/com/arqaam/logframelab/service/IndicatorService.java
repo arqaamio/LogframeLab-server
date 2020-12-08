@@ -6,6 +6,7 @@ import com.arqaam.logframelab.exception.*;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.MLScanIndicatorResponse.MLScanIndicator;
 import com.arqaam.logframelab.model.NumIndicatorsSectorLevel;
+import com.arqaam.logframelab.model.StatementResponse;
 import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.model.projection.CounterSectorLevel;
 import com.arqaam.logframelab.model.projection.IndicatorFilters;
@@ -223,7 +224,8 @@ public class IndicatorService implements Logging {
      * @param indicatorResponses List of indicator responses to fill the template
      * @return Word template filled with the indicators
      */
-    public ByteArrayOutputStream exportIndicatorsInWordFile(List<IndicatorResponse> indicatorResponses) {
+    public ByteArrayOutputStream exportIndicatorsInWordFile(List<IndicatorResponse> indicatorResponses,
+                                                            List<StatementResponse> statements) {
         try {
             logger().info("Starting to export the indicators to the word template. IndicatorResponses: {}", indicatorResponses);
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -234,7 +236,6 @@ public class IndicatorService implements Logging {
             List<Indicator> impactIndicators = new ArrayList<>();
             List<Indicator> outcomeIndicators = new ArrayList<>();
             List<Indicator> outputIndicators = new ArrayList<>();
-            List<Indicator> otherOutcomeIndicators = new ArrayList<>();
             for (Indicator indicator : indicatorList) {
                 indicatorResponses.stream().filter(x -> x.getId() == indicator.getId()).findFirst().ifPresent(ind -> {
                     if (!StringUtils.isEmpty(ind.getValue()))
@@ -253,21 +254,30 @@ public class IndicatorService implements Logging {
                     outputIndicators.add(indicator);
                 }
             }
+            List<String> impactStatements = new ArrayList<>();
+            List<String> outcomeStatements = new ArrayList<>();
+            List<String> outputStatements = new ArrayList<>();
+            for(StatementResponse statement: statements) {
+                if (levels.get(0).getName().equalsIgnoreCase(statement.getLevel())) {
+                    impactStatements.add(statement.getStatement());
+                } else if (levels.get(1).getName().equalsIgnoreCase(statement.getLevel())) {
+                    outcomeStatements.add(statement.getStatement());
+                } else {
+                    outputStatements.add(statement.getStatement());
+                }
+            }
             XWPFDocument document = new XWPFDocument(new ClassPathResource(Constants.WORD_FORMAT+ "_Template" + Constants.WORD_FILE_EXTENSION).getInputStream());
             XWPFTable table = document.getTableArray(0);
             Integer rowIndex = 1;
             rowIndex = fillWordTableByLevel(impactIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    table, rowIndex, true);
+                    table, rowIndex, true, impactStatements);
             rowIndex = fillWordTableByLevel(outcomeIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    table, rowIndex, false);
-            rowIndex = fillWordTableByLevel(otherOutcomeIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
-                    Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    table, rowIndex, false);
+                    table, rowIndex, false, outcomeStatements);
             fillWordTableByLevel(outputIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    table, rowIndex, false);
+                    table, rowIndex, false, outputStatements);
 
             document.write(outputStream);
             document.close();
@@ -287,7 +297,8 @@ public class IndicatorService implements Logging {
      * @param fillBaseline  If the column of baseline should be filled with value and date of the indicator
      * @return The index of next row after the level's template
      */
-    private Integer fillWordTableByLevel(List<Indicator> indicatorList, XWPFTable table, Integer rowIndex, Boolean fillBaseline){
+    private Integer fillWordTableByLevel(List<Indicator> indicatorList, XWPFTable table, Integer rowIndex, Boolean fillBaseline,
+                                         List<String> statements){
         boolean filledTemplateIndicators = false;
         Integer initialRow = rowIndex;
         logger().info("Starting to fill the table with the indicators information. RowIndex: {}, fillBaseline: {}", rowIndex, fillBaseline);
@@ -317,12 +328,26 @@ public class IndicatorService implements Logging {
                 }
                 rowIndex++;
             }
-            // Merge column of level, result and assumption
+            for(String statement: statements) {
+                if (filledTemplateIndicators) DocManipulationUtil.insertTableRow(table, rowIndex);
+                else filledTemplateIndicators = true;
+                DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(1), statement, DEFAULT_FONT_SIZE);
+                rowIndex++;
+            }
+        } else {
+            for(String statement: statements) {
+                if (filledTemplateIndicators) DocManipulationUtil.insertTableRow(table, rowIndex);
+                else filledTemplateIndicators = true;
+                DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(1), statement, DEFAULT_FONT_SIZE);
+                rowIndex++;
+            }
+            // Add template row
+            if(!filledTemplateIndicators) rowIndex++;
+        }
+        if(initialRow <= rowIndex-1) {
+            // Merge column of level and assumption
             DocManipulationUtil.mergeCellsByColumn(table, initialRow, rowIndex - 1, 0);
             DocManipulationUtil.mergeCellsByColumn(table, initialRow, rowIndex - 1, 7);
-        } else {
-            // Add template row
-            rowIndex++;
         }
         return rowIndex;
     }
@@ -454,7 +479,8 @@ public class IndicatorService implements Logging {
      * @param indicatorResponses Indicators to written in the excel file
      * @return Worksheet in xlsx format
      */
-    public ByteArrayOutputStream exportIndicatorsInWorksheet(List<IndicatorResponse> indicatorResponses) {
+    public ByteArrayOutputStream exportIndicatorsInWorksheet(List<IndicatorResponse> indicatorResponses,
+                                                             List<StatementResponse> statements) {
 
         List<Indicator> indicatorList = indicatorRepository.findAllById(indicatorResponses.stream()
                                                            .map(IndicatorResponse::getId)
@@ -506,6 +532,12 @@ public class IndicatorService implements Logging {
             row.createCell(10).setCellValue(response.getValue());
             row.createCell(11).setCellValue(response.getDate());
             row.createCell(12).setCellValue(response.getStatement());
+        }
+
+        for (StatementResponse statement : statements) {
+            Row row = sheet.createRow(rowNum++);
+            row.createCell(0).setCellValue(statement.getLevel().toUpperCase());
+            row.createCell(12).setCellValue(statement.getStatement());
         }
 
         // Resize all columns to fit the content size
@@ -796,7 +828,8 @@ public class IndicatorService implements Logging {
      * @param indicatorResponse Indicators to fill the indicator file
      * @return The DFID template filled with the indicators
      */
-    public ByteArrayOutputStream exportIndicatorsDFIDFormat(List<IndicatorResponse> indicatorResponse){
+    public ByteArrayOutputStream exportIndicatorsDFIDFormat(List<IndicatorResponse> indicatorResponse,
+                                                            List<StatementResponse> statements){
         try {
             logger().info("Start exporting Indicators in DFID format");
             ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -827,18 +860,29 @@ public class IndicatorService implements Logging {
                     outputIndicators.add(indicator);
                 }
             }
-
+            List<String> impactStatements = new ArrayList<>();
+            List<String> outcomeStatements = new ArrayList<>();
+            List<String> outputStatements = new ArrayList<>();
+            for(StatementResponse statement: statements) {
+                if (levels.get(0).getName().equalsIgnoreCase(statement.getLevel())) {
+                    impactStatements.add(statement.getStatement());
+                } else if (levels.get(1).getName().equalsIgnoreCase(statement.getLevel())) {
+                    outcomeStatements.add(statement.getStatement());
+                } else {
+                    outputStatements.add(statement.getStatement());
+                }
+            }
             logger().info("Impact Indicators: {}\nOutcome Indicators: {}\nOutput Indicators: {}", impactIndicators, outcomeIndicators, outputIndicators);
             int startRowNewIndicator = 1;
             startRowNewIndicator = fillIndicatorsPerLevel(sheet, impactIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    startRowNewIndicator, IMPACT_NUM_TEMP_INDIC, true);
+                    startRowNewIndicator, IMPACT_NUM_TEMP_INDIC, true, impactStatements);
             startRowNewIndicator = fillIndicatorsPerLevel(sheet, outcomeIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    startRowNewIndicator, OUTCOME_NUM_TEMP_INDIC, false);
+                    startRowNewIndicator, OUTCOME_NUM_TEMP_INDIC, false, outcomeStatements);
             fillIndicatorsPerLevel(sheet, outputIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    startRowNewIndicator, OUTPUT_NUM_TEMP_INDIC, false);
+                    startRowNewIndicator, OUTPUT_NUM_TEMP_INDIC, false, outputStatements);
             wk.write(output);
             wk.close();
             indicatorRepository.saveAll(indicatorList.stream().peek(x-> x.setTimesDownloaded(x.getTimesDownloaded()+1)).collect(Collectors.toList()));
@@ -859,11 +903,12 @@ public class IndicatorService implements Logging {
      * @return Index of the row where the next template starts
      */
     private Integer fillIndicatorsPerLevel(XSSFSheet sheet, List<Indicator> indicatorList, Integer startRowNewIndicator,
-                                           Integer numberTemplateIndicators, Boolean fillBaseline) {
+                                           Integer numberTemplateIndicators, Boolean fillBaseline, List<String> statements) {
         Integer initialRow = startRowNewIndicator;
+        Integer statementCount = 0;
+        List<Indicator> indicators = new ArrayList<>();
         if(indicatorList.size() > 0) {
             Integer count = 0;
-            Integer statementCount = 0;
             Map<String, List<Indicator>> map = new HashMap<>();
             for (Indicator ind : indicatorList) {
                 if (map.containsKey(ind.getStatement())) {
@@ -874,14 +919,17 @@ public class IndicatorService implements Logging {
                     map.put(ind.getStatement(), indicators1);
                 }
             }
-            List<Indicator> indicators = map.values().iterator().next();
+            indicators = map.values().iterator().next();
             if (map.entrySet().size() == 1 && indicators.size() <= numberTemplateIndicators) {
+                statementCount++;
                 for (Indicator indicator : indicators) {
                     count++;
                     fillDFIDIndicatorRows(sheet, indicator, startRowNewIndicator, fillBaseline, count,1, count==1);
                     startRowNewIndicator += 4;
                 }
-                return initialRow + 4*numberTemplateIndicators;
+                if(statements.isEmpty()){
+                    return initialRow + 4*numberTemplateIndicators;
+                }
             } else {
                 // Remove merge
                 List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();
@@ -945,8 +993,40 @@ public class IndicatorService implements Logging {
                     }
                 }
             }
+
         } else {
-            return initialRow + 4*numberTemplateIndicators;
+            startRowNewIndicator = initialRow + 4*numberTemplateIndicators;
+        }
+
+        if(!statements.isEmpty() &&  (indicatorList.stream().allMatch(x->StringUtils.isEmpty(x.getStatement()))
+                || (indicatorList.size() >0 && indicatorList.stream().allMatch(
+                        x->x.getStatement() != null && x.getStatement().equals(indicatorList.get(0).getStatement()))))
+                && indicatorList.size() < numberTemplateIndicators){
+            startRowNewIndicator = indicatorList.size() >0 ? initialRow + 4*numberTemplateIndicators : initialRow;
+        }
+
+        Integer i = 0;
+        for(String statement : statements){
+            statementCount++;
+            if(indicatorList.size() > 0 || (indicatorList.isEmpty() && i!=0)) {
+                // Add new rows
+                sheet.shiftRows(startRowNewIndicator, sheet.getLastRowNum(), 4 * numberTemplateIndicators);
+                sheet.copyRows(startRowNewIndicator - 4 * numberTemplateIndicators, startRowNewIndicator, startRowNewIndicator, new CellCopyPolicy());
+            }
+            String[] title = sheet.getRow(startRowNewIndicator).getCell(1).getStringCellValue().split(" ");
+            // Clean old values
+            for (int j = 0; j < numberTemplateIndicators; j++) {
+                sheet.getRow(startRowNewIndicator + j * 4).getCell(1).setCellValue(title[0] + " " + title[1]);
+                sheet.getRow(startRowNewIndicator + 1 + j * 4).getCell(0).setCellValue("");
+                sheet.getRow(startRowNewIndicator + 1 + j * 4).getCell(1).setCellValue("");
+                sheet.getRow(startRowNewIndicator + 1 + j * 4).getCell(2).setCellValue("");
+                sheet.getRow(startRowNewIndicator + 3 + j * 4).getCell(2).setCellValue("");
+            }
+            sheet.getRow(startRowNewIndicator + 1).getCell(0).setCellValue(statement);
+            sheet.getRow(startRowNewIndicator).getCell(0).setCellValue(title[0].toUpperCase() + " " + statementCount);
+
+            startRowNewIndicator+=4*numberTemplateIndicators;
+            i++;
         }
         return startRowNewIndicator;
     }

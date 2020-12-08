@@ -38,7 +38,7 @@ class WorldBankServiceTest {
         List<WorldBankIndicator> result = worldBankService.getIndicatorValues(indicator, "NZL", Collections.emptyList());
         assertNotNull(result);
         assertEquals(17, result.size());
-        assertFalse(result.stream().anyMatch(x -> x == null || x.getValue()!=100));
+        assertFalse(result.stream().anyMatch(x -> x == null || !x.getValue().equals("100")));
 
         for (int i = 0; i < result.size(); i++) {
             assertEquals(result.get(i).getDate(), String.valueOf(2000+i));
@@ -51,7 +51,7 @@ class WorldBankServiceTest {
         List<WorldBankIndicator> result = worldBankService.getIndicatorValues(indicator, "NZL", null);
         assertNotNull(result);
         assertEquals(17, result.size());
-        assertFalse(result.stream().anyMatch(x -> x == null || x.getValue()!=100));
+        assertFalse(result.stream().anyMatch(x -> x == null || !x.getValue().equals("100")));
 
         for (int i = 0; i < result.size(); i++) {
             assertEquals(result.get(i).getDate(), String.valueOf(2000+i));
@@ -64,7 +64,7 @@ class WorldBankServiceTest {
         List<WorldBankIndicator> result = worldBankService.getIndicatorValues(indicator, "NZL", Collections.singletonList(2000));
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(100, result.get(0).getValue());
+        assertEquals("100", result.get(0).getValue());
         assertEquals(result.get(0).getDate(), "2000");
     }
 
@@ -74,7 +74,7 @@ class WorldBankServiceTest {
         List<WorldBankIndicator> result = worldBankService.getIndicatorValues(indicator, "NZL", Arrays.asList(2000, 2001));
         assertNotNull(result);
         assertEquals(2, result.size());
-        assertFalse(result.stream().anyMatch(x -> x == null || x.getValue()!=100));
+        assertFalse(result.stream().anyMatch(x -> x == null || !x.getValue().equals("100")));
 
         for (int i = 0; i < result.size(); i++) {
             assertEquals(result.get(i).getDate(), String.valueOf(2000+i));

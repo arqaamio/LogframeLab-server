@@ -1235,15 +1235,9 @@ public class IndicatorService implements Logging {
 
         try {
             XWPFDocument document = new XWPFDocument(new ClassPathResource(Constants.PRM_FORMAT + "_Template" + Constants.WORD_FILE_EXTENSION).getInputStream());
-            XWPFDocument documentDynamic = new XWPFDocument(new ClassPathResource(Constants.PRM_FORMAT + "_Template_Dynamic" + Constants.WORD_FILE_EXTENSION).getInputStream());
             XWPFTable impactTable = document.getTableArray(0);
             XWPFTable outcomeTable = document.getTableArray(1);
             XWPFTable outputTable = document.getTableArray(2);
-
-            logger().info("Removing tables if a certain level as no indicators");
-            if(impactIndicators.isEmpty()) document.removeBodyElement(document.getPosOfTable(impactTable));
-            if(outcomeIndicators.isEmpty()) document.removeBodyElement(document.getPosOfTable(outcomeTable));
-            if(outputIndicators.isEmpty()) document.removeBodyElement(document.getPosOfTable(outputTable));
 
             //group by statement and separate the indicators with null statement
             Map<String, List<Indicator>> dataImpact = impactIndicators.stream().collect(Collectors.groupingBy(
@@ -1258,12 +1252,18 @@ public class IndicatorService implements Logging {
                     m -> m.getStatement() == null ?
                             " " : m.getStatement())
             );
+            fillIndicatorPerTableDynamic(dataImpact ,impactTable, document ,Constants.IMPACT_LEVEL_PREFIX);
+            fillIndicatorPerTableDynamic(dataOutcome ,outcomeTable, document ,Constants.OUTCOME_LEVEL_PREFIX);
+            fillIndicatorPerTableDynamic(dataOutput ,outputTable, document ,Constants.OUTPUT_LEVEL_PREFIX);
 
-            fillIndicatorPerTableDynamic(dataImpact ,impactTable, documentDynamic ,Constants.IMPACT_LEVEL_PREFIX);
-            fillIndicatorPerTableDynamic(dataOutcome ,outcomeTable, documentDynamic ,Constants.OUTCOME_LEVEL_PREFIX);
-            fillIndicatorPerTableDynamic(dataOutput ,outputTable, documentDynamic ,Constants.OUTPUT_LEVEL_PREFIX);
+            logger().info("Removing template tables");
+            document.removeBodyElement(document.getPosOfTable(impactTable));
+            document.removeBodyElement(document.getPosOfTable(outcomeTable));
+            document.removeBodyElement(document.getPosOfTable(outputTable));
+
             logger().info("Writing the changes to the template to a outputStream");
-            documentDynamic.write(outputStream);
+            document.write(outputStream);
+            // set download times
             indicatorRepository.saveAll(indicatorList.stream().peek(x-> x.setTimesDownloaded(x.getTimesDownloaded()+1)).collect(Collectors.toList()));
         } catch (IOException e) {
             logger().error("Template was not found.", e);

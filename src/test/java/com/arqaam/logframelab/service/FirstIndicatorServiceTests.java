@@ -700,14 +700,8 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     }
     return posTable+1;
   }*/
-  /**
-   * Validates PRM document and returns the position of the next table. If it was a removed table then it won't change
-   * @param document PRM Document to validate
-   * @param indicators Indicators to validate with
-   * @param level Level of the indicators
-   * @param posTable Position of the table in the table array
-   * @return The position of the next table. If it was a removed table then it won't change
-   */
+
+  
   @Test
   void exportIndicatorsPRMFormatValidateStatement() throws IOException {
     List<Indicator> indicatorList = mockIndicatorList();
@@ -728,6 +722,14 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     posTable = validatePRMFormatPerLevel(document, outcomeIndicators, mockLevels[1], posTable);
     validatePRMFormatPerLevel(document, outputIndicators, mockLevels[0], posTable);
   }
+  /**
+   * Validates PRM document and returns the position of the next table. If it was a removed table then it won't change
+   * @param document PRM Document to validate
+   * @param indicators Indicators to validate with
+   * @param level Level of the indicators
+   * @param posTable Position of the table in the table array
+   * @return The position of the next table. If it was a removed table then it won't change
+   */
   private int validatePRMFormatPerLevel(XWPFDocument document, List<Indicator> indicators, Level level, Integer posTable) {
     if(indicators.isEmpty()){
       for (XWPFTable table : document.getTables()){

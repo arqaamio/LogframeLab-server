@@ -152,4 +152,15 @@ public class AuthServiceTest {
     assertThrows(LogoutWrongUserException.class, ()->authService.logout("otheruser"));
   }
 
+  @Test
+  void refreshTokenTest(){
+    String expect = "token";
+    String previous = authService.generateToken(new User());
+    when(jwtTokenProvider.refreshToken(previous)).thenReturn(expect);
+
+    String result = authService.refreshToken(previous);
+    verify(jwtTokenProvider).refreshToken(previous);
+    assertEquals(expect,result);
+  }
+
 }

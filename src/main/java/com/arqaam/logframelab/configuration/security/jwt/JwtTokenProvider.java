@@ -138,4 +138,22 @@ public class JwtTokenProvider {
         return tokenHeaderPrefix;
     }
 
+    /**
+     * Generates a JWT Token from a previous token
+     *
+     * @param jws Compact serialized Claims JWS string
+     * @return JWT token
+     */
+    public String refreshToken(String jws){
+
+        isTokenValid(jws);
+        String username = getUsernameFromJws(jws);
+        return Jwts.builder()
+                .setSubject(username)
+                .setIssuedAt(Date.from(Instant.now()))
+                .setExpiration(Date.from(Instant.now().plus(expirationInHours, ChronoUnit.HOURS)))
+                .signWith(secretKey, SignatureAlgorithm.HS512)
+                .compact();
+    }
+
 }

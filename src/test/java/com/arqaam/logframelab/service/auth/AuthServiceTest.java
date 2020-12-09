@@ -119,6 +119,17 @@ public class AuthServiceTest {
   }
 
   @Test
+  void refreshTokenTest(){
+    String expect = "token";
+    String previous = authService.generateToken(new User());
+    when(jwtTokenProvider.refreshToken(previous)).thenReturn(expect);
+
+    String result = authService.refreshToken(previous);
+    verify(jwtTokenProvider).refreshToken(previous);
+    assertEquals(expect,result);
+  }
+
+  @Test
   void getTokenExpirationInSecondsTest(){
     Long expect = 3600L;
     when(jwtTokenProvider.getExpirationInSeconds()).thenReturn(expect);

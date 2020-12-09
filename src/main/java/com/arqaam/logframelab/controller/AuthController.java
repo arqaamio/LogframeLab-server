@@ -8,6 +8,8 @@ import com.arqaam.logframelab.controller.dto.auth.login.AuthenticateUserRequestD
 import com.arqaam.logframelab.controller.dto.auth.login.JwtAuthenticationTokenResponse;
 import com.arqaam.logframelab.controller.dto.auth.logout.LogoutUserRequestDto;
 import com.arqaam.logframelab.controller.dto.auth.logout.LogoutUserResponseDto;
+import com.arqaam.logframelab.controller.dto.auth.refresh.RefreshTokenRequestDto;
+import com.arqaam.logframelab.controller.dto.auth.refresh.RefreshTokenResponseDto;
 import com.arqaam.logframelab.exception.UserNotFoundException;
 import com.arqaam.logframelab.model.Error;
 import com.arqaam.logframelab.model.persistence.auth.User;
@@ -161,5 +163,25 @@ public class AuthController implements Logging {
     logger().info("Deleting the user with username: {}", username);
     userService.deleteUserById(username);
     return ResponseEntity.ok().build();
+  }
+
+  @PostMapping(value = "refresh")
+  @ApiOperation(value = "${AuthController.refreshToken.value}", nickname = "refresh", response = RefreshTokenResponseDto.class, authorizations = { @Authorization(value="jwtToken") })
+  @ApiResponses({
+          @ApiResponse(code = 200, message = "Refreshed the token", response = RefreshTokenResponseDto.class),
+          @ApiResponse(code = 404, message = "User not found", response = Error.class),
+          @ApiResponse(code = 500, message = "Failed to refresh token", response = Error.class)
+  })
+  public ResponseEntity<RefreshTokenResponseDto> refreshToken(
+          @Valid @RequestBody RefreshTokenRequestDto request, Authentication authentication){
+
+    logger().info("Starting to refresh token: {}", request.getToken());
+    String token = authService.refreshToken(request.getToken());
+    User user = (User) authentication.getPrincipal();
+
+    return ResponseEntity.ok(RefreshTokenResponseDto.builder().token(token)
+            .tokenType(authService.getTokenType())
+            .groups(user.getGroupMembership().stream().map(m -> m.getGroup().getName()).collect(
+                    Collectors.toSet())).build());
   }
 }

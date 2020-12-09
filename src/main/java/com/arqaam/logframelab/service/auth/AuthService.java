@@ -131,4 +131,14 @@ public class AuthService implements Logging {
     SecurityContextHolder.clearContext();
   }
 
+  /**
+   * Refresh token
+   *
+   * @param token Valid token
+   * @return token
+   */
+  public String refreshToken(String token){
+    return tokenProvider.refreshToken(token);
+  }
+
 }

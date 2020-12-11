@@ -374,6 +374,8 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
   void exportIndicatorsPRMFormat() throws IOException {
     List<Indicator> indicatorList = mockIndicatorList();
     when(indicatorRepository.findAllById(any())).thenReturn(indicatorList);
+
+    List<StatementResponse> statementResponse = createListStatementResponse();
     List<Indicator> impactIndicators = indicatorList.stream()
             .filter(x -> x.getLevel().equals(mockLevels[3])).collect(Collectors.toList());
     List<Indicator> outcomeIndicators = indicatorList.stream()
@@ -382,7 +384,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
             .filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
 
     List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(indicatorList);
-    ByteArrayOutputStream result = indicatorService.exportIndicatorsPRMFormat(indicatorResponse);
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsPRMFormat(indicatorResponse ,statementResponse);
     assertNotNull(result);
     XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
     int posTable = 0;
@@ -403,7 +405,8 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
             .filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
 
     List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(indicatorList);
-    ByteArrayOutputStream result = indicatorService.exportIndicatorsPRMFormat(indicatorResponse);
+    List<StatementResponse> statementResponse = createListStatementResponse();
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsPRMFormat(indicatorResponse,statementResponse);
 
     assertNotNull(result);
     XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
@@ -742,7 +745,8 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
             .filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
 
     List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(indicatorList);
-    ByteArrayOutputStream result = indicatorService.exportIndicatorsPRMFormat(indicatorResponse);
+    List<StatementResponse> statementResponse = createListStatementResponse();
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsPRMFormat(indicatorResponse,statementResponse);
     assertNotNull(result);
     XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
     int posTable = 0;

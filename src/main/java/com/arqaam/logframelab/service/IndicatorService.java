@@ -1201,7 +1201,7 @@ public class IndicatorService implements Logging {
      * @param indicatorResponses Indicators to fill the indicator file
      * @return The PRM template filled with the indicators
      */
-    public ByteArrayOutputStream exportIndicatorsPRMFormat(List<IndicatorResponse> indicatorResponses){
+    public ByteArrayOutputStream exportIndicatorsPRMFormat(List<IndicatorResponse> indicatorResponses, List<StatementResponse>  statements){
         logger().info("Starting to export indicators using the PRM template");
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         List<Level> levels = levelRepository.findAllByOrderByPriority();
@@ -1252,9 +1252,24 @@ public class IndicatorService implements Logging {
                     m -> m.getStatement() == null ?
                             " " : m.getStatement())
             );
-            fillIndicatorPerTableDynamic(dataImpact ,impactTable, document ,Constants.IMPACT_LEVEL_PREFIX);
-            fillIndicatorPerTableDynamic(dataOutcome ,outcomeTable, document ,Constants.OUTCOME_LEVEL_PREFIX);
-            fillIndicatorPerTableDynamic(dataOutput ,outputTable, document ,Constants.OUTPUT_LEVEL_PREFIX);
+            //filter the statements for which indicators are not present
+            List<String> impactStatements = new ArrayList<>();
+            List<String> outcomeStatements = new ArrayList<>();
+            List<String> outputStatements = new ArrayList<>();
+            if(statements.size()>0) {
+                for (StatementResponse statement : statements) {
+                    if (levels.get(0).getName().equalsIgnoreCase(statement.getLevel())) {
+                        impactStatements.add(statement.getStatement());
+                    } else if (levels.get(1).getName().equalsIgnoreCase(statement.getLevel())) {
+                        outcomeStatements.add(statement.getStatement());
+                    } else {
+                        outputStatements.add(statement.getStatement());
+                    }
+                }
+            }
+            fillIndicatorPerTableDynamic(dataImpact ,impactTable, document ,Constants.IMPACT_LEVEL_PREFIX,impactStatements);
+            fillIndicatorPerTableDynamic(dataOutcome ,outcomeTable, document ,Constants.OUTCOME_LEVEL_PREFIX,outcomeStatements);
+            fillIndicatorPerTableDynamic(dataOutput ,outputTable, document ,Constants.OUTPUT_LEVEL_PREFIX,outputStatements);
 
             logger().info("Removing template tables");
             document.removeBodyElement(document.getPosOfTable(impactTable));
@@ -1278,10 +1293,12 @@ public class IndicatorService implements Logging {
      * @param data Indicators with which the table will be filled
      */
 
-    private void fillIndicatorPerTableDynamic( Map<String, List<Indicator>> data ,XWPFTable source, XWPFDocument document , String type){
+    private void
+    fillIndicatorPerTableDynamic( Map<String, List<Indicator>> data ,XWPFTable source, XWPFDocument document , String type,List<String> statementResponses){
         logger().info("Starting to fill the table with the indicators of the the size: {}", data.size());
         Set<String> keys = data.keySet();
         int index =0;
+
         for (String statement : keys) {
             //copy the table from template and fill it dynamically
             XWPFTable table = document.createTable();
@@ -1307,10 +1324,24 @@ public class IndicatorService implements Logging {
             }
             index++;
             XWPFParagraph paragraph = document.createParagraph();
-            
             XWPFRun run=paragraph.createRun();
             run.setText(" ");
 
+        }
+        int statementIndex =index;
+        //Adding tables for non indicator statements
+        if(statementResponses.size()>0) {
+            for (String statement : statementResponses) {
+                //copy the table from template and fill it dynamically
+                XWPFTable table = document.createTable();
+                DocManipulationUtil.copyTable(source, table);
+                DocManipulationUtil.setTextOnCellWithBoldTitle(table.getRow(0).getCell(0), type + (statementIndex + 1), statement, null);
+                statementIndex++;
+                //creating an empty space between each table
+                XWPFParagraph paragraph = document.createParagraph();
+                XWPFRun run = paragraph.createRun();
+                run.setText(" ");
+            }
         }
     }
 

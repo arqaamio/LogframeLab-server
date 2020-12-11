@@ -115,7 +115,7 @@ public class IndicatorController implements Logging {
                 statisticService.addDownloadStatistic(Constants.DFID_FORMAT);
                 break;
             case Constants.PRM_FORMAT:
-                outputStream = indicatorService.exportIndicatorsPRMFormat(request.getIndicators());
+                outputStream = indicatorService.exportIndicatorsPRMFormat(request.getIndicators() ,statements);
                 statisticService.addDownloadStatistic(Constants.PRM_FORMAT);
                 break;
             case Constants.WORD_FORMAT:

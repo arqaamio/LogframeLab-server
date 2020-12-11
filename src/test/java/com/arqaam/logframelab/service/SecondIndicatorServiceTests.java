@@ -314,8 +314,7 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
         assertEquals(indicatorList.get(i).getName(), sheet.getRow(rowIndex + 1).getCell(1).getStringCellValue());
         assertEquals(indicatorList.get(i).getSourceVerification(),
                 sheet.getRow(rowIndex + 3).getCell(2).getStringCellValue());
-        baselineValue = !indicatorList.get(i).getLevel().equals(mockLevels[3]) ||
-                StringUtils.isEmpty(indicatorList.get(i).getValue()) || StringUtils.isEmpty(indicatorList.get(i).getDate())
+        baselineValue = StringUtils.isEmpty(indicatorList.get(i).getValue()) || StringUtils.isEmpty(indicatorList.get(i).getDate())
                 ? "" : indicatorList.get(i).getValue() + " (" + indicatorList.get(i).getDate() + ")";
         assertEquals(baselineValue, sheet.getRow(rowIndex + 1).getCell(2).getStringCellValue());
 

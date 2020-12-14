@@ -90,7 +90,7 @@ That's it! Thank you for your contribution!
  
 ### Where can I get more help, if I need it?
 
-Contact the maintainer: ari (dot) xxxx (at) protonmail (dot) com
+Contact the maintainers: sheena.amdadoo@gmail.com and yiriwayah@gmail.com
 
 [Docker]: <https://www.docker.com/>
 [docker-compose]: <https://docs.docker.com/compose/>

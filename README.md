@@ -38,7 +38,7 @@ Want to help build on Logframe Lab? Check out our documentation [here](CONTRIBUT
 Logframe Lab is licensed under the terms of the Creative Commons Attribution Share Alike 4.0 license, which can be read in full [here](LICENSE).
 
 ## Maintainers
-Ari is available at: ari (dot) xxxx (at) protonmail (dot) com
+Osheena and Stephen are available at: sheena.amdadoo@gmail.com and yiriwayah@gmail.com
 
 [![License: CC BY-NC-SA 4.0](https://licensebuttons.net/l/by-nc-sa/4.0/80x15.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 

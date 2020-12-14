@@ -271,13 +271,13 @@ public class IndicatorService implements Logging {
             Integer rowIndex = 1;
             rowIndex = fillWordTableByLevel(impactIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    table, rowIndex, true, impactStatements);
+                    table, rowIndex, impactStatements);
             rowIndex = fillWordTableByLevel(outcomeIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    table, rowIndex, false, outcomeStatements);
+                    table, rowIndex, outcomeStatements);
             fillWordTableByLevel(outputIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    table, rowIndex, false, outputStatements);
+                    table, rowIndex, outputStatements);
 
             document.write(outputStream);
             document.close();
@@ -294,14 +294,12 @@ public class IndicatorService implements Logging {
      * @param indicatorList Indicators with which the table will filled
      * @param table         Table to filled
      * @param rowIndex      Index of the first row to be filled/where the level starts
-     * @param fillBaseline  If the column of baseline should be filled with value and date of the indicator
      * @return The index of next row after the level's template
      */
-    private Integer fillWordTableByLevel(List<Indicator> indicatorList, XWPFTable table, Integer rowIndex, Boolean fillBaseline,
-                                         List<String> statements){
+    private Integer fillWordTableByLevel(List<Indicator> indicatorList, XWPFTable table, Integer rowIndex, List<String> statements){
         boolean filledTemplateIndicators = false;
         Integer initialRow = rowIndex;
-        logger().info("Starting to fill the table with the indicators information. RowIndex: {}, fillBaseline: {}", rowIndex, fillBaseline);
+        logger().info("Starting to fill the table with the indicators information. RowIndex: {}", rowIndex);
         if(indicatorList.size() > 0) {
             String currentStatement = "";
             Integer statementRow = rowIndex;
@@ -322,9 +320,13 @@ public class IndicatorService implements Logging {
                 DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(2), indicator.getName(), DEFAULT_FONT_SIZE);
                 DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(6), Optional.ofNullable(indicator.getSourceVerification()).orElse(""), DEFAULT_FONT_SIZE);
 
-                if (fillBaseline && !isNull(indicator.getValue()) && !isNull(indicator.getDate())) {
-                    DocManipulationUtil.setHyperLinkOnCell(table.getRow(rowIndex).getCell(3), indicator.getValue() + " (" +
-                            indicator.getDate() + ")", indicator.getDataSource(), DEFAULT_FONT_SIZE);
+                if (!isNull(indicator.getValue()) && !isNull(indicator.getDate())) {
+                    if(StringUtils.isEmpty(indicator.getDataSource()))
+                        DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(3), indicator.getValue() + " (" +
+                            indicator.getDate() + ")", DEFAULT_FONT_SIZE);
+                    else
+                        DocManipulationUtil.setHyperLinkOnCell(table.getRow(rowIndex).getCell(3), indicator.getValue() + " (" +
+                                indicator.getDate() + ")", indicator.getDataSource(), DEFAULT_FONT_SIZE);
                 }
                 rowIndex++;
             }
@@ -876,13 +878,13 @@ public class IndicatorService implements Logging {
             int startRowNewIndicator = 1;
             startRowNewIndicator = fillIndicatorsPerLevel(sheet, impactIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    startRowNewIndicator, IMPACT_NUM_TEMP_INDIC, true, impactStatements);
+                    startRowNewIndicator, IMPACT_NUM_TEMP_INDIC, impactStatements);
             startRowNewIndicator = fillIndicatorsPerLevel(sheet, outcomeIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    startRowNewIndicator, OUTCOME_NUM_TEMP_INDIC, false, outcomeStatements);
+                    startRowNewIndicator, OUTCOME_NUM_TEMP_INDIC, outcomeStatements);
             fillIndicatorsPerLevel(sheet, outputIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    startRowNewIndicator, OUTPUT_NUM_TEMP_INDIC, false, outputStatements);
+                    startRowNewIndicator, OUTPUT_NUM_TEMP_INDIC, outputStatements);
             wk.write(output);
             wk.close();
             indicatorRepository.saveAll(indicatorList.stream().peek(x-> x.setTimesDownloaded(x.getTimesDownloaded()+1)).collect(Collectors.toList()));
@@ -899,11 +901,10 @@ public class IndicatorService implements Logging {
      * @param indicatorList List of Indicators to fill on the template
      * @param startRowNewIndicator Index of the row where the template starts
      * @param numberTemplateIndicators Number of Indicator's Template of this level
-     * @param fillBaseline             If the cell of the baseline should be filled with indicator's value and date
      * @return Index of the row where the next template starts
      */
     private Integer fillIndicatorsPerLevel(XSSFSheet sheet, List<Indicator> indicatorList, Integer startRowNewIndicator,
-                                           Integer numberTemplateIndicators, Boolean fillBaseline, List<String> statements) {
+                                           Integer numberTemplateIndicators, List<String> statements) {
         Integer initialRow = startRowNewIndicator;
         Integer statementCount = 0;
         List<Indicator> indicators = new ArrayList<>();
@@ -924,7 +925,7 @@ public class IndicatorService implements Logging {
                 statementCount++;
                 for (Indicator indicator : indicators) {
                     count++;
-                    fillDFIDIndicatorRows(sheet, indicator, startRowNewIndicator, fillBaseline, count,1, count==1);
+                    fillDFIDIndicatorRows(sheet, indicator, startRowNewIndicator, count,1, count==1);
                     startRowNewIndicator += 4;
                 }
                 if(statements.isEmpty()){
@@ -954,7 +955,7 @@ public class IndicatorService implements Logging {
                             sheet.shiftRows(startRowNewIndicator + 4, sheet.getLastRowNum(), 4);
                             sheet.copyRows(startRowNewIndicator, startRowNewIndicator + 4, startRowNewIndicator+4, new CellCopyPolicy());
 
-                            fillDFIDIndicatorRows(sheet, indicators.get(i), startRowNewIndicator, fillBaseline, i+1, statementCount, true);
+                            fillDFIDIndicatorRows(sheet, indicators.get(i), startRowNewIndicator, i+1, statementCount, true);
                             startRowNewIndicator+=4;
                         }
                         sheet.addMergedRegion(new CellRangeAddress(statementRow+1, startRowNewIndicator-1, 0, 0));
@@ -964,7 +965,7 @@ public class IndicatorService implements Logging {
                         if(indicators.size()<=numberTemplateIndicators){
                             // Fill rows
                             for (int i = 0; i < indicators.size(); i++) {
-                                fillDFIDIndicatorRows(sheet, indicators.get(i), startRowNewIndicator, fillBaseline, i+1, statementCount, i==0);
+                                fillDFIDIndicatorRows(sheet, indicators.get(i), startRowNewIndicator, i+1, statementCount, i==0);
                                 startRowNewIndicator+=4;
                             }
                             sheet.addMergedRegion(new CellRangeAddress(statementRow+1, statementRow+3, 0, 0));
@@ -980,7 +981,7 @@ public class IndicatorService implements Logging {
                                     sheet.copyRows(startRowNewIndicator, startRowNewIndicator + 4, startRowNewIndicator + 4, new CellCopyPolicy());
                                 }
                                 // Fill new rows and new ones
-                                fillDFIDIndicatorRows(sheet, indicators.get(i), startRowNewIndicator, fillBaseline, i+1, statementCount, createNewRows);
+                                fillDFIDIndicatorRows(sheet, indicators.get(i), startRowNewIndicator, i+1, statementCount, createNewRows);
                                 startRowNewIndicator+=4;
                             }
                             // Merge added rows
@@ -1031,7 +1032,7 @@ public class IndicatorService implements Logging {
         return startRowNewIndicator;
     }
 
-    private void fillDFIDIndicatorRows(XSSFSheet sheet, Indicator indicator, Integer startRowNewIndicator,  Boolean fillBaseline, Integer indicatorNumber,
+    private void fillDFIDIndicatorRows(XSSFSheet sheet, Indicator indicator, Integer startRowNewIndicator, Integer indicatorNumber,
                                         Integer statementCount, Boolean fillNumberStatement) {
 
         if(fillNumberStatement && Strings.isNotEmpty(indicator.getStatement())) {
@@ -1042,7 +1043,7 @@ public class IndicatorService implements Logging {
                 .getStringCellValue() + " " + (Strings.isEmpty(indicator.getStatement()) ? "" : statementCount + ".") + indicatorNumber);
         sheet.getRow(startRowNewIndicator + 1).getCell(1).setCellValue(indicator.getName());
         sheet.getRow(startRowNewIndicator + 3).getCell(2).setCellValue(indicator.getSourceVerification());
-        if (fillBaseline && !isNull(indicator.getValue()) && !isNull(indicator.getDate()))
+        if (!StringUtils.isEmpty(indicator.getValue()) && !StringUtils.isEmpty(indicator.getDate()))
             sheet.getRow(startRowNewIndicator + 1).getCell(2).setCellValue(indicator.getValue() +
                     " (" + indicator.getDate() + ")");
 

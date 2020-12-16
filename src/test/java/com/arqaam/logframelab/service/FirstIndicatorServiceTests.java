@@ -13,6 +13,7 @@ import com.arqaam.logframelab.model.StatementResponse;
 import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.model.projection.CounterSectorLevel;
 import com.arqaam.logframelab.model.projection.IndicatorFilters;
+import com.arqaam.logframelab.util.Constants;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -135,15 +136,23 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     List<String> outputStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[0].getName()))
             .map(StatementResponse::getStatement).collect(Collectors.toList());
 
-    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse);
+    Map<String, String> outputAssumption = statementResponse.stream().filter(s ->
+            s.getLevel().equalsIgnoreCase(Constants.OUTPUT_LEVEL)
+    ).collect(HashMap::new, (m,v)->m.put(v.getStatement(), v.getAssumption()), HashMap::putAll);
+
+    Map<String, String> outcomeAssumption = statementResponse.stream().filter(s ->
+            s.getLevel().equalsIgnoreCase(Constants.OUTCOME_LEVEL)
+    ).collect(HashMap::new, (m,v)->m.put(v.getStatement(), v.getAssumption()), HashMap::putAll);
+
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse,statementResponse);
     assertNotNull(result);
     XWPFDocument resultDoc = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
     assertEquals(2, resultDoc.getTables().size());
     XWPFTable table = resultDoc.getTableArray(0);
     Integer rowIndex = 1;
-    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, impactStatement, rowIndex);
-    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, outcomeStatement, rowIndex);
-    validateWordTemplateLevel(table, outputIndicators, indicatorResponse, outputStatement, rowIndex);
+    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, impactStatement, rowIndex ,new HashMap<>());
+    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, outcomeStatement, rowIndex ,outcomeAssumption);
+    validateWordTemplateLevel(table, outputIndicators, indicatorResponse, outputStatement, rowIndex,outputAssumption);
     resultDoc.close();
   }
 
@@ -161,8 +170,8 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
 
     List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(indicatorList);
     List<StatementResponse> statementResponse = createListStatementResponse();
-    statementResponse.add(new StatementResponse("New impact statement", mockLevels[3].getName()));
-    statementResponse.add(new StatementResponse("New output statement", mockLevels[0].getName()));
+    statementResponse.add(new StatementResponse("New impact statement", mockLevels[3].getName(),"test assumption impact"));
+    statementResponse.add(new StatementResponse("New output statement", mockLevels[0].getName(),"test assumption output"));
     List<String> impactStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[3].getName()))
             .map(StatementResponse::getStatement).collect(Collectors.toList());
     List<String> outcomeStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[1].getName()))
@@ -170,16 +179,24 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     List<String> outputStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[0].getName()))
             .map(StatementResponse::getStatement).collect(Collectors.toList());
 
-    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse);
+    Map<String, String> outputAssumption = statementResponse.stream().filter(s ->
+            s.getLevel().equalsIgnoreCase(Constants.OUTPUT_LEVEL)
+    ).collect(HashMap::new, (m,v)->m.put(v.getStatement(), v.getAssumption()), HashMap::putAll);
+
+    Map<String, String> outcomeAssumption = statementResponse.stream().filter(s ->
+            s.getLevel().equalsIgnoreCase(Constants.OUTCOME_LEVEL)
+    ).collect(HashMap::new, (m,v)->m.put(v.getStatement(), v.getAssumption()), HashMap::putAll);
+
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse,statementResponse);
 
     assertNotNull(result);
     XWPFDocument resultDoc = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
     assertEquals(2, resultDoc.getTables().size());
     XWPFTable table = resultDoc.getTableArray(0);
     Integer rowIndex = 1;
-    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, impactStatement, rowIndex);
-    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, outcomeStatement, rowIndex);
-    validateWordTemplateLevel(table, outputIndicators, indicatorResponse, outputStatement, rowIndex);
+    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, impactStatement, rowIndex,new HashMap<>());
+    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, outcomeStatement, rowIndex,outcomeAssumption);
+    validateWordTemplateLevel(table, outputIndicators, indicatorResponse, outputStatement, rowIndex,outputAssumption);
     resultDoc.close();
   }
 
@@ -198,16 +215,24 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
             .stream().peek(x-> {if(x.getLevel().equals(mockLevels[0].getName())) x.setStatement(null);}).collect(Collectors.toList());
     indicatorResponse.get(1).setStatement("Statement Outcome 2");
     List<StatementResponse> statementResponse = Collections.emptyList();
-    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse);
+
+    Map<String, String> outputAssumption = statementResponse.stream().filter(s ->
+            s.getLevel().equalsIgnoreCase(Constants.OUTPUT_LEVEL)
+    ).collect(HashMap::new, (m,v)->m.put(v.getStatement(), v.getAssumption()), HashMap::putAll);
+
+    Map<String, String> outcomeAssumption = statementResponse.stream().filter(s ->
+            s.getLevel().equalsIgnoreCase(Constants.OUTCOME_LEVEL)
+    ).collect(HashMap::new, (m,v)->m.put(v.getStatement(), v.getAssumption()), HashMap::putAll);
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse , statementResponse);
 
     assertNotNull(result);
     XWPFDocument resultDoc = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
     assertEquals(2, resultDoc.getTables().size());
     XWPFTable table = resultDoc.getTableArray(0);
     Integer rowIndex = 1;
-    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, Collections.emptyList(), rowIndex);
-    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, Collections.emptyList(), rowIndex);
-    validateWordTemplateLevel(table, outputIndicators, indicatorResponse, Collections.emptyList(), rowIndex);
+    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, Collections.emptyList(), rowIndex,new HashMap<>());
+    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, Collections.emptyList(), rowIndex,outcomeAssumption);
+    validateWordTemplateLevel(table, outputIndicators, indicatorResponse, Collections.emptyList(), rowIndex,outputAssumption);
     resultDoc.close();
   }
 
@@ -228,16 +253,24 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     when(indicatorRepository.findAllById(any())).thenReturn(indicatorList);
     List<IndicatorResponse> indicatorResponse = createListIndicatorResponse(indicatorList);
     List<StatementResponse> statementResponse = Collections.emptyList();
-    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse);
+
+    Map<String, String> outputAssumption = statementResponse.stream().filter(s ->
+            s.getLevel().equalsIgnoreCase(Constants.OUTPUT_LEVEL)
+    ).collect(HashMap::new, (m,v)->m.put(v.getStatement(), v.getAssumption()), HashMap::putAll);
+
+    Map<String, String> outcomeAssumption = statementResponse.stream().filter(s ->
+            s.getLevel().equalsIgnoreCase(Constants.OUTCOME_LEVEL)
+    ).collect(HashMap::new, (m,v)->m.put(v.getStatement(), v.getAssumption()), HashMap::putAll);
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse,statementResponse);
 
     assertNotNull(result);
     XWPFDocument resultDoc = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
     assertEquals(2, resultDoc.getTables().size());
     XWPFTable table = resultDoc.getTableArray(0);
     Integer rowIndex = 1;
-    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, Collections.emptyList(), rowIndex);
-    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, Collections.emptyList(), rowIndex);
-    validateWordTemplateLevel(table, outputIndicators, indicatorResponse,Collections.emptyList(), rowIndex);
+    rowIndex = validateWordTemplateLevel(table, impactIndicators, indicatorResponse, Collections.emptyList(), rowIndex , new HashMap<>());
+    rowIndex = validateWordTemplateLevel(table, outcomeIndicators, indicatorResponse, Collections.emptyList(), rowIndex ,outcomeAssumption);
+    validateWordTemplateLevel(table, outputIndicators, indicatorResponse,Collections.emptyList(), rowIndex,outputAssumption);
     resultDoc.close();
   }
 
@@ -340,7 +373,8 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     indicatorResponse.get(0).setStatement(null);
     List<StatementResponse> statementResponse = createListStatementResponse();
     ByteArrayOutputStream outputStream = indicatorService
-        .exportIndicatorsInWorksheet(indicatorResponse, statementResponse);
+        .exportIndicatorsInWorksheet(indicatorResponse, statementResponse,statementResponse);
+    Map<String, String> assumption = statementResponse.stream().collect(HashMap::new, (m,v)->m.put(v.getStatement(), v.getAssumption()), HashMap::putAll);
     XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(outputStream.toByteArray()));
     XSSFSheet sheet = workbook.getSheetAt(0);
     IndicatorResponse response;
@@ -361,6 +395,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
       assertEquals(Optional.ofNullable(response.getValue()).orElse(""), row.getCell(10).getStringCellValue());
       assertEquals(Optional.ofNullable(response.getDate()).orElse(""), row.getCell(11).getStringCellValue());
       assertEquals(Optional.ofNullable(response.getStatement()).orElse(""), row.getCell(12).getStringCellValue());
+      assertEquals(Optional.ofNullable(assumption.get(response.getStatement())).orElse(""), row.getCell(13).getStringCellValue());
     }
 
     // try(OutputStream fileOutputStream = new FileOutputStream("thefilename.xlsx")) {
@@ -650,7 +685,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
   }
 
   Integer validateWordTemplateLevel(XWPFTable table, List<Indicator> indicators, List<IndicatorResponse> indicatorResponses,
-                                    List<String> statements, Integer rowIndex){
+                                    List<String> statements, Integer rowIndex , Map<String,String> assumption){
     if(indicators.size() > 0){
       AtomicReference<String> lastStatement = new AtomicReference<>("");
       indicators = indicators.stream().sorted(Comparator.comparing(Indicator::getStatement)).collect(Collectors.toList());
@@ -679,11 +714,11 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         assertEquals("", row.getCell(4).getTextRecursively());
         assertEquals("", row.getCell(5).getTextRecursively());
         assertEquals(Optional.ofNullable(indicators.get(i).getSourceVerification()).orElse(""), row.getCell(6).getTextRecursively());
-        assertEquals(i==0? assumptionsValue : "",row.getCell(7).getTextRecursively());
+        assertEquals(i==0? assumptionsValue : isNull(assumption.get(indicators.get(i).getStatement())) ? "":indicators.get(i).getStatement(),row.getCell(7).getTextRecursively());
 
         // validate merge cells
         assertTrue(row.getCell(0).getCTTc().getTcPr().isSetVMerge());
-        assertTrue(row.getCell(7).getCTTc().getTcPr().isSetVMerge());
+      //  assertTrue(row.getCell(7).getCTTc().getTcPr().isSetVMerge());
         rowIndex++;
       }
 
@@ -692,7 +727,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         assertEquals(statement, row.getCell(1).getTextRecursively());
         // validate merge cells
         assertTrue(row.getCell(0).getCTTc().getTcPr().isSetVMerge());
-        assertTrue(row.getCell(7).getCTTc().getTcPr().isSetVMerge());
+       // assertTrue(row.getCell(7).getCTTc().getTcPr().isSetVMerge());
         rowIndex++;
       }
 
@@ -795,9 +830,9 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
 
   public List<StatementResponse> createListStatementResponse() {
     List<StatementResponse> responses = new ArrayList<>();
-    responses.add(new StatementResponse("No indicator impact statement", "IMPACT"));
-    responses.add(new StatementResponse("No indicator outcome statement", "outcome"));
-    responses.add(new StatementResponse("No indicator output statement", "OUTPUT"));
+    responses.add(new StatementResponse("No indicator impact statement", "IMPACT" ,""));
+    responses.add(new StatementResponse("No indicator outcome statement", "outcome",""));
+    responses.add(new StatementResponse("No indicator output statement", "OUTPUT",""));
     return responses;
   }
 }

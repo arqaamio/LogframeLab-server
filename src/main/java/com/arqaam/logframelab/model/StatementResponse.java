@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class StatementResponse {
     private String statement;
     private String level;
+    private String assumption;
 }

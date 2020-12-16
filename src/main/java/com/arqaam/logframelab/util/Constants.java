@@ -18,4 +18,8 @@ public class Constants {
     public static final String IMPACT_LEVEL_PREFIX = "Impact #";
     public static final String OUTCOME_LEVEL_PREFIX = "Outcome #";
     public static final String OUTPUT_LEVEL_PREFIX = "Output #";
+
+    public static final String OUTPUT_LEVEL = "OUTPUT";
+    public static final String OUTCOME_LEVEL = "OUTCOME";
+
 }

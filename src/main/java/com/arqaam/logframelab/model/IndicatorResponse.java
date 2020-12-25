@@ -31,4 +31,7 @@ public class IndicatorResponse {
 
     private String date;
     private String value;
+    private String targetDate;
+    private String targetValue;
+
 }

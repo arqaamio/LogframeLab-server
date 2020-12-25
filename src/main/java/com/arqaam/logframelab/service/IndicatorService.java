@@ -244,6 +244,10 @@ public class IndicatorService implements Logging {
                         indicator.setValue(ind.getValue());
                     if (!StringUtils.isEmpty(ind.getDate()))
                         indicator.setDate(ind.getDate());
+                    if (!StringUtils.isEmpty(ind.getTargetValue()))
+                        indicator.setTargetValue(ind.getTargetValue());
+                    if (!StringUtils.isEmpty(ind.getTargetDate()))
+                        indicator.setTargetDate(ind.getTargetDate());
                     indicator.setStatement(ind.getStatement());
                 });
 
@@ -341,6 +345,10 @@ public class IndicatorService implements Logging {
                     else
                         DocManipulationUtil.setHyperLinkOnCell(table.getRow(rowIndex).getCell(3), indicator.getValue() + " (" +
                                 indicator.getDate() + ")", indicator.getDataSource(), DEFAULT_FONT_SIZE);
+                }
+                if (!isNull(indicator.getTargetValue()) && !isNull(indicator.getTargetDate())) {
+                    DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(4), indicator.getTargetValue() + " (" +
+                            indicator.getTargetDate() + ")", DEFAULT_FONT_SIZE);
                 }
                 rowIndex++;
             }
@@ -515,7 +523,7 @@ public class IndicatorService implements Logging {
         XSSFWorkbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet();
         String[] columns = new String[]{"Level", "Sector", "Name", "Description", "Source", "Disaggregation", "DAC 5/CRS",
-            "SDG", "Source of Verification", "Data Source", "Baseline Value", "Baseline Date", "Statement" ,"Assumption"};
+            "SDG", "Source of Verification", "Data Source", "Baseline Value", "Baseline Date", "Statement" ,"Assumption" , "Target Value" ,"Target Date"};
 
         // Create a CellStyle with the font
         Font boldFont = workbook.createFont();
@@ -556,6 +564,8 @@ public class IndicatorService implements Logging {
             row.createCell(11).setCellValue(response.getDate());
             row.createCell(12).setCellValue(response.getStatement());
             row.createCell(13).setCellValue(Optional.ofNullable(assumptionMap.get(response.getStatement())).orElse(""));
+            row.createCell(14).setCellValue(response.getTargetValue());
+            row.createCell(15).setCellValue(response.getTargetDate());
         }
 
         for (StatementResponse statement : statements) {
@@ -874,6 +884,10 @@ public class IndicatorService implements Logging {
                         indicator.setValue(ind.getValue());
                     if (!StringUtils.isEmpty(ind.getDate()))
                         indicator.setDate(ind.getDate());
+                    if (!StringUtils.isEmpty(ind.getTargetValue()))
+                        indicator.setTargetValue(ind.getTargetValue());
+                    if (!StringUtils.isEmpty(ind.getTargetDate()))
+                        indicator.setTargetDate(ind.getTargetDate());
                     indicator.setStatement(ind.getStatement());
                 });
                 // Can't do switch because the values aren't known before runtime
@@ -1069,6 +1083,9 @@ public class IndicatorService implements Logging {
         if (!StringUtils.isEmpty(indicator.getValue()) && !StringUtils.isEmpty(indicator.getDate()))
             sheet.getRow(startRowNewIndicator + 1).getCell(2).setCellValue(indicator.getValue() +
                     " (" + indicator.getDate() + ")");
+        if (!StringUtils.isEmpty(indicator.getTargetValue()) && !StringUtils.isEmpty(indicator.getTargetDate()))
+            sheet.getRow(startRowNewIndicator + 1).getCell(5).setCellValue(indicator.getTargetValue() +
+                    " (" + indicator.getTargetDate() + ")");
 
     }
 //    private Integer fillIndicatorsPerLevel(XSSFSheet sheet, List<Indicator> indicatorList, Integer startRowNewIndicator,
@@ -1245,6 +1262,10 @@ public class IndicatorService implements Logging {
                    indicator.setDate(response.getDate());
                if(!StringUtils.isEmpty(response.getStatement()))
                    indicator.setStatement(response.getStatement());
+               if (!StringUtils.isEmpty(response.getTargetValue()))
+                   indicator.setTargetValue(response.getTargetValue());
+               if (!StringUtils.isEmpty(response.getTargetDate()))
+                   indicator.setTargetDate(response.getTargetDate());
                // Can't do switch because the values aren't known before runtime
                if (levels.get(0).equals(indicator.getLevel())) {
                    impactIndicators.add(indicator);
@@ -1343,6 +1364,9 @@ public class IndicatorService implements Logging {
                 DocManipulationUtil.setTextOnCellWithBoldTitle(table.getRow(i * 2 + 2).getCell(0), "Indicator " + (i + 1) + ":", indicators.get(i).getName(), null);
                 if (!StringUtils.isEmpty(indicators.get(i).getValue()) && !StringUtils.isEmpty(indicators.get(i).getDate())) {
                     DocManipulationUtil.setTextOnCell(table.getRow(i * 2 + 2).getCell(1), indicators.get(i).getValue() + " (" + indicators.get(i).getDate() + ")", null);
+                }
+                if (!StringUtils.isEmpty(indicators.get(i).getTargetValue()) && !StringUtils.isEmpty(indicators.get(i).getTargetValue())) {
+                    DocManipulationUtil.setTextOnCell(table.getRow(i * 2 + 2).getCell(2), indicators.get(i).getTargetValue() + " (" + indicators.get(i).getTargetDate() + ")", null);
                 }
                 DocManipulationUtil.setTextOnCellWithBoldTitle(table.getRow(i * 2 + 3).getCell(0), "NOTES:", indicators.get(i).getSourceVerification(), null);
             }

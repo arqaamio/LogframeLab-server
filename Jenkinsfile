@@ -119,8 +119,7 @@ pipeline {
                     string(name: 'BRANCH', value: devops_repo_branch),
                     string(name: 'TF_VAR_server_version', value: env.image_version),
                     string(name: 'TF_VAR_client_image_tag', value: env.CLIENT_IMAGE_TAG),
-                    string(name: 'TF_VAR_server_image_tag', value: env.SERVER_IMAGE_TAG),
-                    credentials(name: 'DB_PASSWORD',value: 'TF-' + env.TERRAFORM_ENVIRONMENT + '-mysql_password')
+                    string(name: 'TF_VAR_server_image_tag', value: env.SERVER_IMAGE_TAG)
                 ]
             }
         }
@@ -142,8 +141,7 @@ pipeline {
                     string(name: 'BRANCH', value: devops_repo_branch),
                     string(name: 'TF_VAR_server_version', value: env.image_version),
                     string(name: 'TF_VAR_client_image_tag', value: env.CLIENT_IMAGE_TAG),
-                    string(name: 'TF_VAR_server_image_tag', value: env.SERVER_IMAGE_TAG),
-                    credentials(name: 'DB_PASSWORD',value: 'TF-' + env.TERRAFORM_ENVIRONMENT + '-mysql_password')
+                    string(name: 'TF_VAR_server_image_tag', value: env.SERVER_IMAGE_TAG)
                 ]
             }
         }
@@ -165,8 +163,7 @@ pipeline {
                     string(name: 'BRANCH', value: devops_repo_branch),
                     string(name: 'TF_VAR_server_version', value: env.image_version),
                     string(name: 'TF_VAR_client_image_tag', value: env.CLIENT_IMAGE_TAG),
-                    string(name: 'TF_VAR_server_image_tag', value: env.SERVER_IMAGE_TAG),
-                    credentials(name: 'DB_PASSWORD',value: 'TF-' + env.TERRAFORM_ENVIRONMENT + '-mysql_password')
+                    string(name: 'TF_VAR_server_image_tag', value: env.SERVER_IMAGE_TAG)
                 ]
             }
         }
@@ -188,8 +185,7 @@ pipeline {
                     string(name: 'BRANCH', value: devops_repo_branch),
                     string(name: 'TF_VAR_server_version', value: env.image_version),
                     string(name: 'TF_VAR_client_image_tag', value: env.CLIENT_IMAGE_TAG),
-                    string(name: 'TF_VAR_server_image_tag', value: env.SERVER_IMAGE_TAG),
-                    credentials(name: 'DB_PASSWORD',value: 'TF-' + env.TERRAFORM_ENVIRONMENT + '-mysql_password')
+                    string(name: 'TF_VAR_server_image_tag', value: env.SERVER_IMAGE_TAG)
                 ]
             }
         }

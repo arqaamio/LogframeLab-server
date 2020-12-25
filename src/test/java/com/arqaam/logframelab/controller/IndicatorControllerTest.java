@@ -9,6 +9,7 @@ import com.arqaam.logframelab.model.persistence.*;
 import com.arqaam.logframelab.model.projection.CounterSectorLevel;
 import com.arqaam.logframelab.model.projection.IndicatorFilters;
 import com.arqaam.logframelab.repository.*;
+import com.arqaam.logframelab.service.FirstIndicatorServiceTests;
 import com.arqaam.logframelab.service.IndicatorService;
 import com.arqaam.logframelab.service.MachineLearningService;
 
@@ -257,6 +258,7 @@ class IndicatorControllerTest extends BaseControllerTest {
   void downloadIndicators_wordFormat() {
     IndicatorDownloadRequest request = new IndicatorDownloadRequest();
     request.setIndicators(getExpectedResult());
+    request.setStatements(createListStatementResponse());
     ResponseEntity<Resource> response = testRestTemplate
         .exchange("/indicator/download", HttpMethod.POST,
             new HttpEntity<>(request), Resource.class);
@@ -269,6 +271,7 @@ class IndicatorControllerTest extends BaseControllerTest {
   void downloadIndicators_DFIDFormat() {
     IndicatorDownloadRequest request = new IndicatorDownloadRequest();
     request.setIndicators(getExpectedResult());
+    request.setStatements(createListStatementResponse());
     when(indicatorRepositoryMock.findAllById(any())).thenReturn(mockIndicatorList());
     ResponseEntity<Resource> response = testRestTemplate
             .exchange("/indicator/download?format=dfid", HttpMethod.POST,
@@ -283,6 +286,7 @@ class IndicatorControllerTest extends BaseControllerTest {
   void downloadIndicators_PRMFormat() {
     IndicatorDownloadRequest request = new IndicatorDownloadRequest();
     request.setIndicators(getExpectedResult());
+    request.setStatements(createListStatementResponse());
     when(indicatorRepositoryMock.findAllById(any())).thenReturn(mockIndicatorList());
     ResponseEntity<Resource> response = testRestTemplate
             .exchange("/indicator/download?format=prm", HttpMethod.POST,
@@ -296,6 +300,7 @@ class IndicatorControllerTest extends BaseControllerTest {
   void downloadIndicators_emptyIndicators() {
     IndicatorDownloadRequest request = new IndicatorDownloadRequest();
     request.setIndicators(Collections.emptyList());
+    request.setStatements(Collections.emptyList());
     ResponseEntity<Error> response =
             testRestTemplate.exchange(
                     "/indicator/download", HttpMethod.POST, new HttpEntity<>(request), Error.class);
@@ -582,6 +587,15 @@ class IndicatorControllerTest extends BaseControllerTest {
     indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(3)));
     indicatorResponses.add(indicatorService.convertIndicatorToIndicatorResponse(indicators.get(0)));
     return indicatorResponses;
+  }
+
+
+  public List<StatementResponse> createListStatementResponse() {
+    List<StatementResponse> responses = new ArrayList<>();
+    responses.add(new StatementResponse("No indicator impact statement", "IMPACT" ,""));
+    responses.add(new StatementResponse("No indicator outcome statement", "outcome",""));
+    responses.add(new StatementResponse("No indicator output statement", "OUTPUT",""));
+    return responses;
   }
 
   private void assertEqualsIndicator(List<IndicatorResponse> expectedResult,

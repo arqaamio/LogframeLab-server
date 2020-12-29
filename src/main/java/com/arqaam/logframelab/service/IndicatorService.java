@@ -18,6 +18,7 @@ import com.arqaam.logframelab.util.Utils;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.util.StringUtil;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xwpf.usermodel.*;
@@ -32,6 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.criteria.JoinType;
 import javax.persistence.criteria.Predicate;
+import javax.print.Doc;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
@@ -225,7 +227,7 @@ public class IndicatorService implements Logging {
      * @return Word template filled with the indicators
      */
     public ByteArrayOutputStream exportIndicatorsInWordFile(List<IndicatorResponse> indicatorResponses,
-                                                            List<StatementResponse> statements) {
+                                                            List<StatementResponse> statements , List<StatementResponse> assumptionStatements) {
         try {
             logger().info("Starting to export the indicators to the word template. IndicatorResponses: {}", indicatorResponses);
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -266,19 +268,27 @@ public class IndicatorService implements Logging {
                     outputStatements.add(statement.getStatement());
                 }
             }
+            //create an assumption map key : statement , value : assumption
+            Map<String, String> outputAssumption = assumptionStatements.stream().filter(statementResponse ->
+                    statementResponse.getLevel().equalsIgnoreCase(Constants.OUTPUT_LEVEL)
+            ).collect(HashMap::new, (m,v)->m.put(v.getStatement(), v.getAssumption()), HashMap::putAll);
+
+            Map<String, String> outcomeAssumption = assumptionStatements.stream().filter(statementResponse ->
+                    statementResponse.getLevel().equalsIgnoreCase(Constants.OUTCOME_LEVEL)
+            ).collect(HashMap::new, (m,v)->m.put(v.getStatement(), v.getAssumption()), HashMap::putAll);
+
             XWPFDocument document = new XWPFDocument(new ClassPathResource(Constants.WORD_FORMAT+ "_Template" + Constants.WORD_FILE_EXTENSION).getInputStream());
             XWPFTable table = document.getTableArray(0);
             Integer rowIndex = 1;
             rowIndex = fillWordTableByLevel(impactIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    table, rowIndex, impactStatements);
+                    table, rowIndex, impactStatements, new HashMap<>());
             rowIndex = fillWordTableByLevel(outcomeIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    table, rowIndex, outcomeStatements);
+                    table, rowIndex, outcomeStatements, outcomeAssumption);
             fillWordTableByLevel(outputIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    table, rowIndex, outputStatements);
-
+                    table, rowIndex, outputStatements, outputAssumption);
             document.write(outputStream);
             document.close();
             indicatorRepository.saveAll(indicatorList.stream().peek(x-> x.setTimesDownloaded(x.getTimesDownloaded()+1)).collect(Collectors.toList()));
@@ -296,7 +306,7 @@ public class IndicatorService implements Logging {
      * @param rowIndex      Index of the first row to be filled/where the level starts
      * @return The index of next row after the level's template
      */
-    private Integer fillWordTableByLevel(List<Indicator> indicatorList, XWPFTable table, Integer rowIndex, List<String> statements){
+    private Integer fillWordTableByLevel(List<Indicator> indicatorList, XWPFTable table, Integer rowIndex, List<String> statements, Map<String, String> assumption){
         boolean filledTemplateIndicators = false;
         Integer initialRow = rowIndex;
         logger().info("Starting to fill the table with the indicators information. RowIndex: {}", rowIndex);
@@ -310,11 +320,14 @@ public class IndicatorService implements Logging {
 
                 if(!Objects.equals(currentStatement, indicator.getStatement())) {
                     DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(1), indicator.getStatement(), DEFAULT_FONT_SIZE);
-                    //if(!statementRow.equals(rowIndex)) DocManipulationUtil.mergeCellsByColumn(table, statementRow, rowIndex, 1);
+                    if (!org.apache.commons.lang3.StringUtils.isBlank(indicator.getStatement()) && assumption.get(indicator.getStatement()) != null) { // adding assumptions on column 7
+                        DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(7), assumption.get(indicator.getStatement()), DEFAULT_FONT_SIZE);
+                    }
                     currentStatement = indicator.getStatement();
                     statementRow = rowIndex;
                 } else if (Objects.equals(currentStatement, indicator.getStatement()) ) { //|| rowIndex == initialRow + indicatorList.size() -1
                     DocManipulationUtil.mergeCellsByColumn(table, statementRow, rowIndex, 1);
+                    DocManipulationUtil.mergeCellsByColumn(table, statementRow, rowIndex, 7);// merge column 7 based on statement
                 }
                 // Set values
                 DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(2), indicator.getName(), DEFAULT_FONT_SIZE);
@@ -333,6 +346,9 @@ public class IndicatorService implements Logging {
             for(String statement: statements) {
                 if (filledTemplateIndicators) DocManipulationUtil.insertTableRow(table, rowIndex);
                 else filledTemplateIndicators = true;
+                if(!org.apache.commons.lang3.StringUtils.isBlank(statement)  && assumption.get(statement)!=null){// adding assumptions on column 7
+                    DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(7), assumption.get(statement), DEFAULT_FONT_SIZE);
+                }
                 DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(1), statement, DEFAULT_FONT_SIZE);
                 rowIndex++;
             }
@@ -340,6 +356,9 @@ public class IndicatorService implements Logging {
             for(String statement: statements) {
                 if (filledTemplateIndicators) DocManipulationUtil.insertTableRow(table, rowIndex);
                 else filledTemplateIndicators = true;
+                if(!org.apache.commons.lang3.StringUtils.isBlank(statement)  && assumption.get(statement)!=null){// adding assumptions on column 7
+                    DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(7), assumption.get(statement), DEFAULT_FONT_SIZE);
+                }
                 DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(1), statement, DEFAULT_FONT_SIZE);
                 rowIndex++;
             }
@@ -349,7 +368,7 @@ public class IndicatorService implements Logging {
         if(initialRow <= rowIndex-1) {
             // Merge column of level and assumption
             DocManipulationUtil.mergeCellsByColumn(table, initialRow, rowIndex - 1, 0);
-            DocManipulationUtil.mergeCellsByColumn(table, initialRow, rowIndex - 1, 7);
+          //  DocManipulationUtil.mergeCellsByColumn(table, initialRow, rowIndex - 1, 7);
         }
         return rowIndex;
     }
@@ -482,7 +501,7 @@ public class IndicatorService implements Logging {
      * @return Worksheet in xlsx format
      */
     public ByteArrayOutputStream exportIndicatorsInWorksheet(List<IndicatorResponse> indicatorResponses,
-                                                             List<StatementResponse> statements) {
+                                                             List<StatementResponse> statements,List<StatementResponse> assumptionStatement) {
 
         List<Indicator> indicatorList = indicatorRepository.findAllById(indicatorResponses.stream()
                                                            .map(IndicatorResponse::getId)
@@ -490,11 +509,12 @@ public class IndicatorService implements Logging {
 
         logger().info("Write indicators into a worksheet, indicator {}", indicatorResponses);
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
+        //create an assumption map key : statement , value : assumption
+        Map<String, String> assumptionMap = assumptionStatement.stream().collect(HashMap::new, (m,v)->m.put(v.getStatement(), v.getAssumption()), HashMap::putAll);
         XSSFWorkbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet();
         String[] columns = new String[]{"Level", "Sector", "Name", "Description", "Source", "Disaggregation", "DAC 5/CRS",
-            "SDG", "Source of Verification", "Data Source", "Baseline Value", "Baseline Date", "Statement"};
+            "SDG", "Source of Verification", "Data Source", "Baseline Value", "Baseline Date", "Statement" ,"Assumption"};
 
         // Create a CellStyle with the font
         Font boldFont = workbook.createFont();
@@ -534,12 +554,14 @@ public class IndicatorService implements Logging {
             row.createCell(10).setCellValue(response.getValue());
             row.createCell(11).setCellValue(response.getDate());
             row.createCell(12).setCellValue(response.getStatement());
+            row.createCell(13).setCellValue(Optional.ofNullable(assumptionMap.get(response.getStatement())).orElse(""));
         }
 
         for (StatementResponse statement : statements) {
             Row row = sheet.createRow(rowNum++);
             row.createCell(0).setCellValue(statement.getLevel().toUpperCase());
             row.createCell(12).setCellValue(statement.getStatement());
+            row.createCell(13).setCellValue(Optional.ofNullable(assumptionMap.get(statement.getStatement())).orElse(""));
         }
 
         // Resize all columns to fit the content size

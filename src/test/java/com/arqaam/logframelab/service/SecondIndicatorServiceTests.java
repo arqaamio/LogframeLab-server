@@ -250,7 +250,7 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
     List<Indicator> outputIndicators = indicators.stream()
             .filter(x -> x.getLevel().equals(mockLevels[0])).collect(Collectors.toList());
     List<StatementResponse> statementResponse = createListStatementResponse();
-    statementResponse.add(new StatementResponse("New outcome statement without indicator", mockLevels[1].getName()));
+    statementResponse.add(new StatementResponse("New outcome statement without indicator", mockLevels[1].getName(),""));
     List<String> impactStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[3].getName()))
             .map(StatementResponse::getStatement).collect(Collectors.toList());
     List<String> outcomeStatement = statementResponse.stream().filter(x->x.getLevel().equalsIgnoreCase(mockLevels[1].getName()))
@@ -430,9 +430,9 @@ public class SecondIndicatorServiceTests extends BaseIndicatorServiceTest {
 
   public List<StatementResponse> createListStatementResponse() {
     List<StatementResponse> responses = new ArrayList<>();
-    responses.add(new StatementResponse("No indicator impact statement", "IMPACT"));
-    responses.add(new StatementResponse("No indicator outcome statement", "outcome"));
-    responses.add(new StatementResponse("No indicator output statement", "OUTPUT"));
+    responses.add(new StatementResponse("No indicator impact statement", "IMPACT",""));
+    responses.add(new StatementResponse("No indicator outcome statement", "outcome",""));
+    responses.add(new StatementResponse("No indicator output statement", "OUTPUT",""));
     return responses;
   }
 }

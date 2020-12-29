@@ -191,9 +191,9 @@ public class IndicatorIntegrationTest extends BaseIntegrationTest {
 
   public List<StatementResponse> sampleStatementResponse() {
     List<StatementResponse> responses = new ArrayList<>();
-    responses.add(new StatementResponse("No indicator impact statement", "IMPACT"));
-    responses.add(new StatementResponse("No indicator outcome statement", "outcome"));
-    responses.add(new StatementResponse("No indicator output statement", "OUTPUT"));
+    responses.add(new StatementResponse("No indicator impact statement", "IMPACT" ,""));
+    responses.add(new StatementResponse("No indicator outcome statement", "outcome" , ""));
+    responses.add(new StatementResponse("No indicator output statement", "OUTPUT" , ""));
     return responses;
   }
 

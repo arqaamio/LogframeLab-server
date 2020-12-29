@@ -105,7 +105,7 @@ public class IndicatorController implements Logging {
         String extension = Constants.WORD_FILE_EXTENSION;
         switch (format.toUpperCase()) {
             case Constants.XLSX_FORMAT:
-                outputStream = indicatorService.exportIndicatorsInWorksheet(request.getIndicators(), statements);
+                outputStream = indicatorService.exportIndicatorsInWorksheet(request.getIndicators(), statements,request.getStatements());
                 extension = Constants.WORKSHEET_FILE_EXTENSION;
                 statisticService.addDownloadStatistic(Constants.XLSX_FORMAT);
                 break;
@@ -120,7 +120,7 @@ public class IndicatorController implements Logging {
                 break;
             case Constants.WORD_FORMAT:
             default:
-                outputStream = indicatorService.exportIndicatorsInWordFile(request.getIndicators(), statements);
+                outputStream = indicatorService.exportIndicatorsInWordFile(request.getIndicators(), statements ,request.getStatements());
                 statisticService.addDownloadStatistic(Constants.WORD_FORMAT);
                 break;
         }

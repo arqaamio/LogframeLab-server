@@ -34,7 +34,6 @@ We use [Swagger] for API documentation which is available at http://localhost:80
 Want to help build on Logframe Lab? Check out our documentation [here](CONTRIBUTING.md).
 
 ## License
-
 Logframe Lab is licensed under the terms of the Creative Commons Attribution Share Alike 4.0 license, which can be read in full [here](LICENSE).
 
 ## Maintainers

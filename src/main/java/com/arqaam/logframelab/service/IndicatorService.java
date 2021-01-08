@@ -293,7 +293,6 @@ public class IndicatorService implements Logging {
             fillWordTableByLevel(outputIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
                     table, rowIndex, outputStatements, outputAssumption);
-
             document.write(outputStream);
             document.close();
             indicatorRepository.saveAll(indicatorList.stream().peek(x-> x.setTimesDownloaded(x.getTimesDownloaded()+1)).collect(Collectors.toList()));

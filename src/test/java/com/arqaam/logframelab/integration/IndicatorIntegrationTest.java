@@ -81,6 +81,7 @@ public class IndicatorIntegrationTest extends BaseIntegrationTest {
   void downloadIndicators_withoutStatements() {
     IndicatorDownloadRequest request = new IndicatorDownloadRequest();
     request.setIndicators(sampleIndicatorResponse());
+    request.setStatements(sampleStatementResponse());
     ResponseEntity<Resource> response = testRestTemplate
             .exchange("/indicator/download", HttpMethod.POST,
                     new HttpEntity<>(request), Resource.class);

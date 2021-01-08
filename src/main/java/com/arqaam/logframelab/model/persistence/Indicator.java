@@ -85,6 +85,12 @@ public class Indicator {
     private String value;
 
     @Transient
+    private String targetDate;
+
+    @Transient
+    private String targetValue;
+
+    @Transient
     private String statement;
 
     @Transient

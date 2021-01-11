@@ -33,7 +33,7 @@ class WorldBankControllerTest extends BaseControllerTest {
                 null, new ParameterizedTypeReference<Map<String, String>>() {});
         assertEquals(HttpStatus.OK,response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(304, response.getBody().size());
+        assertEquals(302, response.getBody().size());
         assertTrue(response.getBody().containsKey("NZL"));
         assertTrue(response.getBody().containsValue("New Zealand"));
     }

@@ -27,8 +27,10 @@ class WorldBankServiceTest {
     @Test
     void retrieveCountries() {
         Map<String, String> result = worldBankService.getCountries();
+        System.out.println(result);
+        System.out.print(result.size());
         assertNotNull(result);
-        assertEquals(304, result.size());
+        assertEquals(302, result.size());
         assertFalse(result.values().stream().anyMatch(Strings::isNullOrEmpty));
     }
 

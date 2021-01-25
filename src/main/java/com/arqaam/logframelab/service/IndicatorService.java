@@ -286,13 +286,13 @@ public class IndicatorService implements Logging {
             Integer rowIndex = 1;
             rowIndex = fillWordTableByLevel(impactIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    table, rowIndex, impactStatements, new HashMap<>());
+                    table, rowIndex, impactStatements, new HashMap<>() ,"IMPACT");
             rowIndex = fillWordTableByLevel(outcomeIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    table, rowIndex, outcomeStatements, outcomeAssumption);
+                    table, rowIndex, outcomeStatements, outcomeAssumption,"OUTCOME");
             fillWordTableByLevel(outputIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
-                    table, rowIndex, outputStatements, outputAssumption);
+                    table, rowIndex, outputStatements, outputAssumption , "OUTPUT");
             document.write(outputStream);
             document.close();
             indicatorRepository.saveAll(indicatorList.stream().peek(x-> x.setTimesDownloaded(x.getTimesDownloaded()+1)).collect(Collectors.toList()));
@@ -310,7 +310,7 @@ public class IndicatorService implements Logging {
      * @param rowIndex      Index of the first row to be filled/where the level starts
      * @return The index of next row after the level's template
      */
-    private Integer fillWordTableByLevel(List<Indicator> indicatorList, XWPFTable table, Integer rowIndex, List<String> statements, Map<String, String> assumption){
+    private Integer fillWordTableByLevel(List<Indicator> indicatorList, XWPFTable table, Integer rowIndex, List<String> statements, Map<String, String> assumption , String level){
         boolean filledTemplateIndicators = false;
         Integer initialRow = rowIndex;
         logger().info("Starting to fill the table with the indicators information. RowIndex: {}", rowIndex);
@@ -326,12 +326,14 @@ public class IndicatorService implements Logging {
                     DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(1), indicator.getStatement(), DEFAULT_FONT_SIZE);
                     if (!org.apache.commons.lang3.StringUtils.isBlank(indicator.getStatement()) && assumption.get(indicator.getStatement()) != null) { // adding assumptions on column 7
                         DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(7), assumption.get(indicator.getStatement()), DEFAULT_FONT_SIZE);
+
                     }
                     currentStatement = indicator.getStatement();
                     statementRow = rowIndex;
                 } else if (Objects.equals(currentStatement, indicator.getStatement()) ) { //|| rowIndex == initialRow + indicatorList.size() -1
                     DocManipulationUtil.mergeCellsByColumn(table, statementRow, rowIndex, 1);
                     DocManipulationUtil.mergeCellsByColumn(table, statementRow, rowIndex, 7);// merge column 7 based on statement
+
                 }
                 // Set values
                 DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(2), indicator.getName(), DEFAULT_FONT_SIZE);
@@ -349,14 +351,19 @@ public class IndicatorService implements Logging {
                     DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(4), indicator.getTargetValue() + " (" +
                             indicator.getTargetDate() + ")", DEFAULT_FONT_SIZE);
                 }
+                if("IMPACT".equals(level)){
+                    table.getRow(rowIndex).getCell(7).getCTTc().addNewTcPr().addNewShd().setFill(Constants.WORD_CELL_UNEDITABLE_BG);
+                    DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(7), " ", DEFAULT_FONT_SIZE);
+                }
                 rowIndex++;
             }
             for(String statement: statements) {
                 if (filledTemplateIndicators) DocManipulationUtil.insertTableRow(table, rowIndex);
                 else filledTemplateIndicators = true;
-                if(!org.apache.commons.lang3.StringUtils.isBlank(statement)  && assumption.get(statement)!=null){// adding assumptions on column 7
+                if(!org.apache.commons.lang3.StringUtils.isBlank(statement)  && assumption.get(statement)!=null && !"IMPACT".equals(level) ){// adding assumptions on column 7
                     DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(7), assumption.get(statement), DEFAULT_FONT_SIZE);
                 }
+
                 DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(1), statement, DEFAULT_FONT_SIZE);
                 rowIndex++;
             }
@@ -364,7 +371,7 @@ public class IndicatorService implements Logging {
             for(String statement: statements) {
                 if (filledTemplateIndicators) DocManipulationUtil.insertTableRow(table, rowIndex);
                 else filledTemplateIndicators = true;
-                if(!org.apache.commons.lang3.StringUtils.isBlank(statement)  && assumption.get(statement)!=null){// adding assumptions on column 7
+                if(!org.apache.commons.lang3.StringUtils.isBlank(statement)  && assumption.get(statement)!=null && !"IMPACT".equals(level) ){// adding assumptions on column 7
                     DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(7), assumption.get(statement), DEFAULT_FONT_SIZE);
                 }
                 DocManipulationUtil.setTextOnCell(table.getRow(rowIndex).getCell(1), statement, DEFAULT_FONT_SIZE);
@@ -574,9 +581,14 @@ public class IndicatorService implements Logging {
             row.createCell(13).setCellValue(Optional.ofNullable(assumptionMap.get(statement.getStatement())).orElse(""));
         }
 
-        // Resize all columns to fit the content size
-        for(int i = 0; i < columns.length; i++) {
-            sheet.autoSizeColumn(i);
+        try {
+            // Resize all columns to fit the content size
+            for (int i = 0; i < columns.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+        }catch (Exception ex){
+            ex.printStackTrace();
+            logger().error("Columns:", columns.length);
         }
 
         try {

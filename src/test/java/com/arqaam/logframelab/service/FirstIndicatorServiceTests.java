@@ -690,7 +690,7 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
       AtomicReference<String> lastStatement = new AtomicReference<>("");
       indicators = indicators.stream().sorted(Comparator.comparing(Indicator::getStatement)).collect(Collectors.toList());
       // if its impact
-      String assumptionsValue = indicators.get(0).getLevel().equals(mockLevels[3]) ? "\tNot applicable" : "";
+
       for (int i = 0; i < indicators.size(); i++) {
         XWPFTableRow row = table.getRow(rowIndex);
         List<Indicator> finalIndicators = indicators;
@@ -714,7 +714,6 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
         assertEquals("", row.getCell(4).getTextRecursively());
         assertEquals("", row.getCell(5).getTextRecursively());
         assertEquals(Optional.ofNullable(indicators.get(i).getSourceVerification()).orElse(""), row.getCell(6).getTextRecursively());
-        assertEquals(i==0? assumptionsValue : isNull(assumption.get(indicators.get(i).getStatement())) ? "":indicators.get(i).getStatement(),row.getCell(7).getTextRecursively());
 
         // validate merge cells
         assertTrue(row.getCell(0).getCTTc().getTcPr().isSetVMerge());

@@ -22,4 +22,6 @@ public class Constants {
     public static final String OUTPUT_LEVEL = "OUTPUT";
     public static final String OUTCOME_LEVEL = "OUTCOME";
 
+    public static final String WORD_CELL_UNEDITABLE_BG = "cccccc";
+
 }

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.*;
 
 import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.exception.IndicatorNotFoundException;
+import com.arqaam.logframelab.model.Activities;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.NumIndicatorsSectorLevel;
 import com.arqaam.logframelab.model.StatementResponse;
@@ -143,8 +144,8 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     Map<String, String> outcomeAssumption = statementResponse.stream().filter(s ->
             s.getLevel().equalsIgnoreCase(Constants.OUTCOME_LEVEL)
     ).collect(HashMap::new, (m,v)->m.put(v.getStatement(), v.getAssumption()), HashMap::putAll);
-
-    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse,statementResponse);
+    Activities  activities = null;
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse,statementResponse,activities);
     assertNotNull(result);
     XWPFDocument resultDoc = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
     assertEquals(2, resultDoc.getTables().size());
@@ -186,8 +187,8 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     Map<String, String> outcomeAssumption = statementResponse.stream().filter(s ->
             s.getLevel().equalsIgnoreCase(Constants.OUTCOME_LEVEL)
     ).collect(HashMap::new, (m,v)->m.put(v.getStatement(), v.getAssumption()), HashMap::putAll);
-
-    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse,statementResponse);
+    Activities activities=null;
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse,statementResponse,activities);
 
     assertNotNull(result);
     XWPFDocument resultDoc = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
@@ -223,7 +224,8 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     Map<String, String> outcomeAssumption = statementResponse.stream().filter(s ->
             s.getLevel().equalsIgnoreCase(Constants.OUTCOME_LEVEL)
     ).collect(HashMap::new, (m,v)->m.put(v.getStatement(), v.getAssumption()), HashMap::putAll);
-    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse , statementResponse);
+    Activities activities=null;
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse , statementResponse,null);
 
     assertNotNull(result);
     XWPFDocument resultDoc = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));
@@ -261,7 +263,8 @@ public class FirstIndicatorServiceTests extends BaseIndicatorServiceTest {
     Map<String, String> outcomeAssumption = statementResponse.stream().filter(s ->
             s.getLevel().equalsIgnoreCase(Constants.OUTCOME_LEVEL)
     ).collect(HashMap::new, (m,v)->m.put(v.getStatement(), v.getAssumption()), HashMap::putAll);
-    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse,statementResponse);
+    Activities activities=null;
+    ByteArrayOutputStream result = indicatorService.exportIndicatorsInWordFile(indicatorResponse, statementResponse,statementResponse,activities);
 
     assertNotNull(result);
     XWPFDocument resultDoc = new XWPFDocument(new ByteArrayInputStream(result.toByteArray()));

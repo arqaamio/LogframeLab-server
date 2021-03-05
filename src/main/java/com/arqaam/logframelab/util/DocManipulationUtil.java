@@ -185,4 +185,17 @@ public class DocManipulationUtil {
         //newly created table has one row by default. we need to remove the default row.
         target.removeRow(0);
     }
+
+    public static void setTextWithBreakOnCell(XWPFTable activityTable,int rowIndex, String text, Integer fontSize ,int cellIndex ,boolean setBold ,boolean addBreak) {
+        XWPFRun run = activityTable.getRow(rowIndex).getCell(cellIndex).addParagraph().createRun();
+        if(setBold){
+            run.setBold(true);
+        }
+        run.setText(text);
+        if(addBreak){
+            run.addBreak();
+        }
+        Optional.of(fontSize).ifPresent(run::setFontSize);
+    }
+
 }

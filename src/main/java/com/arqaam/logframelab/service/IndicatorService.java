@@ -3,6 +3,7 @@ package com.arqaam.logframelab.service;
 import com.arqaam.logframelab.controller.dto.FiltersDto;
 import com.arqaam.logframelab.controller.dto.IndicatorsRequestDto.FilterRequestDto;
 import com.arqaam.logframelab.exception.*;
+import com.arqaam.logframelab.model.Activities;
 import com.arqaam.logframelab.model.IndicatorResponse;
 import com.arqaam.logframelab.model.MLScanIndicatorResponse.MLScanIndicator;
 import com.arqaam.logframelab.model.NumIndicatorsSectorLevel;
@@ -227,7 +228,7 @@ public class IndicatorService implements Logging {
      * @return Word template filled with the indicators
      */
     public ByteArrayOutputStream exportIndicatorsInWordFile(List<IndicatorResponse> indicatorResponses,
-                                                            List<StatementResponse> statements , List<StatementResponse> assumptionStatements) {
+                                                            List<StatementResponse> statements , List<StatementResponse> assumptionStatements , Activities activities) {
         try {
             logger().info("Starting to export the indicators to the word template. IndicatorResponses: {}", indicatorResponses);
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -283,6 +284,7 @@ public class IndicatorService implements Logging {
 
             XWPFDocument document = new XWPFDocument(new ClassPathResource(Constants.WORD_FORMAT+ "_Template" + Constants.WORD_FILE_EXTENSION).getInputStream());
             XWPFTable table = document.getTableArray(0);
+            XWPFTable activityTable = document.getTableArray(1);
             Integer rowIndex = 1;
             rowIndex = fillWordTableByLevel(impactIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
@@ -293,6 +295,7 @@ public class IndicatorService implements Logging {
             fillWordTableByLevel(outputIndicators.stream().sorted(Comparator.comparing(Indicator::getStatement,
                     Comparator.nullsLast(Comparator.naturalOrder()))).collect(Collectors.toList()),
                     table, rowIndex, outputStatements, outputAssumption , "OUTPUT");
+             fillActivityTable(activityTable,activities);
             document.write(outputStream);
             document.close();
             indicatorRepository.saveAll(indicatorList.stream().peek(x-> x.setTimesDownloaded(x.getTimesDownloaded()+1)).collect(Collectors.toList()));
@@ -387,6 +390,23 @@ public class IndicatorService implements Logging {
         }
         return rowIndex;
     }
+    private void fillActivityTable(XWPFTable activityTable ,Activities activities){
+        int rowIndex = 0;
+        DocManipulationUtil.setTextOnCell(activityTable.getRow(rowIndex).getCell(0),"Activity:",DEFAULT_FONT_SIZE);
+        DocManipulationUtil.setTextOnCellWithBoldTitle(activityTable.getRow(rowIndex).getCell(1),"Means",null,DEFAULT_FONT_SIZE);
+        if(activities!=null && activities.getActivity()!=null){
+            activities.getActivity().forEach(activity-> {
+                DocManipulationUtil.setTextWithBreakOnCell(activityTable,rowIndex,activity.getName() ,DEFAULT_FONT_SIZE,0,false,true);
+            });
+
+    DocManipulationUtil.setTextWithBreakOnCell(activityTable,rowIndex, activities.getPolitical_means(),DEFAULT_FONT_SIZE,1,false,true);
+            DocManipulationUtil.setTextWithBreakOnCell(activityTable,rowIndex,activities.getTechnical_means(),DEFAULT_FONT_SIZE,1,false,true);
+            DocManipulationUtil.setTextWithBreakOnCell(activityTable,rowIndex,"Costs",DEFAULT_FONT_SIZE,1,true,false);
+            DocManipulationUtil.setTextWithBreakOnCell(activityTable,rowIndex,activities.getCost(),DEFAULT_FONT_SIZE,1,false,true);
+            DocManipulationUtil.setTextOnCellWithBoldTitle(activityTable.getRow(rowIndex).getCell(2),"Assumption",activities.getAssumption(),DEFAULT_FONT_SIZE);
+        }
+    }
+
 
     /**
      * Import Indicators from an worksheet/excel file with the extension xlsx

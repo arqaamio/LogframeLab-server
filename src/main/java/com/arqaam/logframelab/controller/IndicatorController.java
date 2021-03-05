@@ -101,6 +101,10 @@ public class IndicatorController implements Logging {
                         return y.getStatement().equalsIgnoreCase(x.getStatement());
                     })).collect(Collectors.toList());
         }
+        Activities activities = null;
+        if(request.getActivities()!=null){
+            activities= request.getActivities();
+        }
         ByteArrayOutputStream outputStream;
         String extension = Constants.WORD_FILE_EXTENSION;
         switch (format.toUpperCase()) {
@@ -120,7 +124,7 @@ public class IndicatorController implements Logging {
                 break;
             case Constants.WORD_FORMAT:
             default:
-                outputStream = indicatorService.exportIndicatorsInWordFile(request.getIndicators(), statements ,request.getStatements());
+                outputStream = indicatorService.exportIndicatorsInWordFile(request.getIndicators(), statements ,request.getStatements(),activities);
                 statisticService.addDownloadStatistic(Constants.WORD_FORMAT);
                 break;
         }

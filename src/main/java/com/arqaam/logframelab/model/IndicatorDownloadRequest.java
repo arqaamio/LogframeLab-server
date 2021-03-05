@@ -8,4 +8,5 @@ import java.util.List;
 public class IndicatorDownloadRequest {
     private List<IndicatorResponse> indicators;
     private List<StatementResponse> statements;
+    private Activities activities;
 }

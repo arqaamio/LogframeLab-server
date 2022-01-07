@@ -35,7 +35,7 @@
     <flyway.version>6.3.3</flyway.version>
     <testcontainer.version>1.14.1</testcontainer.version>
     <mockito.junit.jupiter.version>3.3.3</mockito.junit.jupiter.version>
-    <h2.version>1.4.200</h2.version>
+    <h2.version>2.0.206</h2.version>
     <aws.java.sdk.version>2.14.3</aws.java.sdk.version>
   </properties>
 
